@@ -4,6 +4,7 @@
   "type": "Projekt",
   "roles": ["Photoshop 2"],
   "duration": "Ca 4 veckor",
+  "video": "https://www.youtube.com/watch?v=WdQBBiRHQWo",
   "scenario": "Riksgymnasiet har bestämt sig för att lägga ner det här med skola och undervisning. Istället kommer vi att skifta över till ett helt annat område — djurparksturism! Men vår djurpark ska bara innehålla häftiga fantasidjur som inte finns i verkligheten! Vi behöver göra lite reklam för parken innan vi låter våra genetiska biomodifierare klona fram djuren. Ditt jobb är därför att skapa ett djur och reklamaffisch åt Riksgymnasiet Zoo!",
   "steps": {
     "Preproduktion": [
@@ -30,3 +31,4 @@
     { "label": "Pinterest: Animal Mashups", "url": "https://www.pinterest.se/animalmashupsl" }
   ]
 }
+
