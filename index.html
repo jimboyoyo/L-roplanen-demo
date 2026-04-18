@@ -640,12 +640,28 @@ async function openPanel(name) {
   }
 }
 
+function youtubeEmbed(url) {
+  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+}
+
 function renderPanel(d) {
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent =
     [d.type, d.duration].filter(Boolean).join(' · ');
 
   let html = '';
+
+  if (d.video) {
+    const embedUrl = youtubeEmbed(d.video);
+    if (embedUrl) {
+      html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;">
+                 <iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;"
+                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                   allowfullscreen></iframe>
+               </div>`;
+    }
+  }
 
   if (d.scenario) {
     html += `<div class="section-label">Scenario</div>
