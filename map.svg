@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="uuid-9583b921-e48f-4e81-9b16-fb34cdba349d" data-name="Lager 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 553.32 808.98">
+  <defs>
+    <style>
+      .uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd {
+        font-size: 11.13px;
+      }
+
+      .uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd, .uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea, .uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b, .uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39, .uuid-53800396-9159-43f4-aec0-84e31768e509, .uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906, .uuid-6481a698-e23d-4280-802f-c73e357bc75c, .uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69, .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf, .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c, .uuid-40474350-6efb-4466-9428-2abc08f09062, .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a, .uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3 {
+        fill: #fff;
+      }
+
+      .uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd, .uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea, .uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39, .uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906, .uuid-6481a698-e23d-4280-802f-c73e357bc75c, .uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3 {
+        font-family: CenturyGothic-Bold, 'Century Gothic';
+        font-weight: 700;
+      }
+
+      .uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18 {
+        fill: #3c3273;
+        opacity: .71;
+      }
+
+      .uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39 {
+        font-size: 10.97px;
+      }
+
+      .uuid-53800396-9159-43f4-aec0-84e31768e509 {
+        stroke-width: 4.48px;
+      }
+
+      .uuid-53800396-9159-43f4-aec0-84e31768e509, .uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69, .uuid-71004448-fab2-4ea8-a74b-94f0da305595, .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf, .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c, .uuid-40474350-6efb-4466-9428-2abc08f09062, .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a, .uuid-79348ad1-f2a9-4277-adee-320cb99a2d95 {
+        stroke-miterlimit: 10;
+      }
+
+      .uuid-53800396-9159-43f4-aec0-84e31768e509, .uuid-71004448-fab2-4ea8-a74b-94f0da305595, .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf, .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c, .uuid-40474350-6efb-4466-9428-2abc08f09062, .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a {
+        stroke: #3c3273;
+      }
+
+      .uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb {
+        fill: #008d36;
+      }
+
+      .uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906 {
+        font-size: 9.06px;
+      }
+
+      .uuid-6481a698-e23d-4280-802f-c73e357bc75c {
+        font-size: 10.97px;
+      }
+
+      .uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69 {
+        stroke: #0057a0;
+        stroke-width: 1.03px;
+      }
+
+      .uuid-8f16c733-ad9a-4145-9b5c-d1f26667c621 {
+        font-size: 6.55px;
+      }
+
+      .uuid-71004448-fab2-4ea8-a74b-94f0da305595 {
+        opacity: .85;
+        stroke-width: 34.71px;
+      }
+
+      .uuid-71004448-fab2-4ea8-a74b-94f0da305595, .uuid-79348ad1-f2a9-4277-adee-320cb99a2d95 {
+        fill: none;
+      }
+
+      .uuid-14e2579c-09f7-4972-a77f-9caede02b4d3 {
+        font-size: 10.62px;
+      }
+
+      .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf {
+        stroke-width: 4.34px;
+      }
+
+      .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c {
+        stroke-width: 4.84px;
+      }
+
+      .uuid-89ea434b-19d1-421a-9474-8d0fedf8d065 {
+        fill: #1d1d1b;
+      }
+
+      .uuid-f4178697-962a-43a8-b53e-30192fd0e0c7 {
+        fill: #0057a0;
+        font-family: CenturyGothic, 'Century Gothic';
+        font-size: 7.14px;
+      }
+
+      .uuid-40474350-6efb-4466-9428-2abc08f09062 {
+        stroke-width: 4.39px;
+      }
+
+      .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a {
+        stroke-width: 7.22px;
+      }
+
+      .uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3 {
+        font-size: 18.07px;
+      }
+
+      .uuid-79348ad1-f2a9-4277-adee-320cb99a2d95 {
+        stroke: #81358a;
+        stroke-width: 5.79px;
+      }
+    </style>
+  </defs>
+  <g id="uuid-9715bda3-ebf7-4b34-855f-77e526b4d9ef" data-name="LäorPlan">
+    <g id="uuid-b80b4f34-2f5b-470b-8cf3-a9d80c5124ec" data-name="Jätten">
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpKs61kiwAdPj6G_21tTZWcB1gZMl9-pB2rgPCAzwqOHxg?e=B4sXBr">
+        <rect class="uuid-40474350-6efb-4466-9428-2abc08f09062" x="484.24" y="511.81" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
+      </a>
+      <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="484.23" y="524.7" width="66.9" height="16.97"/>
+      <text class="uuid-6481a698-e23d-4280-802f-c73e357bc75c" transform="translate(500.2 536.76)"><tspan x="0" y="0">JÄTTEN</tspan></text>
+    </g>
+    <g>
+      <polyline class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" points="2.83 506.44 33.02 360 107.24 117.56 244.64 6.2 240.3 175.41 383.16 374.04 383.16 478.53"/>
+      <line class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" x1="426.73" y1="499.53" x2="501.04" y2="443.4"/>
+      <line class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" x1="340.73" y1="497.53" x2="269.86" y2="439.78"/>
+      <path class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" d="M437.6,533.02c0-30.35-24.61-54.96-54.96-54.96s-54.96,24.61-54.96,54.96"/>
+      <polyline class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" points="379.12 535 317.96 654.91 385.95 802.03 453.92 652.55 383.05 532.51 429.04 532.58 529.23 532.73"/>
+      <line class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" x1="246.82" y1="532.84" x2="518.05" y2="532.84"/>
+      <circle class="uuid-71004448-fab2-4ea8-a74b-94f0da305595" cx="383.79" cy="533.18" r="134.26"/>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/Ef7Rff8tK9FAmCnDEcWnzVoBz088Bdl4B-YnT9HyBNiBYA?e=fPqFva">
+        <g id="uuid-34a290a7-767d-427a-b560-ef1b4be25917" data-name="Photoshop Nivå 2">
+          <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EmZ-3dEk84hCjJOnSr87UWsBWy8SCBVY07YZOpkQNvpZ2g?e=c9X2Hq">
+            <circle class="uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69" cx="383.4" cy="529.69" r="34.47"/>
+          </a>
+          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="388.18 523.3 378.39 523.3 373.5 531.78 378.39 540.25 388.18 540.25 393.07 531.78 388.18 523.3"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M388.47,540.75h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.68,539.76h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="386.04 527.02 380.54 527.02 377.79 531.78 380.54 536.54 386.04 536.54 388.79 531.78 386.04 527.02"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M386.32,537.04h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.82,536.05h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="388.18 503.93 378.39 503.93 373.5 512.4 378.39 520.88 388.18 520.88 393.07 512.4 388.18 503.93"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M388.47,521.37h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.68,520.38h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+          <polygon class="uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb" points="386.04 507.64 380.54 507.64 377.79 512.4 380.54 517.16 386.04 517.16 388.79 512.4 386.04 507.64"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M386.32,517.66h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.82,516.67h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="371.44 513.62 361.66 513.62 356.76 522.09 361.66 530.57 371.44 530.57 376.33 522.09 371.44 513.62"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M371.73,531.06h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM361.94,530.07h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+          <polygon class="uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb" points="369.3 517.33 363.8 517.33 361.05 522.09 363.8 526.85 369.3 526.85 372.05 522.09 369.3 517.33"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M369.58,527.35h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM364.08,526.36h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="405.14 513.62 395.35 513.62 390.46 522.09 395.35 530.57 405.14 530.57 410.03 522.09 405.14 513.62"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M405.43,531.06h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM395.64,530.07h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+          <polygon class="uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb" points="403 517.33 397.5 517.33 394.75 522.09 397.5 526.85 403 526.85 405.75 522.09 403 517.33"/>
+          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M403.28,527.35h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM397.78,526.36h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+          <text class="uuid-f4178697-962a-43a8-b53e-30192fd0e0c7" transform="translate(364.88 549.86)"><tspan x="0" y="0">Photoshop</tspan><tspan x="16.54" y="8.57">3</tspan></text>
+        </g>
+      </a>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EufpPHjCW6NPgHomX26lORgBXR_rUE3lQKK8zAg-3b2xXw?e=GzV4hN">
+        <g id="uuid-03e64050-8287-4015-b78a-202286fb73b2" data-name="Texteffekten">
+          <rect class="uuid-c9ab320f-15c4-4225-ab75-697fba75db5c" x="415.52" y="623.07" width="73.42" height="47.21" rx="7.48" ry="7.48"/>
+          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="415.51" y="637.31" width="73.44" height="18.74"/>
+          <text class="uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea" transform="translate(439.48 646.8)"><tspan class="uuid-14e2579c-09f7-4972-a77f-9caede02b4d3"><tspan x="0" y="0">TEXT-</tspan></tspan><tspan class="uuid-8f16c733-ad9a-4145-9b5c-d1f26667c621"><tspan x="-1.03" y="7.87">EFFEKTEN</tspan></tspan></text>
+        </g>
+      </a>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpnZsfukAktGkHfSNSXp2McBZpqN9l9wNHG-QAuCksC4cg?e=44uL9p">
+        <g id="uuid-642b5c46-e4b4-4c59-927b-cd5f8d2e0107" data-name="Bildeffekten">
+          <rect class="uuid-c9ab320f-15c4-4225-ab75-697fba75db5c" x="276.86" y="623.07" width="73.42" height="47.21" rx="7.48" ry="7.48"/>
+          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="276.85" y="637.31" width="73.44" height="18.74"/>
+          <text class="uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea" transform="translate(301.03 646.8)"><tspan class="uuid-14e2579c-09f7-4972-a77f-9caede02b4d3"><tspan x="0" y="0">BILD-</tspan></tspan><tspan class="uuid-8f16c733-ad9a-4145-9b5c-d1f26667c621"><tspan x="-1.24" y="7.87">EFFEKTEN</tspan></tspan></text>
+        </g>
+      </a>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/En7dmk8YcsJEroG2sDPQwDQBVOu3sUANVlAk0CxrvtCiZQ?e=tklvFE">
+        <g id="uuid-6e982b52-2d60-4c92-8930-ec23744c9822" data-name="Djuret">
+          <rect class="uuid-674079b0-e591-4131-b9b6-9ef4d139a37a" x="330.87" y="366.3" width="109.51" height="70.42" rx="11.15" ry="11.15"/>
+          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="330.86" y="387.53" width="109.53" height="27.95"/>
+          <text class="uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3" transform="translate(355.91 407.18)"><tspan x="0" y="0">DJURET</tspan></text>
+        </g>
+      </a>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EsAAsgaVQSVIgZNYRbevVnIBsgbIU77QX-qaPRbJdCYnJg?e=m246S0">
+        <g id="uuid-e45b829a-6f7c-4b83-ad92-adb72223a106" data-name="Frukten">
+          <rect class="uuid-40474350-6efb-4466-9428-2abc08f09062" x="474.11" y="414.86" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
+          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="474.11" y="427.75" width="66.9" height="16.97"/>
+          <text class="uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39" transform="translate(485.77 439.67)"><tspan x="0" y="0">FRUKTEN</tspan></text>
+        </g>
+      </a>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpyM1aG_J1BFgzvt-6v1J0EBB3oCqZwNdY2aUTFhLEflVg?e=Gw9j3x">
+        <g id="uuid-84023cff-f70e-4222-8863-33d371f078ae" data-name="Finn Fem Fel">
+          <rect class="uuid-53800396-9159-43f4-aec0-84e31768e509" x="472.1" y="572.05" width="71.39" height="43.39" rx="7.07" ry="7.07"/>
+          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="472.09" y="585.13" width="71.4" height="17.22"/>
+          <text class="uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd" transform="translate(471.94 597.24) scale(1.06 1)"><tspan x="0" y="0">FINN FEM FEL</tspan></text>
+        </g>
+      </a>
+    </g>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgDBVTwuplwGQ5Ei8f0vdXHtARpZItYXgSDlfKuvJz_zxMY?e=k4msIY">
+      <g id="uuid-647c3dd0-fcf3-4e3f-b156-f1f518bcc9a6" data-name="Alternative Movie Poster">
+        <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/Eq57nSskkBVCkuIIFvGmaDQBmaDXfkx8D1mmOkDi5sAmWQ?e=pRZLNM">
+          <rect class="uuid-40474350-6efb-4466-9428-2abc08f09062" x="230.26" y="412.09" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
+        </a>
+        <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="230.25" y="424.98" width="66.9" height="16.97"/>
+        <text class="uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906" transform="translate(236.19 432.18)"><tspan x="0" y="0">ALTERNATIVE</tspan><tspan x="-3.9" y="8.29">MOVIE POSTER</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EiEbbqvugWhJq8bGy_o8otABOHjep9UZYUfZ8pC363wzjg?e=SbN4MA">
+      <g id="uuid-0434a373-4237-4156-8977-0bbd1f3ed9bb" data-name="Monster Me">
+        <rect class="uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf" x="212.16" y="511.81" width="65.19" height="42.74" rx="6.7" ry="6.7"/>
+        <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="212.15" y="524.7" width="65.2" height="16.97"/>
+        <text class="uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39" transform="translate(211.58 536.63) scale(.98 1)"><tspan x="0" y="0">MONSTER ME</tspan></text>
+      </g>
+    </a>
+  </g>
+</svg>
