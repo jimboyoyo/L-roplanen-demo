@@ -1,0 +1,42 @@
+{
+  "id": "collage",
+  "title": "Photoshop: Collage",
+  "type": "Projekt",
+  "roles": ["Photoshop 1"],
+  "intro": "Collage är när man klipper ihop en bild av många andra bilder. Det har man gjort långt innan datorn hjälpte oss att skapa bilder, men det går jättebra att göra med datorns hjälp. Projektet passar bra om du är ny på Photoshop och gillar att klippa och klistra ihop bilder.",
+  "themes": [
+    "Dig själv",
+    "Något intresse du har",
+    "En plats"
+  ],
+  "steps": {
+    "Preproduktion": [
+      "Fundera och bestäm dig för vad collaget ska handla om",
+      "Hitta och spara bilder som du vill använda"
+    ],
+    "Produktion": [
+      "Skapa ett nytt tomt dokument i Photoshop i storlek A3 — stående eller liggande",
+      "Öppna dina bilder och klipp de delar du vill ha i dem",
+      "Klistra in i det tomma dokumentet",
+      "Flytta runt dem, ändra storlek på dem, ändra lagerordning på dem"
+    ],
+    "Postproduktion": [
+      "Spara en .jpg av ditt färdiga collage",
+      "Lägg skiss och färdig bild i en PowerPoint",
+      "Skriv ut ditt collage"
+    ]
+  },
+  "deliverables": [
+    "1 st Collage",
+    "PowerPoint med skiss och färdig bild (.psd-fil bifogas)"
+  ],
+  "resources": [
+    { "label": "Unsplash", "url": "http://www.unsplash.com" },
+    { "label": "Pixabay", "url": "http://www.pixabay.com" },
+    { "label": "Getty Images", "url": "https://www.gettyimages.com/" }
+  ],
+  "examples": [
+    { "label": "Pinterest: Photoshop Collage", "url": "https://www.pinterest.com/jimboyoyo/photoshop-collage/" },
+    { "label": "Reddit: What's the name for this design style?", "url": "https://www.reddit.com/r/graphic_design/comments/1kszuk4/whats_the_name_for_this_design_style/" }
+  ]
+}
