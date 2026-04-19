@@ -788,6 +788,55 @@ area.addEventListener('wheel', e => {
   e.preventDefault();
   zoom(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY);
 }, { passive: false });
+
+// ─── TOUCH SUPPORT (mobile pan + pinch zoom) ─────────────────────────
+
+let lastTouches = null;
+
+area.addEventListener('touchstart', e => {
+  e.preventDefault();
+  lastTouches = e.touches;
+}, { passive: false });
+
+area.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const svg = getSvg();
+  if (!svg) return;
+  const rect = svg.getBoundingClientRect();
+  const touches = e.touches;
+
+  if (touches.length === 1 && lastTouches?.length === 1) {
+    // Single finger — pan
+    const dx = (touches[0].clientX - lastTouches[0].clientX) / rect.width  * vw;
+    const dy = (touches[0].clientY - lastTouches[0].clientY) / rect.height * vh;
+    vx -= dx;
+    vy -= dy;
+    applyViewBox(svg);
+
+  } else if (touches.length === 2 && lastTouches?.length === 2) {
+    // Two fingers — pinch zoom
+    const prevDist = Math.hypot(
+      lastTouches[0].clientX - lastTouches[1].clientX,
+      lastTouches[0].clientY - lastTouches[1].clientY
+    );
+    const newDist = Math.hypot(
+      touches[0].clientX - touches[1].clientX,
+      touches[0].clientY - touches[1].clientY
+    );
+    if (prevDist === 0) return;
+
+    // Zoom toward midpoint of the two fingers
+    const midX = (touches[0].clientX + touches[1].clientX) / 2;
+    const midY = (touches[0].clientY + touches[1].clientY) / 2;
+    zoom(newDist / prevDist, midX, midY);
+  }
+
+  lastTouches = touches;
+}, { passive: false });
+
+area.addEventListener('touchend', e => {
+  lastTouches = e.touches.length > 0 ? e.touches : null;
+}, { passive: false });
 </script>
 
 </body>
