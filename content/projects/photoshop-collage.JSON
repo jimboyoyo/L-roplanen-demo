@@ -3,7 +3,7 @@
   "title": "Photoshop: Collage",
   "type": "Projekt",
   "roles": ["Photoshop 1"],
-  "intro": "Collage är när man klipper ihop en bild av många andra bilder. Det har man gjort långt innan datorn hjälpte oss att skapa bilder, men det går jättebra att göra med datorns hjälp. Projektet passar bra om du är ny på Photoshop och gillar att klippa och klistra ihop bilder.",
+  "scenario": "Collage är när man klipper ihop en bild av många andra bilder. Det har man gjort långt innan datorn hjälpte oss att skapa bilder, men det går jättebra att göra med datorns hjälp. Projektet passar bra om du är ny på Photoshop och gillar att klippa och klistra ihop bilder.",
   "themes": [
     "Dig själv",
     "Något intresse du har",
