@@ -1,202 +1,520 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="uuid-9583b921-e48f-4e81-9b16-fb34cdba349d" data-name="Lager 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 553.32 808.98">
+<svg id="uuid-16dd9aae-8a18-4017-b11d-24959ce6a979" data-name="Lager 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 727.76 1343.47">
   <defs>
     <style>
-      .uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd {
-        font-size: 11.13px;
+      .uuid-45b587d4-0da2-4a28-b0dd-b972697c94c2 {
+        font-size: 7.65px;
       }
 
-      .uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd, .uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea, .uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b, .uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39, .uuid-53800396-9159-43f4-aec0-84e31768e509, .uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906, .uuid-6481a698-e23d-4280-802f-c73e357bc75c, .uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69, .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf, .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c, .uuid-40474350-6efb-4466-9428-2abc08f09062, .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a, .uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3 {
+      .uuid-45b587d4-0da2-4a28-b0dd-b972697c94c2, .uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433, .uuid-22b15c35-59fd-470a-9727-5f04c85e64be, .uuid-67025782-b575-4427-94b4-3a541b5ab48f, .uuid-3b748140-0b34-42d2-b3dc-2cd3418de3fd, .uuid-3d876b10-605f-470c-bbdb-b7130b2a2227, .uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f, .uuid-ea70a9e8-08a4-4617-af7b-b3639f40a155, .uuid-1c6289d4-e27a-455b-869a-d5cda7e093ce, .uuid-1b486e9c-0521-4d84-a70e-2c2f500764ad, .uuid-5e42f45f-1e4e-4349-a7cd-596638fabfe5, .uuid-cb4467e4-70fb-4966-915e-0fc46c4dc561, .uuid-6bff9dff-21cd-4ed1-a6a3-ca5d2b6fda0e, .uuid-0f71ed48-4092-49a9-a162-18f8bbad17d8, .uuid-2558efa9-2069-4258-9940-3ad4f35df9e3, .uuid-eef3ed25-6e06-44f3-9559-4048b367a856, .uuid-3bd3b5b1-5c12-43b9-a1ae-0ae958f2b262, .uuid-0b0abd7c-8b1b-4d4e-bf6c-385a13db8010, .uuid-3bbf2fa7-6de2-4718-ad28-c8d8044621cf, .uuid-838df54d-23b9-4250-8d63-5d1e416a9e98, .uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775, .uuid-5c2f7fa8-bbdc-4337-8c82-33e4dc9c731a, .uuid-3397441c-9d22-47b9-ad8a-5db589c3582e, .uuid-d5bf043e-2c36-41ac-be12-9792b8b1220c {
         fill: #fff;
       }
 
-      .uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd, .uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea, .uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39, .uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906, .uuid-6481a698-e23d-4280-802f-c73e357bc75c, .uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3 {
+      .uuid-45b587d4-0da2-4a28-b0dd-b972697c94c2, .uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433, .uuid-22b15c35-59fd-470a-9727-5f04c85e64be, .uuid-3b748140-0b34-42d2-b3dc-2cd3418de3fd, .uuid-3d876b10-605f-470c-bbdb-b7130b2a2227, .uuid-1c6289d4-e27a-455b-869a-d5cda7e093ce, .uuid-6bff9dff-21cd-4ed1-a6a3-ca5d2b6fda0e, .uuid-0f71ed48-4092-49a9-a162-18f8bbad17d8, .uuid-3bd3b5b1-5c12-43b9-a1ae-0ae958f2b262, .uuid-3bbf2fa7-6de2-4718-ad28-c8d8044621cf, .uuid-3397441c-9d22-47b9-ad8a-5db589c3582e {
         font-family: CenturyGothic-Bold, 'Century Gothic';
         font-weight: 700;
       }
 
-      .uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18 {
+      .uuid-f6ba4e7b-c27f-432a-8a7e-d643605e7b86 {
+        fill: #7c7c7c;
+      }
+
+      .uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433 {
+        font-size: 30.66px;
+      }
+
+      .uuid-22b15c35-59fd-470a-9727-5f04c85e64be {
+        font-size: 13.29px;
+      }
+
+      .uuid-67025782-b575-4427-94b4-3a541b5ab48f {
+        stroke-width: 1.34px;
+      }
+
+      .uuid-67025782-b575-4427-94b4-3a541b5ab48f, .uuid-ea70a9e8-08a4-4617-af7b-b3639f40a155, .uuid-5b204d8a-9eb5-4124-9fda-1115c7caebb3, .uuid-1b486e9c-0521-4d84-a70e-2c2f500764ad, .uuid-5e42f45f-1e4e-4349-a7cd-596638fabfe5, .uuid-cb4467e4-70fb-4966-915e-0fc46c4dc561, .uuid-2558efa9-2069-4258-9940-3ad4f35df9e3, .uuid-eef3ed25-6e06-44f3-9559-4048b367a856, .uuid-980bf762-c861-481c-9160-ac2d20eead5e, .uuid-5eea1a34-7705-48f1-8aab-e3b64b941ce2, .uuid-0b0abd7c-8b1b-4d4e-bf6c-385a13db8010, .uuid-838df54d-23b9-4250-8d63-5d1e416a9e98, .uuid-6fefe2cc-3df8-4b82-b2c1-4e442d9ed722, .uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775, .uuid-5c2f7fa8-bbdc-4337-8c82-33e4dc9c731a, .uuid-ccb97a05-b147-42c3-a5e4-bb005eada873, .uuid-d5bf043e-2c36-41ac-be12-9792b8b1220c {
+        stroke-miterlimit: 10;
+      }
+
+      .uuid-67025782-b575-4427-94b4-3a541b5ab48f, .uuid-1b486e9c-0521-4d84-a70e-2c2f500764ad, .uuid-cb4467e4-70fb-4966-915e-0fc46c4dc561, .uuid-2558efa9-2069-4258-9940-3ad4f35df9e3, .uuid-eef3ed25-6e06-44f3-9559-4048b367a856, .uuid-d5bf043e-2c36-41ac-be12-9792b8b1220c {
+        stroke: #0057a0;
+      }
+
+      .uuid-487fd40c-ab4d-47c7-864c-45c2c06ad3d9 {
+        font-size: 7.94px;
+      }
+
+      .uuid-487fd40c-ab4d-47c7-864c-45c2c06ad3d9, .uuid-f69cf658-4cf9-49ac-9004-e07b778b6740, .uuid-68e520d2-a5de-48c2-b2eb-05412c187a15 {
+        fill: #0057a0;
+        font-family: CenturyGothic, 'Century Gothic';
+      }
+
+      .uuid-3b748140-0b34-42d2-b3dc-2cd3418de3fd {
+        font-size: 11.13px;
+      }
+
+      .uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6 {
         fill: #3c3273;
         opacity: .71;
       }
 
-      .uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39 {
-        font-size: 10.97px;
+      .uuid-ea70a9e8-08a4-4617-af7b-b3639f40a155 {
+        stroke-width: 9.94px;
       }
 
-      .uuid-53800396-9159-43f4-aec0-84e31768e509 {
-        stroke-width: 4.48px;
-      }
-
-      .uuid-53800396-9159-43f4-aec0-84e31768e509, .uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69, .uuid-71004448-fab2-4ea8-a74b-94f0da305595, .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf, .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c, .uuid-40474350-6efb-4466-9428-2abc08f09062, .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a, .uuid-79348ad1-f2a9-4277-adee-320cb99a2d95 {
-        stroke-miterlimit: 10;
-      }
-
-      .uuid-53800396-9159-43f4-aec0-84e31768e509, .uuid-71004448-fab2-4ea8-a74b-94f0da305595, .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf, .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c, .uuid-40474350-6efb-4466-9428-2abc08f09062, .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a {
+      .uuid-ea70a9e8-08a4-4617-af7b-b3639f40a155, .uuid-5e42f45f-1e4e-4349-a7cd-596638fabfe5, .uuid-980bf762-c861-481c-9160-ac2d20eead5e, .uuid-5eea1a34-7705-48f1-8aab-e3b64b941ce2, .uuid-0b0abd7c-8b1b-4d4e-bf6c-385a13db8010, .uuid-838df54d-23b9-4250-8d63-5d1e416a9e98, .uuid-6fefe2cc-3df8-4b82-b2c1-4e442d9ed722, .uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775, .uuid-5c2f7fa8-bbdc-4337-8c82-33e4dc9c731a {
         stroke: #3c3273;
       }
 
-      .uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb {
-        fill: #008d36;
-      }
-
-      .uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906 {
-        font-size: 9.06px;
-      }
-
-      .uuid-6481a698-e23d-4280-802f-c73e357bc75c {
+      .uuid-1c6289d4-e27a-455b-869a-d5cda7e093ce {
         font-size: 10.97px;
       }
 
-      .uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69 {
-        stroke: #0057a0;
-        stroke-width: 1.03px;
+      .uuid-5b204d8a-9eb5-4124-9fda-1115c7caebb3 {
+        stroke-width: 11.57px;
       }
 
-      .uuid-8f16c733-ad9a-4145-9b5c-d1f26667c621 {
-        font-size: 6.55px;
-      }
-
-      .uuid-71004448-fab2-4ea8-a74b-94f0da305595 {
-        opacity: .85;
-        stroke-width: 34.71px;
-      }
-
-      .uuid-71004448-fab2-4ea8-a74b-94f0da305595, .uuid-79348ad1-f2a9-4277-adee-320cb99a2d95 {
+      .uuid-5b204d8a-9eb5-4124-9fda-1115c7caebb3, .uuid-980bf762-c861-481c-9160-ac2d20eead5e, .uuid-5eea1a34-7705-48f1-8aab-e3b64b941ce2, .uuid-6fefe2cc-3df8-4b82-b2c1-4e442d9ed722, .uuid-ccb97a05-b147-42c3-a5e4-bb005eada873 {
         fill: none;
       }
 
-      .uuid-14e2579c-09f7-4972-a77f-9caede02b4d3 {
+      .uuid-5b204d8a-9eb5-4124-9fda-1115c7caebb3, .uuid-ccb97a05-b147-42c3-a5e4-bb005eada873 {
+        stroke: #81358a;
+      }
+
+      .uuid-1b486e9c-0521-4d84-a70e-2c2f500764ad {
+        stroke-width: 1.29px;
+      }
+
+      .uuid-5e42f45f-1e4e-4349-a7cd-596638fabfe5 {
+        stroke-width: 4.48px;
+      }
+
+      .uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29 {
+        fill: #008d36;
+      }
+
+      .uuid-cb4467e4-70fb-4966-915e-0fc46c4dc561 {
+        stroke-width: 1.89px;
+      }
+
+      .uuid-6bff9dff-21cd-4ed1-a6a3-ca5d2b6fda0e {
+        font-size: 9.06px;
+      }
+
+      .uuid-0f71ed48-4092-49a9-a162-18f8bbad17d8 {
+        font-size: 10.97px;
+      }
+
+      .uuid-2558efa9-2069-4258-9940-3ad4f35df9e3 {
+        stroke-width: 1.03px;
+      }
+
+      .uuid-2b6266b8-7dc1-4997-bc0f-b4e421438b3c {
+        font-size: 6.55px;
+      }
+
+      .uuid-eef3ed25-6e06-44f3-9559-4048b367a856 {
+        stroke-width: 1.31px;
+      }
+
+      .uuid-980bf762-c861-481c-9160-ac2d20eead5e {
+        stroke-width: 34.71px;
+      }
+
+      .uuid-980bf762-c861-481c-9160-ac2d20eead5e, .uuid-5eea1a34-7705-48f1-8aab-e3b64b941ce2 {
+        opacity: .85;
+      }
+
+      .uuid-5eea1a34-7705-48f1-8aab-e3b64b941ce2 {
+        stroke-width: 45.99px;
+      }
+
+      .uuid-5ee4f286-06f4-4978-aaaa-291969b7ce91 {
         font-size: 10.62px;
       }
 
-      .uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf {
+      .uuid-3bd3b5b1-5c12-43b9-a1ae-0ae958f2b262 {
+        font-size: 24.59px;
+      }
+
+      .uuid-0b0abd7c-8b1b-4d4e-bf6c-385a13db8010 {
         stroke-width: 4.34px;
       }
 
-      .uuid-c9ab320f-15c4-4225-ab75-697fba75db5c {
+      .uuid-3bbf2fa7-6de2-4718-ad28-c8d8044621cf {
+        font-size: 6.72px;
+      }
+
+      .uuid-838df54d-23b9-4250-8d63-5d1e416a9e98 {
         stroke-width: 4.84px;
       }
 
-      .uuid-89ea434b-19d1-421a-9474-8d0fedf8d065 {
+      .uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7 {
         fill: #1d1d1b;
       }
 
-      .uuid-f4178697-962a-43a8-b53e-30192fd0e0c7 {
-        fill: #0057a0;
-        font-family: CenturyGothic, 'Century Gothic';
+      .uuid-f69cf658-4cf9-49ac-9004-e07b778b6740 {
         font-size: 7.14px;
       }
 
-      .uuid-40474350-6efb-4466-9428-2abc08f09062 {
+      .uuid-6fefe2cc-3df8-4b82-b2c1-4e442d9ed722, .uuid-ccb97a05-b147-42c3-a5e4-bb005eada873 {
+        stroke-width: 5.79px;
+      }
+
+      .uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775 {
         stroke-width: 4.39px;
       }
 
-      .uuid-674079b0-e591-4131-b9b6-9ef4d139a37a {
+      .uuid-5c2f7fa8-bbdc-4337-8c82-33e4dc9c731a {
         stroke-width: 7.22px;
       }
 
-      .uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3 {
+      .uuid-68e520d2-a5de-48c2-b2eb-05412c187a15 {
+        font-size: 8.94px;
+      }
+
+      .uuid-3397441c-9d22-47b9-ad8a-5db589c3582e {
         font-size: 18.07px;
       }
 
-      .uuid-79348ad1-f2a9-4277-adee-320cb99a2d95 {
-        stroke: #81358a;
-        stroke-width: 5.79px;
+      .uuid-d5bf043e-2c36-41ac-be12-9792b8b1220c {
+        stroke-width: 1.37px;
       }
     </style>
+    <symbol id="uuid-cee05f53-1e03-40aa-bb20-2d8e3c114d78" data-name="Ny symbol" viewBox="0 0 12.21 12.21">
+      <g>
+        <circle class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" cx="6.11" cy="6.11" r="6.11"/>
+        <g>
+          <ellipse class="uuid-f6ba4e7b-c27f-432a-8a7e-d643605e7b86" cx="6.11" cy="6.11" rx="4.99" ry="4.82"/>
+          <path class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" d="M9.32,5.81c.57-.67.65-1.58.26-2.31-.01.02-.02.03-.04.05l-1.19,1.39c-.3.35-.84.4-1.2.11s-.41-.81-.11-1.16l1.19-1.39s.03-.03.04-.04c-.81-.23-1.72,0-2.3.67-.57.67-.65,1.58-.26,2.3l-2.55,2.96c-.3.35-.25.87.11,1.16s.9.24,1.2-.11l2.55-2.96c.81.23,1.72,0,2.29-.67Z"/>
+        </g>
+      </g>
+    </symbol>
   </defs>
-  <g id="uuid-9715bda3-ebf7-4b34-855f-77e526b4d9ef" data-name="LäorPlan">
-    <g id="uuid-b80b4f34-2f5b-470b-8cf3-a9d80c5124ec" data-name="Jätten">
-      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpKs61kiwAdPj6G_21tTZWcB1gZMl9-pB2rgPCAzwqOHxg?e=B4sXBr">
-        <rect class="uuid-40474350-6efb-4466-9428-2abc08f09062" x="484.24" y="511.81" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
-      </a>
-      <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="484.23" y="524.7" width="66.9" height="16.97"/>
-      <text class="uuid-6481a698-e23d-4280-802f-c73e357bc75c" transform="translate(500.2 536.76)"><tspan x="0" y="0">JÄTTEN</tspan></text>
-    </g>
+  <g id="uuid-33fcd615-5c3f-43e1-b8c7-6704eab57767" data-name="paths">
+    <line class="uuid-6fefe2cc-3df8-4b82-b2c1-4e442d9ed722" x1="243.19" y1="263.25" x2="727.7" y2="273.98"/>
+    <line class="uuid-5b204d8a-9eb5-4124-9fda-1115c7caebb3" x1="384.15" y1="1062.29" x2="384.15" y2="1204.54"/>
+    <polyline class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" points="384.15 1339.04 384.15 1196.79 475.85 1284.38"/>
+    <line class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" x1="251.5" y1="1189.08" x2="514.76" y2="1189.08"/>
+    <polyline class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" points="2.83 769.28 33.02 622.84 107.24 380.4 244.64 269.04 240.3 438.26 383.16 636.89 383.16 741.37"/>
+    <line class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" x1="426.73" y1="762.37" x2="501.04" y2="706.24"/>
+    <line class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" x1="340.73" y1="760.37" x2="269.86" y2="702.63"/>
+    <path class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" d="M437.6,795.87c0-30.35-24.61-54.96-54.96-54.96s-54.96,24.61-54.96,54.96"/>
+    <polyline class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" points="379.12 797.85 317.96 917.75 385.95 1064.88 453.92 915.39 383.05 795.35 429.04 795.42 529.23 795.57"/>
+    <line class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" x1="246.82" y1="795.68" x2="518.05" y2="795.68"/>
+    <line class="uuid-ccb97a05-b147-42c3-a5e4-bb005eada873" x1="240.3" y1="302.3" x2="243.19" y2=".03"/>
+  </g>
+  <g id="uuid-958624c1-5ebb-4836-b587-8304c359a1cd" data-name="LäorPlan">
     <g>
-      <polyline class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" points="2.83 506.44 33.02 360 107.24 117.56 244.64 6.2 240.3 175.41 383.16 374.04 383.16 478.53"/>
-      <line class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" x1="426.73" y1="499.53" x2="501.04" y2="443.4"/>
-      <line class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" x1="340.73" y1="497.53" x2="269.86" y2="439.78"/>
-      <path class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" d="M437.6,533.02c0-30.35-24.61-54.96-54.96-54.96s-54.96,24.61-54.96,54.96"/>
-      <polyline class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" points="379.12 535 317.96 654.91 385.95 802.03 453.92 652.55 383.05 532.51 429.04 532.58 529.23 532.73"/>
-      <line class="uuid-79348ad1-f2a9-4277-adee-320cb99a2d95" x1="246.82" y1="532.84" x2="518.05" y2="532.84"/>
-      <circle class="uuid-71004448-fab2-4ea8-a74b-94f0da305595" cx="383.79" cy="533.18" r="134.26"/>
-      <a xlink:href="https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/Ef7Rff8tK9FAmCnDEcWnzVoBz088Bdl4B-YnT9HyBNiBYA?e=fPqFva">
-        <g id="uuid-34a290a7-767d-427a-b560-ef1b4be25917" data-name="Photoshop Nivå 2">
-          <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EmZ-3dEk84hCjJOnSr87UWsBWy8SCBVY07YZOpkQNvpZ2g?e=c9X2Hq">
-            <circle class="uuid-c9793196-dcc9-48d7-84d2-2b997fb5fc69" cx="383.4" cy="529.69" r="34.47"/>
-          </a>
-          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="388.18 523.3 378.39 523.3 373.5 531.78 378.39 540.25 388.18 540.25 393.07 531.78 388.18 523.3"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M388.47,540.75h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.68,539.76h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
-          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="386.04 527.02 380.54 527.02 377.79 531.78 380.54 536.54 386.04 536.54 388.79 531.78 386.04 527.02"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M386.32,537.04h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.82,536.05h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
-          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="388.18 503.93 378.39 503.93 373.5 512.4 378.39 520.88 388.18 520.88 393.07 512.4 388.18 503.93"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M388.47,521.37h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.68,520.38h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
-          <polygon class="uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb" points="386.04 507.64 380.54 507.64 377.79 512.4 380.54 517.16 386.04 517.16 388.79 512.4 386.04 507.64"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M386.32,517.66h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.82,516.67h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
-          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="371.44 513.62 361.66 513.62 356.76 522.09 361.66 530.57 371.44 530.57 376.33 522.09 371.44 513.62"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M371.73,531.06h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM361.94,530.07h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
-          <polygon class="uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb" points="369.3 517.33 363.8 517.33 361.05 522.09 363.8 526.85 369.3 526.85 372.05 522.09 369.3 517.33"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M369.58,527.35h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM364.08,526.36h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
-          <polygon class="uuid-82ee006f-5e64-45b0-a03a-22183e9beb5b" points="405.14 513.62 395.35 513.62 390.46 522.09 395.35 530.57 405.14 530.57 410.03 522.09 405.14 513.62"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M405.43,531.06h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM395.64,530.07h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
-          <polygon class="uuid-8856c04d-10d7-40ad-a33c-55bb839f77fb" points="403 517.33 397.5 517.33 394.75 522.09 397.5 526.85 403 526.85 405.75 522.09 403 517.33"/>
-          <path class="uuid-89ea434b-19d1-421a-9474-8d0fedf8d065" d="M403.28,527.35h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM397.78,526.36h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
-          <text class="uuid-f4178697-962a-43a8-b53e-30192fd0e0c7" transform="translate(364.88 549.86)"><tspan x="0" y="0">Photoshop</tspan><tspan x="16.54" y="8.57">3</tspan></text>
-        </g>
+      <circle class="uuid-5eea1a34-7705-48f1-8aab-e3b64b941ce2" cx="239.97" cy="257.69" r="177.54"/>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(76.09 235.22) rotate(-79.27)"><tspan x="0" y="0">P</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(79.27 217.96) rotate(-72.52)"><tspan x="0" y="0">H</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(85.48 197.73) rotate(-64.29)"><tspan x="0" y="0">O</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(97.17 174.38) rotate(-57.43)"><tspan x="0" y="0">T</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(104.03 162.99) rotate(-50.66)"><tspan x="0" y="0">O</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(120.81 143.03) rotate(-43.41)"><tspan x="0" y="0">S</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(132.61 131.71) rotate(-36.87)"><tspan x="0" y="0">H</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(149.43 118.9) rotate(-28.65)"><tspan x="0" y="0">O</tspan></text>
+      <text class="uuid-7a7dd76b-fdcd-4f3d-a9d0-5a9c56aeb433" transform="translate(172.45 106.67) rotate(-21.06)"><tspan x="0" y="0">P</tspan></text>
+    </g>
+    <circle class="uuid-980bf762-c861-481c-9160-ac2d20eead5e" cx="382.16" cy="1191.85" r="134.26"/>
+    <g id="uuid-decf8570-2982-4c81-a490-b496539ffe31" data-name="role-photoshop-4">
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/Ed7O6Dp1qq1Hk0UnP0OkFisBHazRLcZ741VzMcXwyzi7zQ?e=VvaaAg">
+        <circle class="uuid-2558efa9-2069-4258-9940-3ad4f35df9e3" cx="383.25" cy="1061.54" r="34.47"/>
       </a>
-      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EufpPHjCW6NPgHomX26lORgBXR_rUE3lQKK8zAg-3b2xXw?e=GzV4hN">
-        <g id="uuid-03e64050-8287-4015-b78a-202286fb73b2" data-name="Texteffekten">
-          <rect class="uuid-c9ab320f-15c4-4225-ab75-697fba75db5c" x="415.52" y="623.07" width="73.42" height="47.21" rx="7.48" ry="7.48"/>
-          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="415.51" y="637.31" width="73.44" height="18.74"/>
-          <text class="uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea" transform="translate(439.48 646.8)"><tspan class="uuid-14e2579c-09f7-4972-a77f-9caede02b4d3"><tspan x="0" y="0">TEXT-</tspan></tspan><tspan class="uuid-8f16c733-ad9a-4145-9b5c-d1f26667c621"><tspan x="-1.03" y="7.87">EFFEKTEN</tspan></tspan></text>
-        </g>
+      <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="388.03 1055.15 378.25 1055.15 373.35 1063.62 378.25 1072.1 388.03 1072.1 392.92 1063.62 388.03 1055.15"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M388.32,1072.59h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.53,1071.6h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+      <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="385.89 1058.86 380.39 1058.86 377.64 1063.62 380.39 1068.39 385.89 1068.39 388.64 1063.62 385.89 1058.86"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M386.17,1068.88h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.68,1067.89h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+      <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="388.03 1035.77 378.25 1035.77 373.35 1044.25 378.25 1052.72 388.03 1052.72 392.92 1044.25 388.03 1035.77"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M388.32,1053.22h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.53,1052.23h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+      <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="385.89 1039.48 380.39 1039.48 377.64 1044.25 380.39 1049.01 385.89 1049.01 388.64 1044.25 385.89 1039.48"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M386.17,1049.5h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.68,1048.51h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+      <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="371.29 1045.46 361.51 1045.46 356.61 1053.94 361.51 1062.41 371.29 1062.41 376.19 1053.94 371.29 1045.46"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M371.58,1062.9h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM361.79,1061.92h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+      <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="369.15 1049.17 363.65 1049.17 360.9 1053.94 363.65 1058.7 369.15 1058.7 371.9 1053.94 369.15 1049.17"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M369.43,1059.19h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM363.94,1058.2h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+      <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="404.99 1045.46 395.21 1045.46 390.31 1053.94 395.21 1062.41 404.99 1062.41 409.88 1053.94 404.99 1045.46"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M405.28,1062.9h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM395.49,1061.92h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+      <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="402.85 1049.17 397.35 1049.17 394.6 1053.94 397.35 1058.7 402.85 1058.7 405.6 1053.94 402.85 1049.17"/>
+      <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M403.13,1059.19h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM397.63,1058.2h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+      <text class="uuid-f69cf658-4cf9-49ac-9004-e07b778b6740" transform="translate(364.73 1081.7)"><tspan x="0" y="0">Photoshop</tspan><tspan x="16.54" y="8.57">4</tspan></text>
+    </g>
+    <g id="uuid-b56bf03e-e192-4e78-88b7-7f144d06e8d9" data-name="photoshop-stad-fran-fantasin">
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/ElqObtt47IRMtM6ipkb-r5EBf90ROGfrFQT4DF5GuTOTdA?e=8Uyl29">
+        <rect class="uuid-5c2f7fa8-bbdc-4337-8c82-33e4dc9c731a" x="328.65" y="1158.47" width="109.51" height="70.42" rx="11.15" ry="11.15"/>
       </a>
-      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpnZsfukAktGkHfSNSXp2McBZpqN9l9wNHG-QAuCksC4cg?e=44uL9p">
-        <g id="uuid-642b5c46-e4b4-4c59-927b-cd5f8d2e0107" data-name="Bildeffekten">
-          <rect class="uuid-c9ab320f-15c4-4225-ab75-697fba75db5c" x="276.86" y="623.07" width="73.42" height="47.21" rx="7.48" ry="7.48"/>
-          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="276.85" y="637.31" width="73.44" height="18.74"/>
-          <text class="uuid-0a2fc96b-822d-4e2a-9004-c9cd8d13c9ea" transform="translate(301.03 646.8)"><tspan class="uuid-14e2579c-09f7-4972-a77f-9caede02b4d3"><tspan x="0" y="0">BILD-</tspan></tspan><tspan class="uuid-8f16c733-ad9a-4145-9b5c-d1f26667c621"><tspan x="-1.24" y="7.87">EFFEKTEN</tspan></tspan></text>
-        </g>
+      <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="328.64" y="1179.7" width="109.53" height="27.95"/>
+      <text class="uuid-22b15c35-59fd-470a-9727-5f04c85e64be" transform="translate(349.31 1190.6)"><tspan x="0" y="0">STAD FRÅN</tspan><tspan x="3.59" y="15.95">FANTASIN</tspan></text>
+    </g>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/Ev94_Zcz_JlGvWv9RPc4cOMBltTxgq4nJr5Q0oYp1qla5w?e=kkhuzj">
+      <g id="uuid-6c5e9b4a-b842-4bba-aa86-97f9a41ff2e4" data-name="photoshop-jag-var-verkligen-dar">
+        <rect class="uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775" x="483.35" y="1164.77" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="483.34" y="1177.66" width="66.9" height="16.97"/>
+        <text class="uuid-3bbf2fa7-6de2-4718-ad28-c8d8044621cf" transform="translate(502.91 1184.67)"><tspan x="0" y="0">JAG VAR</tspan><tspan x="-10.68" y="8.06">VERKLIGEN DÄR</tspan></text>
+      </g>
+    </a>
+    <g>
+      <g>
+        <rect class="uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775" x="213.89" y="1165.46" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="213.88" y="1178.35" width="66.9" height="16.97"/>
+        <text class="uuid-45b587d4-0da2-4a28-b0dd-b972697c94c2" transform="translate(229.22 1185.12)"><tspan x="0" y="0">STREAMER</tspan><tspan x="1.3" y="9.18">OVERLAY</tspan></text>
+      </g>
+      <g>
+        <ellipse class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" cx="273.04" cy="1172.68" rx="3.12" ry="3.1"/>
+        <path class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" d="M275.05,1172.49c.36-.43.41-1.02.16-1.48,0,.01-.01.02-.02.03l-.75.89c-.19.22-.53.26-.75.07s-.26-.52-.07-.75l.75-.89s.02-.02.03-.03c-.51-.15-1.08,0-1.44.43s-.41,1.01-.16,1.48l-1.59,1.9c-.19.22-.16.56.07.75s.57.16.75-.07l1.59-1.9c.51.15,1.08,0,1.44-.43Z"/>
+      </g>
+    </g>
+    <circle class="uuid-980bf762-c861-481c-9160-ac2d20eead5e" cx="383.79" cy="796.02" r="134.26"/>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EiEbbqvugWhJq8bGy_o8otABOHjep9UZYUfZ8pC363wzjg?e=SbN4MA">
+      <g id="uuid-e7ca55a8-03f9-4113-982d-1f9a31d354d7" data-name="photoshop-monster-me">
+        <rect class="uuid-0b0abd7c-8b1b-4d4e-bf6c-385a13db8010" x="212.16" y="774.65" width="65.19" height="42.74" rx="6.7" ry="6.7"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="212.15" y="787.54" width="65.2" height="16.97"/>
+        <text class="uuid-1c6289d4-e27a-455b-869a-d5cda7e093ce" transform="translate(211.58 799.47) scale(.98 1)"><tspan x="0" y="0">MONSTER ME</tspan></text>
+      </g>
+    </a>
+    <g id="uuid-ddd8d1e4-1fb8-4def-8ddf-f653772bb953" data-name="photoshop-jatten">
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpKs61kiwAdPj6G_21tTZWcB1gZMl9-pB2rgPCAzwqOHxg?e=B4sXBr">
+        <rect class="uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775" x="484.24" y="774.65" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
       </a>
-      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/En7dmk8YcsJEroG2sDPQwDQBVOu3sUANVlAk0CxrvtCiZQ?e=tklvFE">
-        <g id="uuid-6e982b52-2d60-4c92-8930-ec23744c9822" data-name="Djuret">
-          <rect class="uuid-674079b0-e591-4131-b9b6-9ef4d139a37a" x="330.87" y="366.3" width="109.51" height="70.42" rx="11.15" ry="11.15"/>
-          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="330.86" y="387.53" width="109.53" height="27.95"/>
-          <text class="uuid-b492de68-15c5-4a38-9d6e-8d260ccdd7e3" transform="translate(355.91 407.18)"><tspan x="0" y="0">DJURET</tspan></text>
+      <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="484.23" y="787.54" width="66.9" height="16.97"/>
+      <text class="uuid-0f71ed48-4092-49a9-a162-18f8bbad17d8" transform="translate(500.2 799.61)"><tspan x="0" y="0">JÄTTEN</tspan></text>
+    </g>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/Ef7Rff8tK9FAmCnDEcWnzVoBz088Bdl4B-YnT9HyBNiBYA?e=fPqFva">
+      <g id="uuid-3879ab49-c596-4cbf-ae33-817708c15e73" data-name="role-photoshop-3">
+        <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EmZ-3dEk84hCjJOnSr87UWsBWy8SCBVY07YZOpkQNvpZ2g?e=c9X2Hq">
+          <circle class="uuid-2558efa9-2069-4258-9940-3ad4f35df9e3" cx="383.4" cy="792.54" r="34.47"/>
+        </a>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="388.18 786.14 378.39 786.14 373.5 794.62 378.39 803.09 388.18 803.09 393.07 794.62 388.18 786.14"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M388.47,803.59h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.68,802.6h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="386.04 789.86 380.54 789.86 377.79 794.62 380.54 799.38 386.04 799.38 388.79 794.62 386.04 789.86"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M386.32,799.88h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.82,798.89h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="388.18 766.77 378.39 766.77 373.5 775.24 378.39 783.72 388.18 783.72 393.07 775.24 388.18 766.77"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M388.47,784.21h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM378.68,783.22h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="386.04 770.48 380.54 770.48 377.79 775.24 380.54 780.01 386.04 780.01 388.79 775.24 386.04 770.48"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M386.32,780.5h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM380.82,779.51h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="371.44 776.46 361.66 776.46 356.76 784.93 361.66 793.41 371.44 793.41 376.33 784.93 371.44 776.46"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M371.73,793.9h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM361.94,792.91h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="369.3 780.17 363.8 780.17 361.05 784.93 363.8 789.69 369.3 789.69 372.05 784.93 369.3 780.17"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M369.58,790.19h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM364.08,789.2h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="405.14 776.46 395.35 776.46 390.46 784.93 395.35 793.41 405.14 793.41 410.03 784.93 405.14 776.46"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M405.43,793.9h-10.36l-5.18-8.97,5.18-8.97h10.36l5.18,8.97-5.18,8.97ZM395.64,792.91h9.21l4.61-7.98-4.61-7.98h-9.21l-4.61,7.98,4.61,7.98Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="403 780.17 397.5 780.17 394.75 784.93 397.5 789.69 403 789.69 405.75 784.93 403 780.17"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M403.28,790.19h-6.07l-3.04-5.26,3.04-5.26h6.07l3.04,5.26-3.04,5.26ZM397.78,789.2h4.93l2.46-4.27-2.46-4.27h-4.93l-2.46,4.27,2.46,4.27Z"/>
+        <text class="uuid-f69cf658-4cf9-49ac-9004-e07b778b6740" transform="translate(364.88 812.7)"><tspan x="0" y="0">Photoshop</tspan><tspan x="16.54" y="8.57">3</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EufpPHjCW6NPgHomX26lORgBXR_rUE3lQKK8zAg-3b2xXw?e=GzV4hN">
+      <g id="uuid-a2ee3611-745e-427b-a538-b9f6fa560086" data-name="photoshop-texteffekten">
+        <rect class="uuid-838df54d-23b9-4250-8d63-5d1e416a9e98" x="415.52" y="885.91" width="73.42" height="47.21" rx="7.48" ry="7.48"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="415.51" y="900.15" width="73.44" height="18.74"/>
+        <text class="uuid-3d876b10-605f-470c-bbdb-b7130b2a2227" transform="translate(439.48 909.64)"><tspan class="uuid-5ee4f286-06f4-4978-aaaa-291969b7ce91"><tspan x="0" y="0">TEXT-</tspan></tspan><tspan class="uuid-2b6266b8-7dc1-4997-bc0f-b4e421438b3c"><tspan x="-1.03" y="7.87">EFFEKTEN</tspan></tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpnZsfukAktGkHfSNSXp2McBZpqN9l9wNHG-QAuCksC4cg?e=44uL9p">
+      <g id="uuid-4c98345b-871c-4e22-b1df-6041f5ecf52f" data-name="photoshop-bildeffekten">
+        <rect class="uuid-838df54d-23b9-4250-8d63-5d1e416a9e98" x="276.86" y="885.91" width="73.42" height="47.21" rx="7.48" ry="7.48"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="276.85" y="900.15" width="73.44" height="18.74"/>
+        <text class="uuid-3d876b10-605f-470c-bbdb-b7130b2a2227" transform="translate(301.03 909.64)"><tspan class="uuid-5ee4f286-06f4-4978-aaaa-291969b7ce91"><tspan x="0" y="0">BILD-</tspan></tspan><tspan class="uuid-2b6266b8-7dc1-4997-bc0f-b4e421438b3c"><tspan x="-1.24" y="7.87">EFFEKTEN</tspan></tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/En7dmk8YcsJEroG2sDPQwDQBVOu3sUANVlAk0CxrvtCiZQ?e=tklvFE">
+      <g id="uuid-52081440-d316-46da-9c11-9b2a1d504a5d" data-name="Photoshop-djuret">
+        <rect class="uuid-5c2f7fa8-bbdc-4337-8c82-33e4dc9c731a" x="330.87" y="629.14" width="109.51" height="70.42" rx="11.15" ry="11.15"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="330.86" y="650.37" width="109.53" height="27.95"/>
+        <text class="uuid-3397441c-9d22-47b9-ad8a-5db589c3582e" transform="translate(355.91 670.02)"><tspan x="0" y="0">DJURET</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EsAAsgaVQSVIgZNYRbevVnIBsgbIU77QX-qaPRbJdCYnJg?e=m246S0">
+      <g id="uuid-8f1297d4-cf9d-4901-bfeb-2cb1ebf7853f" data-name="photoshop-frukten">
+        <rect class="uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775" x="474.11" y="677.7" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="474.11" y="690.59" width="66.9" height="16.97"/>
+        <text class="uuid-1c6289d4-e27a-455b-869a-d5cda7e093ce" transform="translate(485.77 702.51)"><tspan x="0" y="0">FRUKTEN</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgDBVTwuplwGQ5Ei8f0vdXHtARpZItYXgSDlfKuvJz_zxMY?e=k4msIY">
+      <g id="uuid-b37246d3-48b9-4a99-979c-b421a9f89898" data-name="photoshop-alternative-movie-poster">
+        <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/Eq57nSskkBVCkuIIFvGmaDQBmaDXfkx8D1mmOkDi5sAmWQ?e=pRZLNM">
+          <rect class="uuid-a2ca90d5-56c9-44b3-b4a5-d078f14e0775" x="230.26" y="674.94" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
+        </a>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="230.25" y="687.82" width="66.9" height="16.97"/>
+        <text class="uuid-6bff9dff-21cd-4ed1-a6a3-ca5d2b6fda0e" transform="translate(236.19 695.03)"><tspan x="0" y="0">ALTERNATIVE</tspan><tspan x="-3.9" y="8.29">MOVIE POSTER</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpyM1aG_J1BFgzvt-6v1J0EBB3oCqZwNdY2aUTFhLEflVg?e=Gw9j3x">
+      <g id="uuid-88b8600e-27b4-447f-a359-6673e1e440ee" data-name="photoshop-finn-fem-fel">
+        <rect class="uuid-5e42f45f-1e4e-4349-a7cd-596638fabfe5" x="472.1" y="834.89" width="71.39" height="43.39" rx="7.07" ry="7.07"/>
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="472.09" y="847.97" width="71.4" height="17.22"/>
+        <text class="uuid-3b748140-0b34-42d2-b3dc-2cd3418de3fd" transform="translate(471.94 860.08) scale(1.06 1)"><tspan x="0" y="0">FINN FEM FEL</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpCNa1I0FXpEr3PG3XitsK4BUtPdzppfaZrdXQKmgePgBQ?e=x8qRvA">
+      <g id="uuid-4eb1fe16-76e5-4b05-8a4d-600bdf7fc652" data-name="role-filmare-1">
+        <circle class="uuid-cb4467e4-70fb-4966-915e-0fc46c4dc561" cx="362.48" cy="393.17" r="38.33"/>
+        <g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="367.79 386.06 356.91 386.06 351.47 395.49 356.91 404.91 367.79 404.91 373.24 395.49 367.79 386.06"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M368.11,405.46h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM357.23,404.36h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="365.41 390.19 359.3 390.19 356.24 395.49 359.3 400.78 365.41 400.78 368.47 395.49 365.41 390.19"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M365.73,401.33h-6.75l-3.37-5.85,3.37-5.85h6.75l3.37,5.85-3.37,5.85ZM359.61,400.23h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="367.79 364.52 356.91 364.52 351.47 373.94 356.91 383.37 367.79 383.37 373.24 373.94 367.79 364.52"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M368.11,383.92h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM357.23,382.82h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="365.41 368.65 359.3 368.65 356.24 373.94 359.3 379.24 365.41 379.24 368.47 373.94 365.41 368.65"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M365.73,379.79h-6.75l-3.37-5.85,3.37-5.85h6.75l3.37,5.85-3.37,5.85ZM359.61,378.69h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="349.18 375.29 338.3 375.29 332.86 384.72 338.3 394.14 349.18 394.14 354.62 384.72 349.18 375.29"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M349.5,394.69h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM338.62,393.59h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="346.8 379.42 340.68 379.42 337.62 384.72 340.68 390.01 346.8 390.01 349.85 384.72 346.8 379.42"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M347.11,390.56h-6.75l-3.37-5.85,3.37-5.85h6.75l3.38,5.85-3.38,5.85ZM341,389.46h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="386.65 375.29 375.77 375.29 370.33 384.72 375.77 394.14 386.65 394.14 392.09 384.72 386.65 375.29"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M386.97,394.69h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM376.09,393.59h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="384.27 379.42 378.16 379.42 375.1 384.72 378.16 390.01 384.27 390.01 387.33 384.72 384.27 379.42"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M384.59,390.56h-6.75l-3.38-5.85,3.38-5.85h6.75l3.38,5.85-3.38,5.85ZM378.47,389.46h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
         </g>
+        <text class="uuid-487fd40c-ab4d-47c7-864c-45c2c06ad3d9" transform="translate(348.74 415.59)"><tspan x="0" y="0">Filmare</tspan><tspan x="11.53" y="9.53">1</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/Eav258a9BORNsX5Rqd9v07gBJ5z8tSvH_ENnGSjRkACLYg?e=z9dW3o">
+      <g id="uuid-4c1dc8f3-4523-4749-b06a-3a74a559dd3d" data-name="role-photoshop-2">
+        <circle class="uuid-eef3ed25-6e06-44f3-9559-4048b367a856" cx="236.32" cy="435.62" r="38.33"/>
+        <text class="uuid-487fd40c-ab4d-47c7-864c-45c2c06ad3d9" transform="translate(212.43 460.11)"><tspan x="0" y="0">Photoshop 2</tspan></text>
+        <g>
+          <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="240.46 420.82 231.98 420.82 227.74 428.17 231.98 435.51 240.46 435.51 244.7 428.17 240.46 420.82"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M240.71,435.94h-8.97l-4.49-7.77,4.49-7.77h8.97l4.49,7.77-4.49,7.77ZM232.23,435.08h7.98l3.99-6.91-3.99-6.91h-7.98l-3.99,6.91,3.99,6.91Z"/>
+          <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="238.61 424.04 233.84 424.04 231.46 428.17 233.84 432.29 238.61 432.29 240.99 428.17 238.61 424.04"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M238.85,432.72h-5.26l-2.63-4.56,2.63-4.56h5.26l2.63,4.56-2.63,4.56ZM234.09,431.87h4.27l2.13-3.7-2.13-3.7h-4.27l-2.13,3.7,2.13,3.7Z"/>
+          <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="240.46 404.03 231.98 404.03 227.74 411.38 231.98 418.72 240.46 418.72 244.7 411.38 240.46 404.03"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M240.71,419.15h-8.97l-4.49-7.77,4.49-7.77h8.97l4.49,7.77-4.49,7.77ZM232.23,418.29h7.98l3.99-6.91-3.99-6.91h-7.98l-3.99,6.91,3.99,6.91Z"/>
+          <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="238.61 407.25 233.84 407.25 231.46 411.38 233.84 415.5 238.61 415.5 240.99 411.38 238.61 407.25"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M238.85,415.93h-5.26l-2.63-4.56,2.63-4.56h5.26l2.63,4.56-2.63,4.56ZM234.09,415.08h4.27l2.13-3.7-2.13-3.7h-4.27l-2.13,3.7,2.13,3.7Z"/>
+          <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="225.96 412.43 217.48 412.43 213.24 419.77 217.48 427.12 225.96 427.12 230.2 419.77 225.96 412.43"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M226.21,427.54h-8.98l-4.49-7.77,4.49-7.77h8.98l4.49,7.77-4.49,7.77ZM217.73,426.69h7.98l3.99-6.91-3.99-6.91h-7.98l-3.99,6.91,3.99,6.91Z"/>
+          <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="224.1 415.65 219.34 415.65 216.95 419.77 219.34 423.9 224.1 423.9 226.48 419.77 224.1 415.65"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M224.35,424.33h-5.26l-2.63-4.56,2.63-4.56h5.26l2.63,4.56-2.63,4.56ZM219.58,423.47h4.27l2.14-3.7-2.14-3.7h-4.27l-2.13,3.7,2.13,3.7Z"/>
+          <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="255.16 412.43 246.68 412.43 242.44 419.77 246.68 427.12 255.16 427.12 259.4 419.77 255.16 412.43"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M255.41,427.54h-8.98l-4.49-7.77,4.49-7.77h8.98l4.49,7.77-4.49,7.77ZM246.93,426.69h7.98l3.99-6.91-3.99-6.91h-7.98l-3.99,6.91,3.99,6.91Z"/>
+          <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="253.3 415.65 248.54 415.65 246.15 419.77 248.54 423.9 253.3 423.9 255.68 419.77 253.3 415.65"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M253.55,424.33h-5.26l-2.63-4.56,2.63-4.56h5.26l2.63,4.56-2.63,4.56ZM248.78,423.47h4.27l2.14-3.7-2.14-3.7h-4.27l-2.14,3.7,2.14,3.7Z"/>
+          <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="240.67 437.39 232.19 437.39 227.95 444.73 232.19 452.08 240.67 452.08 244.91 444.73 240.67 437.39"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M240.91,452.5h-8.98l-4.49-7.77,4.49-7.77h8.98l4.49,7.77-4.49,7.77ZM232.43,451.65h7.98l3.99-6.91-3.99-6.91h-7.98l-3.99,6.91,3.99,6.91Z"/>
+          <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="238.81 440.61 234.04 440.61 231.66 444.73 234.04 448.86 238.81 448.86 241.19 444.73 238.81 440.61"/>
+          <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M239.06,449.29h-5.26l-2.63-4.56,2.63-4.56h5.26l2.63,4.56-2.63,4.56ZM234.29,448.43h4.27l2.14-3.7-2.14-3.7h-4.27l-2.14,3.7,2.14,3.7Z"/>
+        </g>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/EbsjWG-AET9IuWHuEG4WcegB75rzBduMVB33BCudYpN-nA?e=1vfkhE">
+      <g id="uuid-149a4878-6e9c-4634-a29e-7a29124fae91" data-name="role-fotograf-1">
+        <circle class="uuid-d5bf043e-2c36-41ac-be12-9792b8b1220c" cx="420.59" cy="254.38" r="38.33"/>
+        <g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="425.91 247.27 415.03 247.27 409.59 256.7 415.03 266.12 425.91 266.12 431.35 256.7 425.91 247.27"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M426.23,266.67h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM415.35,265.57h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="423.53 251.4 417.42 251.4 414.36 256.7 417.42 261.99 423.53 261.99 426.59 256.7 423.53 251.4"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M423.85,262.54h-6.75l-3.37-5.85,3.37-5.85h6.75l3.37,5.85-3.37,5.85ZM417.73,261.44h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="425.91 225.73 415.03 225.73 409.59 235.15 415.03 244.57 425.91 244.57 431.35 235.15 425.91 225.73"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M426.23,245.12h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM415.35,244.02h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="423.53 229.85 417.42 229.85 414.36 235.15 417.42 240.45 423.53 240.45 426.59 235.15 423.53 229.85"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M423.85,241h-6.75l-3.37-5.85,3.37-5.85h6.75l3.37,5.85-3.37,5.85ZM417.73,239.9h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="407.3 236.5 396.42 236.5 390.98 245.92 396.42 255.35 407.3 255.35 412.74 245.92 407.3 236.5"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M407.62,255.9h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM396.73,254.8h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="404.92 240.63 398.8 240.63 395.74 245.92 398.8 251.22 404.92 251.22 407.97 245.92 404.92 240.63"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M405.23,251.77h-6.75l-3.37-5.85,3.37-5.85h6.75l3.38,5.85-3.38,5.85ZM399.12,250.67h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="444.77 236.5 433.89 236.5 428.45 245.92 433.89 255.35 444.77 255.35 450.21 245.92 444.77 236.5"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M445.09,255.9h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM434.21,254.8h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+          </g>
+          <g>
+            <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="442.39 240.63 436.27 240.63 433.22 245.92 436.27 251.22 442.39 251.22 445.45 245.92 442.39 240.63"/>
+            <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M442.71,251.77h-6.75l-3.38-5.85,3.38-5.85h6.75l3.38,5.85-3.38,5.85ZM436.59,250.67h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+          </g>
+        </g>
+        <text class="uuid-487fd40c-ab4d-47c7-864c-45c2c06ad3d9" transform="translate(400.99 278.86)"><tspan x="0" y="0">Fotograf 1</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/Ee0aS1gMS25Op1bNZdRZu5UBNeZYQfnvowsrdCe-aVfnQA?e=zJwUcK">
+      <g id="uuid-6dd79c0d-6b72-4c56-8c9e-b748b259bcee" data-name="role-digitalt-maleri-1">
+        <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EuJJIIt7bf5FpDBVp7dnPHMB0fyKqqHHREG2DjbY94OQJA?e=iszRPk">
+          <circle class="uuid-67025782-b575-4427-94b4-3a541b5ab48f" cx="108.53" cy="376.99" r="38.33"/>
+        </a>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="113.85 369.88 102.97 369.88 97.53 379.31 102.97 388.73 113.85 388.73 119.29 379.31 113.85 369.88"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M114.17,389.28h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM103.29,388.18h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="111.47 374.01 105.35 374.01 102.29 379.31 105.35 384.6 111.47 384.6 114.52 379.31 111.47 374.01"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M111.78,385.15h-6.75l-3.37-5.85,3.37-5.85h6.75l3.37,5.85-3.37,5.85ZM105.67,384.05h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="113.85 348.34 102.97 348.34 97.53 357.76 102.97 367.19 113.85 367.19 119.29 357.76 113.85 348.34"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M114.17,367.74h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM103.29,366.64h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="111.47 352.47 105.35 352.47 102.29 357.76 105.35 363.06 111.47 363.06 114.52 357.76 111.47 352.47"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M111.78,363.61h-6.75l-3.37-5.85,3.37-5.85h6.75l3.37,5.85-3.37,5.85ZM105.67,362.51h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="95.24 359.11 84.35 359.11 78.91 368.53 84.35 377.96 95.24 377.96 100.68 368.53 95.24 359.11"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M95.55,378.51h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM84.67,377.41h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="92.85 363.24 86.74 363.24 83.68 368.53 86.74 373.83 92.85 373.83 95.91 368.53 92.85 363.24"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M93.17,374.38h-6.75l-3.37-5.85,3.37-5.85h6.75l3.38,5.85-3.38,5.85ZM87.05,373.28h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="132.71 359.11 121.83 359.11 116.39 368.53 121.83 377.96 132.71 377.96 138.15 368.53 132.71 359.11"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M133.03,378.51h-11.52l-5.76-9.97,5.76-9.97h11.52l5.76,9.97-5.76,9.97ZM122.14,377.41h10.25l5.12-8.87-5.12-8.87h-10.25l-5.12,8.87,5.12,8.87Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="130.32 363.24 124.21 363.24 121.15 368.53 124.21 373.83 130.32 373.83 133.38 368.53 130.32 363.24"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M130.64,374.38h-6.75l-3.38-5.85,3.38-5.85h6.75l3.38,5.85-3.38,5.85ZM124.53,373.28h5.48l2.74-4.75-2.74-4.75h-5.48l-2.74,4.75,2.74,4.75Z"/>
+        <text class="uuid-487fd40c-ab4d-47c7-864c-45c2c06ad3d9" transform="translate(82.28 399.41)"><tspan x="0" y="0">Digitalt Måleri</tspan><tspan x="24.04" y="9.53">1</tspan></text>
+      </g>
+    </a>
+    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EuJJIIt7bf5FpDBVp7dnPHMB0fyKqqHHREG2DjbY94OQJA?e=Hu877G">
+      <g id="uuid-052be53f-3c25-4b51-9413-ea33e73239e1" data-name="role-photoshop-1">
+        <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EuJJIIt7bf5FpDBVp7dnPHMB0fyKqqHHREG2DjbY94OQJA?e=iszRPk">
+          <circle class="uuid-1b486e9c-0521-4d84-a70e-2c2f500764ad" cx="241.32" cy="82.19" r="43.12"/>
+        </a>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="247.31 74.2 235.07 74.2 228.94 84.8 235.07 95.4 247.31 95.4 253.43 84.8 247.31 74.2"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M247.66,96.02h-12.96l-6.48-11.22,6.48-11.22h12.96l6.48,11.22-6.48,11.22ZM235.42,94.78h11.53l5.76-9.98-5.76-9.98h-11.53l-5.76,9.98,5.76,9.98Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="244.63 78.84 237.75 78.84 234.31 84.8 237.75 90.76 244.63 90.76 248.07 84.8 244.63 78.84"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M244.98,91.38h-7.59l-3.8-6.58,3.8-6.58h7.59l3.8,6.58-3.8,6.58ZM238.1,90.14h6.16l3.08-5.34-3.08-5.34h-6.16l-3.08,5.34,3.08,5.34Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="247.31 49.96 235.07 49.96 228.94 60.56 235.07 71.16 247.31 71.16 253.43 60.56 247.31 49.96"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M247.66,71.78h-12.96l-6.48-11.22,6.48-11.22h12.96l6.48,11.22-6.48,11.22ZM235.42,70.55h11.53l5.76-9.98-5.76-9.98h-11.53l-5.76,9.98,5.76,9.98Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="244.63 54.6 237.75 54.6 234.31 60.56 237.75 66.52 244.63 66.52 248.07 60.56 244.63 54.6"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M244.98,67.14h-7.59l-3.8-6.58,3.8-6.58h7.59l3.8,6.58-3.8,6.58ZM238.1,65.9h6.16l3.08-5.34-3.08-5.34h-6.16l-3.08,5.34,3.08,5.34Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="226.37 62.08 214.12 62.08 208 72.68 214.12 83.28 226.37 83.28 232.49 72.68 226.37 62.08"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M226.72,83.9h-12.96l-6.48-11.22,6.48-11.22h12.96l6.48,11.22-6.48,11.22ZM214.48,82.66h11.53l5.76-9.98-5.76-9.98h-11.53l-5.76,9.98,5.76,9.98Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="223.68 66.72 216.81 66.72 213.37 72.68 216.81 78.64 223.68 78.64 227.12 72.68 223.68 66.72"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M224.04,79.26h-7.59l-3.8-6.58,3.8-6.58h7.59l3.8,6.58-3.8,6.58ZM217.16,78.02h6.16l3.08-5.34-3.08-5.34h-6.16l-3.08,5.34,3.08,5.34Z"/>
+        <polygon class="uuid-58ba69c7-0c9a-4b4f-b11d-fab5e00db89f" points="268.52 62.08 256.28 62.08 250.16 72.68 256.28 83.28 268.52 83.28 274.64 72.68 268.52 62.08"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M268.88,83.9h-12.96l-6.48-11.22,6.48-11.22h12.96l6.48,11.22-6.48,11.22ZM256.64,82.66h11.53l5.76-9.98-5.76-9.98h-11.53l-5.76,9.98,5.76,9.98Z"/>
+        <polygon class="uuid-213b3668-d6ed-4c24-9d73-a9eaad426d29" points="265.84 66.72 258.96 66.72 255.52 72.68 258.96 78.64 265.84 78.64 269.28 72.68 265.84 66.72"/>
+        <path class="uuid-24a67b11-10d4-4962-b71c-b2da9cdacdb7" d="M266.2,79.26h-7.59l-3.8-6.58,3.8-6.58h7.59l3.8,6.58-3.8,6.58ZM259.32,78.02h6.16l3.08-5.34-3.08-5.34h-6.16l-3.08,5.34,3.08,5.34Z"/>
+        <text class="uuid-68e520d2-a5de-48c2-b2eb-05412c187a15" transform="translate(218.15 107.41)"><tspan x="0" y="0">Photoshop</tspan><tspan x="20.69" y="10.72">1</tspan></text>
+      </g>
+    </a>
+    <g id="uuid-cdf46086-86c8-4be5-86f2-3fc750e63537" data-name="Photoshop Collage">
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EuTPpNpWOcJFq_xxEhkA_P8BU8Lp6phsEhf25viBtqEAvQ?e=gSAgdx">
+        <rect class="uuid-ea70a9e8-08a4-4617-af7b-b3639f40a155" x="161.18" y="213.82" width="153.27" height="95.81" rx="15.39" ry="15.39"/>
       </a>
-      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EsAAsgaVQSVIgZNYRbevVnIBsgbIU77QX-qaPRbJdCYnJg?e=m246S0">
-        <g id="uuid-e45b829a-6f7c-4b83-ad92-adb72223a106" data-name="Frukten">
-          <rect class="uuid-40474350-6efb-4466-9428-2abc08f09062" x="474.11" y="414.86" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
-          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="474.11" y="427.75" width="66.9" height="16.97"/>
-          <text class="uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39" transform="translate(485.77 439.67)"><tspan x="0" y="0">FRUKTEN</tspan></text>
-        </g>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EuTPpNpWOcJFq_xxEhkA_P8BU8Lp6phsEhf25viBtqEAvQ?e=gSAgdx">
+        <rect class="uuid-ffb0e695-ad3f-4c4d-b2d6-7451172a4ea6" x="161.17" y="242.71" width="153.3" height="38.03"/>
       </a>
-      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpyM1aG_J1BFgzvt-6v1J0EBB3oCqZwNdY2aUTFhLEflVg?e=Gw9j3x">
-        <g id="uuid-84023cff-f70e-4222-8863-33d371f078ae" data-name="Finn Fem Fel">
-          <rect class="uuid-53800396-9159-43f4-aec0-84e31768e509" x="472.1" y="572.05" width="71.39" height="43.39" rx="7.07" ry="7.07"/>
-          <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="472.09" y="585.13" width="71.4" height="17.22"/>
-          <text class="uuid-1e66aea6-0ddc-4e39-9c97-6a59b675a6dd" transform="translate(471.94 597.24) scale(1.06 1)"><tspan x="0" y="0">FINN FEM FEL</tspan></text>
-        </g>
+      <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EuTPpNpWOcJFq_xxEhkA_P8BU8Lp6phsEhf25viBtqEAvQ?e=gSAgdx">
+        <text class="uuid-3bd3b5b1-5c12-43b9-a1ae-0ae958f2b262" transform="translate(180.31 269.45) scale(1.03 1)"><tspan x="0" y="0">COLLAGE</tspan></text>
       </a>
     </g>
-    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgDBVTwuplwGQ5Ei8f0vdXHtARpZItYXgSDlfKuvJz_zxMY?e=k4msIY">
-      <g id="uuid-647c3dd0-fcf3-4e3f-b156-f1f518bcc9a6" data-name="Alternative Movie Poster">
-        <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/Eq57nSskkBVCkuIIFvGmaDQBmaDXfkx8D1mmOkDi5sAmWQ?e=pRZLNM">
-          <rect class="uuid-40474350-6efb-4466-9428-2abc08f09062" x="230.26" y="412.09" width="66.89" height="42.74" rx="6.79" ry="6.79"/>
-        </a>
-        <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="230.25" y="424.98" width="66.9" height="16.97"/>
-        <text class="uuid-48f8d0f4-1f73-458b-8ae5-57439cc6a906" transform="translate(236.19 432.18)"><tspan x="0" y="0">ALTERNATIVE</tspan><tspan x="-3.9" y="8.29">MOVIE POSTER</tspan></text>
-      </g>
-    </a>
-    <a xlink:href="https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EiEbbqvugWhJq8bGy_o8otABOHjep9UZYUfZ8pC363wzjg?e=SbN4MA">
-      <g id="uuid-0434a373-4237-4156-8977-0bbd1f3ed9bb" data-name="Monster Me">
-        <rect class="uuid-4b85bbd7-d0eb-4286-90b3-2c7de3fc30cf" x="212.16" y="511.81" width="65.19" height="42.74" rx="6.7" ry="6.7"/>
-        <rect class="uuid-5ecf84f4-291d-43b2-b57c-e912fe2a2a18" x="212.15" y="524.7" width="65.2" height="16.97"/>
-        <text class="uuid-13624a5d-6387-491e-8ce4-9f77f86c9f39" transform="translate(211.58 536.63) scale(.98 1)"><tspan x="0" y="0">MONSTER ME</tspan></text>
-      </g>
-    </a>
+    <use width="12.21" height="12.21" transform="translate(267.85 1162.71) scale(1.45 1.35)" xlink:href="#uuid-cee05f53-1e03-40aa-bb20-2d8e3c114d78"/>
   </g>
 </svg>
