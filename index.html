@@ -104,7 +104,7 @@
 
   /* SIDE PANEL */
   .panel {
-    width: 800px;
+    width: 360px;
     min-width: 360px;
     background: #111827;
     border-left: 1px solid rgba(255,255,255,0.1);
@@ -129,8 +129,8 @@
   }
 
   .panel-title {
-    font-size: 22px;
-    font-weight: 1000;
+    font-size: 16px;
+    font-weight: 700;
     color: #fff;
     letter-spacing: 0.05em;
   }
@@ -166,7 +166,7 @@
 
   /* Content sections */
   .section-label {
-    font-size: 20px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.12em;
     color: rgba(255,255,255,0.35);
@@ -177,7 +177,7 @@
   .section-label:first-child { margin-top: 0; }
 
   .intro-text {
-    font-size: 16px;
+    font-size: 13px;
     line-height: 1.7;
     color: rgba(255,255,255,0.75);
     margin-bottom: 4px;
@@ -350,7 +350,7 @@
   }
 
   .student-select label {
-    font-size: 12px;
+    font-size: 11px;
     color: rgba(255,255,255,0.3);
     white-space: nowrap;
   }
@@ -456,14 +456,14 @@
 // Add one entry per student once you export the full map SVG.
 
 const students = [
-  { name: "Jonna",    nodeId: "Photoshop Collage"                },
-  { name: "Ahmad",    nodeId: "photoshop-frukten"               },
-  { name: "Hugo",     nodeId: "Finn Fem Fel"           },
-  { name: "Karim",    nodeId: "Texteffekten"           },
-  { name: "Milo",     nodeId: "Bildeffekten"           },
-  { name: "Nathan",   nodeId: "Alternative Movie Poster" },
-  { name: "Nils",     nodeId: "photosop-monster-me"             },
-  { name: "Tien",     nodeId: "Jätten"                },
+  { name: "Jonna",    nodeId: "project-djuret"                },
+  { name: "Ahmad",    nodeId: "project-collage"               },
+  { name: "Hugo",     nodeId: "role-fotograf-1"               },
+  { name: "Karim",    nodeId: "project-monster-me"            },
+  { name: "Milo",     nodeId: "project-finn-fem-fel"          },
+  { name: "Nathan",   nodeId: "project-alternative-movie-poster" },
+  { name: "Nils",     nodeId: "project-frukten"               },
+  { name: "Tien",     nodeId: "project-jatten"                },
 ];
 
 function initStudentDropdown() {
@@ -495,7 +495,7 @@ function goToStudent(nodeId) {
   const centerY = bbox.y + bbox.height / 2;
 
   // Target zoom level
-  const targetScale = 4;
+  const targetScale = 1.5;
 
   // Get map area dimensions
   const area = document.getElementById('mapArea');
@@ -546,15 +546,17 @@ function initMapInteractions(svg) {
 
 // Maps SVG data-name → content file path (relative to content/ folder)
 
-const nodeMap = {
-  "Photoshop-djuret":      "projects/photoshop-djuret.json",
- "Photoshop Collage":      "projects/photoshop-collage.JSON",
-  "role-fotograf-1":       "roles/role-fotograf-1.json",
- 
-  // add more as you create them...
-};
-
 // ─── PANEL LOGIC ──────────────────────────────────────────────────────
+// Node names in the SVG follow the convention:
+//   role-fotograf-1    → content/roles/fotograf-1.json
+//   project-djuret     → content/projects/djuret.json
+// No manual mapping needed — just name your Illustrator layers correctly.
+
+function nodeToPath(name) {
+  if (name.startsWith('role-'))    return 'content/roles/'    + name.slice(5)    + '.json';
+  if (name.startsWith('project-')) return 'content/projects/' + name.slice(8)    + '.json';
+  return null;
+}
 
 async function openPanel(name) {
   document.getElementById('panelTitle').textContent = name;
@@ -563,7 +565,7 @@ async function openPanel(name) {
     `<div class="empty-state"><div class="empty-icon">⋯</div>Laddar...</div>`;
   document.getElementById('panel').classList.remove('closed');
 
-  const file = nodeMap[name];
+  const file = nodeToPath(name);
   if (!file) {
     document.getElementById('panelBody').innerHTML =
       `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu för den här noden.</div>`;
@@ -571,16 +573,17 @@ async function openPanel(name) {
   }
 
   try {
-    const res = await fetch('content/' + file);
+    const res = await fetch(file);
+    if (!res.ok) throw new Error('not found');
     const data = await res.json();
-    if (data.type === 'Roll') {
-      await renderRole(data);
+    if (name.startsWith('role-')) {
+      renderRole(data);
     } else {
       renderProject(data);
     }
   } catch(e) {
     document.getElementById('panelBody').innerHTML =
-      `<div class="empty-state"><div class="empty-icon">!</div>Kunde inte ladda innehållet.</div>`;
+      `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu för den här noden.</div>`;
   }
 }
 
