@@ -491,18 +491,19 @@ function renderRole(d) {
              <p class="intro-text">${d.yrkesinfo}</p>`;
   }
  if (d.folderEmbedUrl) {
-  html += `
-    <div class="section-label">OneDrive-mapp</div>
-    <div style="width:100%; height:450px; border-radius:8px; overflow:hidden; border:1px solid rgba(0,0,0,0.1); margin-bottom:16px;">
-      <iframe 
-        src="${d.folderEmbedUrl}" 
-        width="80%" 
-        height="80%" 
-        frameborder="1" 
-        scrolling="yes" 
-        allowfullscreen>
-      </iframe>
-    </div>`;
+ html += `
+   <div class="section-label">OneDrive-mapp</div>
+   <div style="width:100%; height:450px; border-radius:8px; overflow:hidden; border:1px solid rgba(0,0,0,0.1); margin-bottom:16px;">
+     <iframe 
+       src="${d.folderEmbedUrl}" 
+      width="80%" 
+      height="80%" 
+     frameborder="1" 
+    scrolling="yes" 
+     allowfullscreen>
+    </iframe>
+   </div>';
+  }
   
   if (d.exercises?.length) {
     html += `<div class="section-label">Övningar</div>`;
