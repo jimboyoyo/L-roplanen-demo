@@ -1,0 +1,25 @@
+{
+  "id": "role-photoshop-1",
+  "title": "Photoshop Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "Att ha kunskap om Photoshop är grunden för allt ditt framtida bildbehandlande. Photoshop är ett branschledande program för redigering av bilder, och har varit standard för proffessionell bildredigering de senaste 20 åren.",
+  "exercises": [
+    {
+      "title": "Photoshop: Overview",
+      "description": "Lär dig vad som är vad i Photoshop",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjrcycGbhNFCjDu5GIG-BH4BnGBVHuUq588_MvLNlGxfNw?e=6cvr1E"
+    },
+    {
+      "title": "Photoshop: Markera och maska",
+      "description": "Lär dig välja delar av en bild och hur masker fungerar - något du kommer behöva göra i nästan alla dina projekt framöver.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/ErzRRsBv72hOlw2GUJhSzqYB4DEsF-ZdZk1t-2CwR5ymJA?e=6dOQDb",
+
+    },
+    {
+      "title": "Photoshop: Montage",
+      "description": "Lär dig hur du sätter ihop olika bilder till en!",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EulYDQcnJulJjj51iXQSKiMB0PZSDrZSnsEVR8bpCk5pzg?e=9TUNld"
+    }
+  ],
+  "outro": "När du är färdig med Photoshop 1 kan du fortsätta vidare på kartan."
+}
