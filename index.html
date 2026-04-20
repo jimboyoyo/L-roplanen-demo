@@ -570,43 +570,45 @@ async function loadMap() {
 }
 
 function initMapInteractions(svg) {
-  // 1. Keep your neutralizer to prevent the whole page from reloading
-  // but only for the parent node anchors, not resource links
+  // 1. COMPLETELY Disable all <a> tags in the SVG
   svg.querySelectorAll('a').forEach(a => {
-    // If the link has a real external URL, keep it! 
-    // If it's just an Illustrator placeholder, remove it.
-    const href = a.getAttribute('xlink:href') || a.getAttribute('href');
-    if (!href || href === '#' || href.includes('javascript:void(0)')) {
-      a.removeAttribute('href');
-      a.removeAttribute('xlink:href');
-    }
+    // Remove the link destinations entirely
+    a.removeAttribute('href');
+    a.removeAttribute('xlink:href');
+    
+    // Stop the <a> tag from acting like a link (no purple text, no navigation)
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    
+    // Ensure the cursor still looks like a pointer so users know it's a "button"
     a.style.cursor = 'pointer';
   });
 
+  // 2. Handle the Logic on the SVG container
   svg.addEventListener('click', e => {
-    // --- NEW: If the user clicked an actual link, let them go there! ---
-    if (e.target.closest('a') && (e.target.closest('a').getAttribute('href') || e.target.closest('a').getAttribute('xlink:href'))) {
-      return; // Exit the function and let the link work
-    }
-
     let el = e.target;
+    
+    // Walk up the DOM tree from the click target to find the parent Group
     while (el && el !== svg) {
       const name = el.getAttribute('id') || el.getAttribute('data-name');
       
-      // Check if this is one of our trigger nodes
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        // Prevent the click from doing anything else
+        // We found our node! Stop everything else and open the panel.
         e.preventDefault();
         e.stopPropagation();
         
         openPanel(name, el); 
-        return;
+        return; 
       }
       el = el.parentElement;
     }
     
-    // If they clicked the empty map background, close the panel
-    if (el === svg) closePanel();
+    // If the user clicks the "ocean" (empty space), close the panel
+    if (el === svg) {
+      closePanel();
+    }
   });
 }
 
