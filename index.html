@@ -480,60 +480,61 @@ function closePanel() {
   document.getElementById('panel').classList.add('closed');
 }
 
-// ─── ROLE RENDERER ────────────────────────────────────────────────────
-
 function renderRole(d) {
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = 'Roll';
   let html = '';
+
+  // 1. Yrkesinfo
   if (d.yrkesinfo) {
     html += `<div class="section-label">Om rollen</div>
              <p class="intro-text">${d.yrkesinfo}</p>`;
   }
-// if (d.folderEmbedUrl) {
-// html += `
- //  <div class="section-label">OneDrive-mapp</div>
- //  <div style="width:100%; height:450px; border-radius:8px; overflow:hidden; border:1px solid rgba(0,0,0,0.1); margin-bottom:16px;">
- //    <iframe 
- //      src="${d.folderEmbedUrl}" 
- //     width="80%" 
- //     height="80%" 
- //    frameborder="1" 
- //   scrolling="yes" 
- //    allowfullscreen>
- //   </iframe>
- //  </div>';
- // }
-  
+
+  // 2. OneDrive Folder
+  if (d.folderEmbedUrl) {
+    html += `
+      <div class="section-label">OneDrive-mapp</div>
+      <div style="width:100%; height:450px; border-radius:8px; overflow:hidden; border:1px solid rgba(0,0,0,0.1); margin-bottom:16px;">
+        <iframe 
+          src="${d.folderEmbedUrl}" 
+          width="100%" 
+          height="100%" 
+          frameborder="0" 
+          scrolling="yes" 
+          allowfullscreen>
+        </iframe>
+      </div>`; // FIX: Moved backtick before the semicolon
+  }
+
+  // 3. Exercises
   if (d.exercises?.length) {
     html += `<div class="section-label">Övningar</div>`;
     d.exercises.forEach((ex, i) => {
-      html += `<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eee;">
-        <div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#eee;
-                    display:flex;align-items:center;justify-content:center;font-size:11px;
-                    font-weight:700;color:#888;margin-top:1px;">${i + 1}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:3px;">${ex.title}</div>
-          ${ex.description ? `<div style="font-size:12px;color:#666;line-height:1.5;margin-bottom:8px;">${ex.description}</div>` : ''}
-          <a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-bottom:0;">
-            <span class="resource-icon">📁</span>Öppna övning
-          </a>
-        </div>
-      </div>`;
-    });
+      html += `
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eee;">
+          <div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#eee;
+                      display:flex;align-items:center;justify-content:center;font-size:11px;
+                      font-weight:700;color:#888;margin-top:1px;">${i + 1}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:3px;">${ex.title}</div>
+            ${ex.description ? `<div style="font-size:12px;color:#666;line-height:1.5;margin-bottom:8px;">${ex.description}</div>` : ''}
+            <a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-bottom:0; text-decoration:none;">
+              <span class="resource-icon">📁</span>Öppna övning
+            </a>
+          </div>
+        </div>`;
+    }); // FIX: Added closing brace and parenthesis for forEach
   }
 
-
-html += `<a class="resource-btn" href="${d.folderEmbedUrl.replace('embed', 'view')}" target="_blank">
-           <span class="resource-icon">📂</span>Öppna i helskärm
-         </a>`;
- 
-
+  // 4. Outro
   if (d.outro) {
     html += `<p style="font-size:12px;color:#aaa;line-height:1.6;margin-top:16px;">${d.outro}</p>`;
   }
+
+  // 5. Apply to DOM
   document.getElementById('panelBody').innerHTML = html;
-}
+} // FIX: Added closing brace for the function
 
 // ─── PROJECT RENDERER ─────────────────────────────────────────────────
 
