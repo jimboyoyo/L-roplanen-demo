@@ -447,12 +447,12 @@
 
 <script>
 // ─── NODE CONTENT DATA ───────────────────────────────────────────────
-// Each key matches the data-name attribute of a group in your SVG.
+// Each key matches the id attribute of a group in your SVG.
 // Add entries here as you build out the full map.
 // "link" is the OneDrive folder/file URL for that node.
 
 // ─── STUDENT POSITIONS ───────────────────────────────────────────────
-// Each entry maps a student name to the data-name of their SVG object.
+// Each entry maps a student name to the id of their SVG object.
 // The map will pan and zoom to that object when selected.
 // Add one entry per student once you export the full map SVG.
 
@@ -503,7 +503,7 @@ function goToStudent(nodeId) {
   if (!svg) { console.log('No SVG found'); return; }
 
   console.log('Looking for student node:', nodeId);
-  const el = svg.querySelector(`[data-name="${nodeId}"]`);
+  const el = svg.querySelector(`[id="${nodeId}"]`);
   console.log('Found element:', el);
   if (!el) { console.warn(`Student node "${nodeId}" not found`); return; }
 
@@ -554,9 +554,9 @@ function initMapInteractions(svg) {
 
   svg.addEventListener('click', e => {
     let el = e.target;
-    console.log('Click target:', el.tagName, el.getAttribute('data-name'));
+    console.log('Click target:', el.tagName, el.getAttribute('id'));
     while (el && el !== svg) {
-      const name = el.getAttribute('data-name');
+      const name = el.getAttribute('id');
       console.log('Checking:', el.tagName, name);
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
         console.log('Opening panel for:', name);
@@ -570,7 +570,7 @@ function initMapInteractions(svg) {
 }
 
 
-// Maps SVG data-name → content file path (relative to content/ folder)
+// Maps SVG id → content file path (relative to content/ folder)
 
 // ─── PANEL LOGIC ──────────────────────────────────────────────────────
 // Node names in the SVG follow the convention:
