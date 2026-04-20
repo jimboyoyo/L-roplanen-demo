@@ -593,8 +593,12 @@ function initMapInteractions(svg) {
 // No manual mapping needed — just name your Illustrator layers correctly.
 
 function nodeToPath(name) {
-  if (name.startsWith('role-'))    return 'content/roles/'    + name.slice(5)    + '.json';
-  if (name.startsWith('project-')) return 'content/projects/' + name.slice(8)    + '.json';
+ const baseName = name.replace(/-(\d+)$/, (match, n, offset, str) => {
+    const before = str.slice(0, offset);
+    return /\d$/.test(before) ? '' : match;
+ 
+  if (baseName.startsWith('role-'))    return 'content/roles/'    + baseName.slice(5)    + '.json';
+  if (baseName.startsWith('project-')) return 'content/projects/' + baseName.slice(8)    + '.json';
   return null;
 }
 
