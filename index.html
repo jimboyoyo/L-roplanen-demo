@@ -43,10 +43,9 @@
     flex: 1;
     overflow: hidden;
     min-height: 0;
-    position: relative; /* Add this to contain the absolute panel */
+    position: relative;
   }
 
-  /* MAP AREA */
   .map-area {
     flex: 1;
     position: relative;
@@ -57,27 +56,12 @@
   }
   .map-area:active { cursor: grabbing; }
 
-  .map-canvas {
-    width: 100%;
-    height: 100%;
-  }
-
-  .map-canvas svg {
-    display: block;
-  }
-
-  /* Make all <a> tags in the SVG interceptable */
-  .map-canvas svg a {
-    cursor: pointer;
-  }
-
-  /* Hover highlight effect on clickable groups */
+  .map-canvas { width: 100%; height: 100%; }
+  .map-canvas svg { display: block; }
+  .map-canvas svg a { cursor: pointer; }
   .map-canvas svg a:hover rect,
-  .map-canvas svg a:hover circle {
-    opacity: 0.85;
-  }
+  .map-canvas svg a:hover circle { opacity: 0.85; }
 
-  /* Zoom controls */
   .zoom-controls {
     position: absolute;
     bottom: 16px;
@@ -85,312 +69,156 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    z-index: 5;
   }
 
   .zoom-btn {
-    width: 32px;
-    height: 32px;
+    width: 32px; height: 32px;
     border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.2);
     background: rgba(255,255,255,0.08);
     color: rgba(255,255,255,0.8);
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    transition: background 0.15s;
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s;
   }
   .zoom-btn:hover { background: rgba(255,255,255,0.18); }
 
-  /* SIDE PANEL */
+  /* SIDE PANEL — slides over the map from the right */
   .panel {
- position: absolute; /* Take it out of the flow */
-    right: 0;          /* Stick to the right edge */
-    top: 0;
-    bottom: 0;
-    z-index: 10;       /* Ensure it sits above the map */
-   
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    z-index: 10;
     width: 60%;
     min-width: 360px;
     background: #fff;
-    border-left: 1px solid rgba(255,255,255,0.1);
+    border-left: 1px solid rgba(0,0,0,0.1);
+    box-shadow: -5px 0 20px rgba(0,0,0,0.35);
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s ease; /* Use transform for smoother animation */
-    box-shadow: -5px 0 15px rgba(0,0,0,0.3); /* Add shadow to show depth */
+    transition: transform 0.3s ease;
     overflow: hidden;
   }
-
-  .panel.closed {
-    transform: translateX(100%); /* Slide out of view to the right */
-    width: 60%; /* Keep width so it doesn't snap */
-  }
+  .panel.closed { transform: translateX(100%); }
 
   .panel-header {
     padding: 16px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid #eee;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     flex-shrink: 0;
   }
 
-  .panel-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #000;
-    letter-spacing: 0.05em;
-  }
-
-  .panel-subtitle {
-    font-size: 14px;
-    color: #000;
-    margin-top: 3px;
-  }
+  .panel-title { font-size: 18px; font-weight: 700; color: #111; letter-spacing: 0.02em; }
+  .panel-subtitle { font-size: 12px; color: #888; margin-top: 3px; }
 
   .close-btn {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.4);
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-    flex-shrink: 0;
-    margin-left: 12px;
+    background: none; border: none; color: #aaa;
+    font-size: 22px; cursor: pointer; padding: 0;
+    line-height: 1; flex-shrink: 0; margin-left: 12px;
   }
-  .close-btn:hover { color: rgba(255,255,255,0.8); }
+  .close-btn:hover { color: #333; }
 
   .panel-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
+    flex: 1; overflow-y: auto; padding: 20px; background: #fff;
   }
-
   .panel-body::-webkit-scrollbar { width: 4px; }
-  .panel-body::-webkit-scrollbar-track { background: transparent; }
-  .panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  .panel-body::-webkit-scrollbar-track { background: #f5f5f5; }
+  .panel-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
 
-  /* Content sections */
   .section-label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    color: #000;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    margin-top: 20px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    color: #aaa; text-transform: uppercase;
+    margin-bottom: 8px; margin-top: 20px;
   }
   .section-label:first-child { margin-top: 0; }
 
-  .intro-text {
-    font-size: 13px;
-    line-height: 1.7;
-    color: #000;
-    margin-bottom: 4px;
-  }
+  .intro-text { font-size: 14px; line-height: 1.7; color: #222; margin-bottom: 4px; }
 
-  .step-list {
-    list-style: none;
-    padding: 0;
-  }
-
+  .step-list { list-style: none; padding: 0; }
   .step-list li {
-    font-size: 13px;
-    color: rgba(255,255,255,0.7);
+    font-size: 13px; color: #333;
     padding: 6px 0 6px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: relative;
-    line-height: 1.5;
+    border-bottom: 1px solid #eee;
+    position: relative; line-height: 1.5;
   }
-
   .step-list li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 13px;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.2);
+    content: ''; position: absolute; left: 0; top: 13px;
+    width: 5px; height: 5px; border-radius: 50%; background: #ccc;
   }
-
   .step-list li:last-child { border-bottom: none; }
 
   .phase-header {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.3);
-    text-transform: uppercase;
-    padding: 10px 0 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: #aaa; text-transform: uppercase; padding: 10px 0 4px;
   }
 
-  /* Resource / link buttons */
   .resource-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 6px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: rgba(255,255,255,0.8);
-    font-size: 13px;
-    font-family: inherit;
-    cursor: pointer;
-    text-align: left;
-    text-decoration: none;
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 10px 12px; margin-bottom: 6px;
+    background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px;
+    color: #333; font-size: 13px; font-family: inherit;
+    cursor: pointer; text-align: left; text-decoration: none;
     transition: background 0.15s, border-color 0.15s;
   }
+  .resource-btn:hover { background: #eee; border-color: #bbb; }
+  .resource-icon { font-size: 16px; flex-shrink: 0; }
 
-  .resource-btn:hover {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.2);
-  }
-
-  .resource-icon {
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-
-  /* Empty state */
   .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    text-align: center;
-    color: rgba(255,255,255,0.2);
-    font-size: 13px;
-    line-height: 1.6;
-    padding: 40px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; text-align: center;
+    color: #bbb; font-size: 13px; line-height: 1.6; padding: 40px;
   }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
 
-  .empty-icon {
-    font-size: 32px;
-    margin-bottom: 12px;
-    opacity: 0.4;
-  }
-
-  /* Modal document viewer */
+  /* Modal */
   .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8); z-index: 100;
+    align-items: center; justify-content: center;
   }
   .modal-overlay.open { display: flex; }
-
   .modal {
-    width: 82vw;
-    height: 88vh;
-    background: #1a1a2e;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.15);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    width: 82vw; height: 88vh; background: #1a1a2e;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+    display: flex; flex-direction: column; overflow: hidden;
   }
-
   .modal-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; gap: 12px;
   }
-
-  .modal-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.7);
-    letter-spacing: 0.05em;
-  }
-
+  .modal-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.7); }
   .modal-actions { display: flex; gap: 8px; align-items: center; }
-
   .modal-open-btn {
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 5px;
-    padding: 4px 10px;
-    cursor: pointer;
-    text-decoration: none;
-    font-family: inherit;
+    font-size: 11px; color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 5px; padding: 4px 10px; cursor: pointer;
+    text-decoration: none; font-family: inherit;
   }
   .modal-open-btn:hover { color: #fff; background: rgba(255,255,255,0.12); }
-
   .modal-close {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.4);
-    font-size: 22px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
+    background: none; border: none; color: rgba(255,255,255,0.4);
+    font-size: 22px; cursor: pointer; line-height: 1; padding: 0;
   }
   .modal-close:hover { color: #fff; }
+  .modal iframe { flex: 1; border: none; width: 100%; background: #fff; }
 
-  .modal iframe {
-    flex: 1;
-    border: none;
-    width: 100%;
-    background: #fff;
-  }
   /* Student dropdown */
-  .student-select {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  .student-select label {
-    font-size: 11px;
-    color: rgba(255,255,255,0.3);
-    white-space: nowrap;
-  }
-
+  .student-select { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .student-select label { font-size: 11px; color: rgba(255,255,255,0.3); white-space: nowrap; }
   .student-select select {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 6px;
-    color: rgba(255,255,255,0.8);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 5px 10px;
-    cursor: pointer;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    padding-right: 24px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px; color: rgba(255,255,255,0.8); font-family: inherit;
+    font-size: 12px; padding: 5px 10px; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none; padding-right: 24px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.3)'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
+    background-repeat: no-repeat; background-position: right 8px center;
   }
-
-  .student-select select:hover {
-    border-color: rgba(255,255,255,0.3);
-    background-color: rgba(255,255,255,0.12);
-  }
-
-  .student-select select option {
-    background: #1a1a2e;
-    color: #fff;
-  }
+  .student-select select:hover { border-color: rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.12); }
+  .student-select select option { background: #1a1a2e; color: #fff; }
 </style>
 </head>
 <body>
@@ -407,12 +235,10 @@
 </header>
 
 <div class="shell">
-
   <div class="map-area" id="mapArea">
     <div class="map-canvas" id="mapCanvas">
       <!-- SVG loaded dynamically from map.svg -->
     </div>
-
     <div class="zoom-controls">
       <button class="zoom-btn" onclick="zoom(1.2)">+</button>
       <button class="zoom-btn" onclick="zoom(0.8)">−</button>
@@ -420,7 +246,6 @@
     </div>
   </div>
 
-  <!-- SIDE PANEL -->
   <div class="panel closed" id="panel">
     <div class="panel-header">
       <div>
@@ -436,10 +261,8 @@
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- DOCUMENT MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-header">
@@ -454,45 +277,37 @@
 </div>
 
 <script>
-// ─── NODE CONTENT DATA ───────────────────────────────────────────────
-// Each key matches the data-name attribute of a group in your SVG.
-// Add entries here as you build out the full map.
-// "link" is the OneDrive folder/file URL for that node.
-
-// ─── STUDENT POSITIONS ───────────────────────────────────────────────
-// Each entry maps a student name to the data-name of their SVG object.
-// The map will pan and zoom to that object when selected.
-// Add one entry per student once you export the full map SVG.
+// ─── STUDENTS ─────────────────────────────────────────────────────────
 
 const students = [
-  { name: "Agnes",    nodeId: "elev-AGNES"   },
-  { name: "Ahmad",    nodeId: "elev-AHMAD"   },
-  { name: "Al-Kasem", nodeId: "elev-ALKASEM" },
-  { name: "Amna",     nodeId: "elev-AMNA"    },
-  { name: "Benji",    nodeId: "elev-BENJI"   },
-  { name: "Ebba",     nodeId: "elev-EBBA"    },
-  { name: "Emil",     nodeId: "elev-EMIL"    },
-  { name: "Eric",     nodeId: "elev-ERIC"    },
-  { name: "Erland",   nodeId: "elev-ERLAND"  },
-  { name: "Felix",    nodeId: "elev-FELIX"   },
-  { name: "Hugo",     nodeId: "elev-HUGO"    },
-  { name: "Isac",     nodeId: "elev-ISAC"    },
-  { name: "Jonna",    nodeId: "elev-JONNA"   },
-  { name: "Josefine", nodeId: "elev-JOSEFINE"},
-  { name: "Kalle",    nodeId: "elev-KALLE"   },
-  { name: "Kerim",    nodeId: "elev-KERIM"   },
-  { name: "Lukas",    nodeId: "elev-LUKAS"   },
-  { name: "Matilda",  nodeId: "elev-MATILDA" },
-  { name: "Milo H",   nodeId: "elev-MILO-H"  },
-  { name: "Milo L",   nodeId: "elev-MILO-L"  },
-  { name: "Miralie",  nodeId: "elev-MIRALIE" },
-  { name: "Nathan",   nodeId: "elev-NATHAN"  },
-  { name: "Nils",     nodeId: "elev-NILS"    },
-  { name: "Pontus",   nodeId: "elev-PONTUS"  },
-  { name: "Robin",    nodeId: "elev-ROBIN"   },
-  { name: "Steve",    nodeId: "elev-STEVE"   },
-  { name: "Tien",     nodeId: "elev-TIEN"    },
-  { name: "Vide",     nodeId: "elev-VIDE"    },
+  { name: "Agnes",    nodeId: "elev-AGNES"    },
+  { name: "Ahmad",    nodeId: "elev-AHMAD"    },
+  { name: "Al-Kasem", nodeId: "elev-ALKASEM"  },
+  { name: "Amna",     nodeId: "elev-AMNA"     },
+  { name: "Benji",    nodeId: "elev-BENJI"    },
+  { name: "Ebba",     nodeId: "elev-EBBA"     },
+  { name: "Emil",     nodeId: "elev-EMIL"     },
+  { name: "Eric",     nodeId: "elev-ERIC"     },
+  { name: "Erland",   nodeId: "elev-ERLAND"   },
+  { name: "Felix",    nodeId: "elev-FELIX"    },
+  { name: "Hugo",     nodeId: "elev-HUGO"     },
+  { name: "Isac",     nodeId: "elev-ISAC"     },
+  { name: "Jonna",    nodeId: "elev-JONNA"    },
+  { name: "Josefine", nodeId: "elev-JOSEFINE" },
+  { name: "Kalle",    nodeId: "elev-KALLE"    },
+  { name: "Kerim",    nodeId: "elev-KERIM"    },
+  { name: "Lukas",    nodeId: "elev-LUKAS"    },
+  { name: "Matilda",  nodeId: "elev-MATILDA"  },
+  { name: "Milo H",   nodeId: "elev-MILO-H"   },
+  { name: "Milo L",   nodeId: "elev-MILO-L"   },
+  { name: "Miralie",  nodeId: "elev-MIRALIE"  },
+  { name: "Nathan",   nodeId: "elev-NATHAN"   },
+  { name: "Nils",     nodeId: "elev-NILS"     },
+  { name: "Pontus",   nodeId: "elev-PONTUS"   },
+  { name: "Robin",    nodeId: "elev-ROBIN"    },
+  { name: "Steve",    nodeId: "elev-STEVE"    },
+  { name: "Tien",     nodeId: "elev-TIEN"     },
+  { name: "Vide",     nodeId: "elev-VIDE"     },
 ];
 
 function initStudentDropdown() {
@@ -514,9 +329,7 @@ function goToStudent(nodeId) {
   if (!el) { console.warn(`Student node "${nodeId}" not found`); return; }
 
   let centerX, centerY;
-
   if (el.tagName.toLowerCase() === 'use') {
-    // <use> elements report wrong getBBox — read position from transform instead
     const transform = el.getAttribute('transform') || '';
     const tMatch = transform.match(/translate\(\s*([\d.+-]+)[\s,]+([\d.+-]+)\s*\)/);
     const sMatch = transform.match(/scale\(\s*([\d.+-]+)\s*\)/);
@@ -557,156 +370,121 @@ async function loadMap() {
   const parser = new DOMParser();
   const svgDoc = parser.parseFromString(text, 'image/svg+xml');
   const svg = svgDoc.querySelector('svg');
-
-  // Remove fixed width/height so SVG fills its container via CSS
   svg.removeAttribute('width');
   svg.removeAttribute('height');
   svg.style.width = '100%';
   svg.style.height = '100%';
-
   document.getElementById('mapCanvas').appendChild(svg);
   initViewBox(svg);
   initMapInteractions(svg);
 }
 
 function initMapInteractions(svg) {
-  // 1. COMPLETELY Disable all <a> tags in the SVG
   svg.querySelectorAll('a').forEach(a => {
-    // Remove the link destinations entirely
     a.removeAttribute('href');
     a.removeAttribute('xlink:href');
-    
-    // Stop the <a> tag from acting like a link (no purple text, no navigation)
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-    
-    // Ensure the cursor still looks like a pointer so users know it's a "button"
     a.style.cursor = 'pointer';
   });
 
-  // 2. Handle the Logic on the SVG container
   svg.addEventListener('click', e => {
     let el = e.target;
-    
-    // Walk up the DOM tree from the click target to find the parent Group
     while (el && el !== svg) {
       const name = el.getAttribute('id') || el.getAttribute('data-name');
-      
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        // We found our node! Stop everything else and open the panel.
-        e.preventDefault();
-        e.stopPropagation();
-        
-        openPanel(name, el); 
-        return; 
+        openPanel(name, el);
+        return;
       }
       el = el.parentElement;
     }
-    
-    // If the user clicks the "ocean" (empty space), close the panel
-    if (el === svg) {
-      closePanel();
-    }
+    closePanel();
   });
 }
 
-
-// Maps SVG data-name → content file path (relative to content/ folder)
-
 // ─── PANEL LOGIC ──────────────────────────────────────────────────────
-// Node names in the SVG follow the convention:
-//   role-fotograf-1    → content/roles/fotograf-1.json
-//   project-djuret     → content/projects/djuret.json
-// No manual mapping needed — just name your Illustrator layers correctly.
 
 function nodeToPath(name) {
-const baseName = name.replace(/-(\d+)$/, (match, n, offset, str) => {
-    const before = str.slice(0, offset);
-    return /\d$/.test(before) ? '' : match;
-  });
-  if (baseName.startsWith('role-'))    return 'content/roles/'    + baseName.slice(5)    + '.json';
-  if (baseName.startsWith('project-')) return 'content/projects/' + baseName.slice(8)    + '.json';
+  // Strip Illustrator duplicate suffix: -2, -3 etc. but keep intentional -1, -2 in role names
+  const baseName = name.replace(/-([2-9]|\d{2,})$/, '');
+  if (baseName.startsWith('role-'))    return 'content/roles/'    + baseName.slice(5) + '.json';
+  if (baseName.startsWith('project-')) return 'content/projects/' + baseName.slice(8) + '.json';
   return null;
 }
 
 async function openPanel(name, element) {
-  // 1. Show the panel
   document.getElementById('panel').classList.remove('closed');
-  
-  // 2. Move the Map to the "Side Center" (20% from the left)
+
+  // Pan map so clicked node sits in centre of the left 40% of the screen
   if (element) {
-    const svg = getSvg();
-    const bbox = element.getBBox();
-    const centerX = bbox.x + bbox.width / 2;
-    const centerY = bbox.y + bbox.height / 2;
-
-    // We want the node to be at 20% of the screen width (the middle of the 40% gap)
-    // Shift vx so centerX is at vw * 0.2
-    vx = centerX - (vw * 0.2);
-    vy = centerY - (vh * 0.5);
-
-    svg.style.transition = 'all 0.5s ease-out';
-    applyViewBox(svg);
-    setTimeout(() => { svg.style.transition = ''; }, 500);
+    try {
+      const bbox = element.getBBox();
+      const centerX = bbox.x + bbox.width / 2;
+      const centerY = bbox.y + bbox.height / 2;
+      vx = centerX - vw * 0.2;
+      vy = centerY - vh * 0.5;
+      const svg = getSvg();
+      svg.style.transition = 'all 0.4s ease';
+      applyViewBox(svg);
+      setTimeout(() => { svg.style.transition = ''; }, 400);
+    } catch(e) {}
   }
 
-  // 3. Load the content (Your existing logic)
   document.getElementById('panelTitle').textContent = name;
-  document.getElementById('panelBody').innerHTML = `<div class="empty-state">Laddar...</div>`;
+  document.getElementById('panelSubtitle').textContent = '';
+  document.getElementById('panelBody').innerHTML =
+    `<div class="empty-state"><div class="empty-icon">⋯</div>Laddar...</div>`;
 
   const file = nodeToPath(name);
   if (!file) {
-    document.getElementById('panelBody').innerHTML = `<div class="empty-state">Ingen uppgift inlagd än.</div>`;
+    document.getElementById('panelBody').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu.</div>`;
     return;
   }
 
   try {
     const res = await fetch(file);
+    if (!res.ok) throw new Error('not found');
     const data = await res.json();
     name.startsWith('role-') ? renderRole(data) : renderProject(data);
   } catch(e) {
-    document.getElementById('panelBody').innerHTML = `<div class="empty-state">Fel vid laddning.</div>`;
+    document.getElementById('panelBody').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu.</div>`;
   }
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.add('closed');
 }
 
 // ─── ROLE RENDERER ────────────────────────────────────────────────────
 
-async function renderRole(d) {
+function renderRole(d) {
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = 'Roll';
-
   let html = '';
-
   if (d.yrkesinfo) {
     html += `<div class="section-label">Om rollen</div>
              <p class="intro-text">${d.yrkesinfo}</p>`;
   }
-
   if (d.exercises?.length) {
     html += `<div class="section-label">Övningar</div>`;
     d.exercises.forEach((ex, i) => {
-      html += `
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-          <div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.08);
-                      display:flex;align-items:center;justify-content:center;font-size:11px;
-                      font-weight:700;color:rgba(255,255,255,0.4);margin-top:1px;">${i + 1}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85);margin-bottom:3px;">${ex.title}</div>
-            ${ex.description ? `<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;margin-bottom:8px;">${ex.description}</div>` : ''}
-            <a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-bottom:0;">
-              <span class="resource-icon">📁</span>Öppna övning
-            </a>
-          </div>
-        </div>`;
+      html += `<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eee;">
+        <div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#eee;
+                    display:flex;align-items:center;justify-content:center;font-size:11px;
+                    font-weight:700;color:#888;margin-top:1px;">${i + 1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:3px;">${ex.title}</div>
+          ${ex.description ? `<div style="font-size:12px;color:#666;line-height:1.5;margin-bottom:8px;">${ex.description}</div>` : ''}
+          <a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-bottom:0;">
+            <span class="resource-icon">📁</span>Öppna övning
+          </a>
+        </div>
+      </div>`;
     });
   }
-
   if (d.outro) {
-    html += `<p style="font-size:12px;color:rgba(255,255,255,0.3);line-height:1.6;margin-top:16px;">${d.outro}</p>`;
+    html += `<p style="font-size:12px;color:#aaa;line-height:1.6;margin-top:16px;">${d.outro}</p>`;
   }
-
   document.getElementById('panelBody').innerHTML = html;
 }
 
@@ -719,9 +497,8 @@ function youtubeEmbed(url) {
 
 function renderProject(d) {
   document.getElementById('panelTitle').textContent = d.title;
-
+  document.getElementById('panelSubtitle').textContent = [d.type, d.duration].filter(Boolean).join(' · ');
   let html = '';
-
   if (d.video) {
     const embedUrl = youtubeEmbed(d.video);
     if (embedUrl) {
@@ -732,12 +509,17 @@ function renderProject(d) {
                </div>`;
     }
   }
-
   if (d.scenario) {
-    html += `<div class="section-label">Scenario</div>
-             <p class="intro-text">${d.scenario}</p>`;
+    html += `<div class="section-label">Scenario</div><p class="intro-text">${d.scenario}</p>`;
   }
-
+  if (d.intro) {
+    html += `<div class="section-label">Om uppgiften</div><p class="intro-text">${d.intro}</p>`;
+  }
+  if (d.themes?.length) {
+    html += `<div class="section-label">Tema</div><ul class="step-list">`;
+    d.themes.forEach(t => { html += `<li>${t}</li>`; });
+    html += `</ul>`;
+  }
   if (d.steps) {
     html += `<div class="section-label">Steg för steg</div>`;
     for (const [phase, steps] of Object.entries(d.steps)) {
@@ -746,68 +528,60 @@ function renderProject(d) {
       html += `</ul>`;
     }
   }
-
   if (d.bonus) {
-    html += `<div class="phase-header">Bonus</div>
-             <ul class="step-list"><li>`;
-    if (d.bonusUrl) {
-      html += `<a href="${d.bonusUrl}" target="_blank" style="color:rgba(255,255,255,0.6);">${d.bonus}</a>`;
-    } else {
-      html += d.bonus;
-    }
+    html += `<div class="phase-header">Bonus</div><ul class="step-list"><li>`;
+    html += d.bonusUrl
+      ? `<a href="${d.bonusUrl}" target="_blank" style="color:#555;">${d.bonus}</a>`
+      : d.bonus;
     html += `</li></ul>`;
   }
-
   if (d.deliverables?.length) {
     html += `<div class="section-label">Ska lämnas in</div><ul class="step-list">`;
     d.deliverables.forEach(item => { html += `<li>${item}</li>`; });
     html += `</ul>`;
   }
-
   if (d.resources?.length) {
     html += `<div class="section-label">Resurser</div>`;
     d.resources.forEach(r => {
       html += `<a class="resource-btn" href="${r.url}" target="_blank">
-                 <span class="resource-icon">🔗</span>${r.label}
-               </a>`;
+                 <span class="resource-icon">🔗</span>${r.label}</a>`;
     });
   }
-
-  if (d.roles?.length) {
-    html += `<div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);
-                         font-size:11px;color:rgba(255,255,255,0.25);">
-               Roller: ${d.roles.join(', ')}
-             </div>`;
+  if (d.examples?.length) {
+    html += `<div class="section-label">Exempel</div>`;
+    d.examples.forEach(r => {
+      html += `<a class="resource-btn" href="${r.url}" target="_blank">
+                 <span class="resource-icon">🖼</span>${r.label}</a>`;
+    });
   }
-
+  if (d.roles?.length) {
+    html += `<div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;
+                         font-size:11px;color:#bbb;">Roller: ${d.roles.join(', ')}</div>`;
+  }
   document.getElementById('panelBody').innerHTML = html;
 }
 
-function closePanel() {
-  document.getElementById('panel').classList.add('closed');
-  
-  // Optional: Center the last view back to the middle of the screen
-  //vx = vx + (vw * 0.3); // Moves it back by half the panel's width
-  //applyViewBox(getSvg());
+// ─── MODAL ────────────────────────────────────────────────────────────
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('modalFrame').src = '';
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
 }
 
-// Modal removed — content now renders directly in the panel.
-// The modal overlay HTML can stay in place for future use.
-
-// ─── INTERCEPT SVG LINK CLICKS ───────────────────────────────────────
+// ─── INIT ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   initStudentDropdown();
   loadMap();
 });
 
-// ─── PAN + ZOOM (viewBox-based for crisp vector rendering) ───────────────
-// We manipulate the SVG viewBox directly instead of CSS transform.
-// This forces the browser to re-rasterize at full resolution on every zoom,
-// keeping vectors perfectly sharp at any zoom level.
+// ─── PAN + ZOOM ───────────────────────────────────────────────────────
 
-let vx = 0, vy = 0, vw = 0, vh = 0; // current viewBox
-let origW = 0, origH = 0;            // original SVG dimensions
+let vx = 0, vy = 0, vw = 0, vh = 0;
+let origW = 0, origH = 0;
 
 function initViewBox(svg) {
   const vb = svg.viewBox.baseVal;
@@ -817,9 +591,7 @@ function initViewBox(svg) {
   applyViewBox(svg);
 }
 
-function getSvg() {
-  return document.querySelector('#mapCanvas svg');
-}
+function getSvg() { return document.querySelector('#mapCanvas svg'); }
 
 function applyViewBox(svg) {
   if (!svg) return;
@@ -829,27 +601,18 @@ function applyViewBox(svg) {
 function zoom(factor, cx, cy) {
   const svg = getSvg();
   if (!svg) return;
-
-  // Default to centre of map area
   const area = document.getElementById('mapArea');
   if (cx === undefined) cx = area.clientWidth / 2;
   if (cy === undefined) cy = area.clientHeight / 2;
-
-  // Convert screen coordinates to SVG coordinates
   const rect = svg.getBoundingClientRect();
   const svgX = vx + (cx - rect.left) / rect.width  * vw;
   const svgY = vy + (cy - rect.top)  / rect.height * vh;
-
-  // Clamp zoom
   const newW = Math.min(origW * 4, Math.max(origW * 0.15, vw * (1 / factor)));
   const newH = newW * (origH / origW);
   const f = newW / vw;
-
   vx = svgX - (svgX - vx) * f;
   vy = svgY - (svgY - vy) * f;
-  vw = newW;
-  vh = newH;
-
+  vw = newW; vh = newH;
   applyViewBox(svg);
 }
 
@@ -860,7 +623,6 @@ function resetView() {
   applyViewBox(svg);
 }
 
-// Pan by dragging
 const area = document.getElementById('mapArea');
 let dragging = false, sx, sy, svx, svy;
 
@@ -877,8 +639,7 @@ window.addEventListener('mousemove', e => {
   const rect = svg.getBoundingClientRect();
   const dx = (e.clientX - sx) / rect.width  * vw;
   const dy = (e.clientY - sy) / rect.height * vh;
-  vx = svx - dx;
-  vy = svy - dy;
+  vx = svx - dx; vy = svy - dy;
   applyViewBox(svg);
 });
 window.addEventListener('mouseup', () => dragging = false);
@@ -888,7 +649,7 @@ area.addEventListener('wheel', e => {
   zoom(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY);
 }, { passive: false });
 
-// ─── TOUCH SUPPORT (mobile pan + pinch zoom) ─────────────────────────
+// ─── TOUCH ────────────────────────────────────────────────────────────
 
 let lastTouches = null;
 
@@ -903,33 +664,23 @@ area.addEventListener('touchmove', e => {
   if (!svg) return;
   const rect = svg.getBoundingClientRect();
   const touches = e.touches;
-
   if (touches.length === 1 && lastTouches?.length === 1) {
-    // Single finger — pan
     const dx = (touches[0].clientX - lastTouches[0].clientX) / rect.width  * vw;
     const dy = (touches[0].clientY - lastTouches[0].clientY) / rect.height * vh;
-    vx -= dx;
-    vy -= dy;
+    vx -= dx; vy -= dy;
     applyViewBox(svg);
-
   } else if (touches.length === 2 && lastTouches?.length === 2) {
-    // Two fingers — pinch zoom
     const prevDist = Math.hypot(
       lastTouches[0].clientX - lastTouches[1].clientX,
-      lastTouches[0].clientY - lastTouches[1].clientY
-    );
+      lastTouches[0].clientY - lastTouches[1].clientY);
     const newDist = Math.hypot(
       touches[0].clientX - touches[1].clientX,
-      touches[0].clientY - touches[1].clientY
-    );
+      touches[0].clientY - touches[1].clientY);
     if (prevDist === 0) return;
-
-    // Zoom toward midpoint of the two fingers
     const midX = (touches[0].clientX + touches[1].clientX) / 2;
     const midY = (touches[0].clientY + touches[1].clientY) / 2;
     zoom(newDist / prevDist, midX, midY);
   }
-
   lastTouches = touches;
 }, { passive: false });
 
