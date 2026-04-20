@@ -415,19 +415,44 @@ async function openPanel(name, element) {
 
   // Pan map so clicked node sits in centre of the left 40% of the screen
  // if (element) {
- //   try {
+  //  try {
  //     const bbox = element.getBBox();
- //     const centerX = bbox.x + bbox.width / 2;
- //     const centerY = bbox.y + bbox.height / 2;
- //     vx = centerX - vw * 0.2;
- //     vy = centerY - vh * 0.5;
- //     const svg = getSvg();
- //     svg.style.transition = 'all 0.4s ease';
- //     applyViewBox(svg);
- //     setTimeout(() => { svg.style.transition = ''; }, 400);
- //   } catch(e) {}
- // }
+  //    const centerX = bbox.x + bbox.width / 2;
+  //    const centerY = bbox.y + bbox.height / 2;
+  //    vx = centerX - vw * 0.15;
+  //    vy = centerY - vh * 0.5;
+  //    const svg = getSvg();
+  //    svg.style.transition = 'all 0.4s ease';
+  //    applyViewBox(svg);
+  //    setTimeout(() => { svg.style.transition = ''; }, 400);
+  //  } catch(e) {}
+//  }
+  
+  // 2. Only move the map if the node is currently on the right side
+  if (element) {
+    const rect = element.getBoundingClientRect();
+    const screenX = rect.left + rect.width / 2;
 
+    // Check if node is further right than 40% of the screen width
+    if (screenX > window.innerWidth * 0.4) {
+      try {
+        const bbox = element.getBBox();
+        const centerX = bbox.x + bbox.width / 2;
+        const centerY = bbox.y + bbox.height / 2;
+
+        // Shift view so node moves to the 20% mark (center of the 40% gap)
+        vx = centerX - vw * 0.15;
+        vy = centerY - vh * 0.5;
+
+        const svg = getSvg();
+        svg.style.transition = 'all 0.4s ease-out';
+        applyViewBox(svg);
+        setTimeout(() => { svg.style.transition = ''; }, 400);
+      } catch(e) { console.error("Centering failed", e); }
+    }
+  }
+
+ 
   document.getElementById('panelTitle').textContent = name;
   document.getElementById('panelSubtitle').textContent = '';
   document.getElementById('panelBody').innerHTML =
