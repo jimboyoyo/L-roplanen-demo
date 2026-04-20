@@ -43,6 +43,7 @@
     flex: 1;
     overflow: hidden;
     min-height: 0;
+    position: relative; /* Add this to contain the absolute panel */
   }
 
   /* MAP AREA */
@@ -105,19 +106,26 @@
 
   /* SIDE PANEL */
   .panel {
+ position: absolute; /* Take it out of the flow */
+    right: 0;          /* Stick to the right edge */
+    top: 0;
+    bottom: 0;
+    z-index: 10;       /* Ensure it sits above the map */
+   
     width: 60%;
     min-width: 360px;
     background: #fff;
     border-left: 1px solid rgba(255,255,255,0.1);
     display: flex;
     flex-direction: column;
-    transition: min-width 0.25s ease, width 0.25s ease;
+    transition: transform 0.3s ease; /* Use transform for smoother animation */
+    box-shadow: -5px 0 15px rgba(0,0,0,0.3); /* Add shadow to show depth */
     overflow: hidden;
   }
 
   .panel.closed {
-    width: 0;
-    min-width: 0;
+    transform: translateX(100%); /* Slide out of view to the right */
+    width: 60%; /* Keep width so it doesn't snap */
   }
 
   .panel-header {
