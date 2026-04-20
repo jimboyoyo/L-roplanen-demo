@@ -570,23 +570,43 @@ async function loadMap() {
 }
 
 function initMapInteractions(svg) {
+  // 1. Keep your neutralizer to prevent the whole page from reloading
+  // but only for the parent node anchors, not resource links
   svg.querySelectorAll('a').forEach(a => {
-    a.removeAttribute('href');
+    // If the link has a real external URL, keep it! 
+    // If it's just an Illustrator placeholder, remove it.
+    const href = a.getAttribute('xlink:href') || a.getAttribute('href');
+    if (!href || href === '#' || href.includes('javascript:void(0)')) {
+      a.removeAttribute('href');
+      a.removeAttribute('xlink:href');
+    }
     a.style.cursor = 'pointer';
   });
 
   svg.addEventListener('click', e => {
+    // --- NEW: If the user clicked an actual link, let them go there! ---
+    if (e.target.closest('a') && (e.target.closest('a').getAttribute('href') || e.target.closest('a').getAttribute('xlink:href'))) {
+      return; // Exit the function and let the link work
+    }
+
     let el = e.target;
     while (el && el !== svg) {
       const name = el.getAttribute('id') || el.getAttribute('data-name');
+      
+      // Check if this is one of our trigger nodes
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        // Pass the element 'el' as well as the 'name'
+        // Prevent the click from doing anything else
+        e.preventDefault();
+        e.stopPropagation();
+        
         openPanel(name, el); 
         return;
       }
       el = el.parentElement;
     }
-    closePanel();
+    
+    // If they clicked the empty map background, close the panel
+    if (el === svg) closePanel();
   });
 }
 
