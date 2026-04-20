@@ -105,9 +105,9 @@
 
   /* SIDE PANEL */
   .panel {
-    width: 360px;
+    width: 60%;
     min-width: 360px;
-    background: #111827;
+    background: #fff;
     border-left: 1px solid rgba(255,255,255,0.1);
     display: flex;
     flex-direction: column;
@@ -130,15 +130,15 @@
   }
 
   .panel-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
-    color: #fff;
+    color: #000;
     letter-spacing: 0.05em;
   }
 
   .panel-subtitle {
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
+    font-size: 14px;
+    color: #000;
     margin-top: 3px;
   }
 
@@ -167,10 +167,10 @@
 
   /* Content sections */
   .section-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.35);
+    color: #000;
     text-transform: uppercase;
     margin-bottom: 8px;
     margin-top: 20px;
@@ -180,7 +180,7 @@
   .intro-text {
     font-size: 13px;
     line-height: 1.7;
-    color: rgba(255,255,255,0.75);
+    color: #000;
     margin-bottom: 4px;
   }
 
@@ -529,7 +529,7 @@ function goToStudent(nodeId) {
     centerY = bbox.y + bbox.height / 2;
   }
 
-  const newW = origW * 0.05;
+  const newW = origW * 0.10;
   const newH = newW * (origH / origW);
   vw = newW; vh = newH;
   vx = centerX - newW / 2;
@@ -580,6 +580,7 @@ function initMapInteractions(svg) {
       }
       el = el.parentElement;
     }
+   closePanel();
   });
 }
 
