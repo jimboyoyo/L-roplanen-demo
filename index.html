@@ -543,13 +543,18 @@ async function loadMap() {
 }
 
 function initMapInteractions(svg) {
+  // Neutralise all anchor hrefs so the browser doesn't navigate on click
+  svg.querySelectorAll('a').forEach(a => {
+    a.removeAttribute('href');
+    a.removeAttribute('xlink:href');
+    a.style.cursor = 'pointer';
+  });
+
   svg.addEventListener('click', e => {
-    // Walk up the DOM tree from the click target to find a named group
     let el = e.target;
     while (el && el !== svg) {
       const name = el.getAttribute('data-name');
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        e.preventDefault();
         openPanel(name);
         return;
       }
@@ -792,7 +797,7 @@ const area = document.getElementById('mapArea');
 let dragging = false, sx, sy, svx, svy;
 
 area.addEventListener('mousedown', e => {
-  if (e.target.closest('a') || e.target.closest('.zoom-btn')) return;
+  if (e.target.closest('.zoom-btn')) return;
   dragging = true;
   sx = e.clientX; sy = e.clientY;
   svx = vx; svy = vy;
