@@ -457,14 +457,34 @@
 // Add one entry per student once you export the full map SVG.
 
 const students = [
-  { name: "Jonna",    nodeId: "project-djuret"                },
-  { name: "Ahmad",    nodeId: "project-collage"               },
-  { name: "Hugo",     nodeId: "role-fotograf-1"               },
-  { name: "Karim",    nodeId: "project-monster-me"            },
-  { name: "Milo",     nodeId: "project-finn-fem-fel"          },
-  { name: "Nathan",   nodeId: "project-alternative-movie-poster" },
-  { name: "Nils",     nodeId: "project-frukten"               },
-  { name: "Tien",     nodeId: "project-jatten"                },
+  { name: "Agnes",    nodeId: "elev-AGNES"   },
+  { name: "Ahmad",    nodeId: "elev-AHMAD"   },
+  { name: "Al-Kasem", nodeId: "elev-ALKASEM" },
+  { name: "Amna",     nodeId: "elev-AMNA"    },
+  { name: "Benji",    nodeId: "elev-BENJI"   },
+  { name: "Ebba",     nodeId: "elev-EBBA"    },
+  { name: "Emil",     nodeId: "elev-EMIL"    },
+  { name: "Eric",     nodeId: "elev-ERIC"    },
+  { name: "Erland",   nodeId: "elev-ERLAND"  },
+  { name: "Felix",    nodeId: "elev-FELIX"   },
+  { name: "Hugo",     nodeId: "elev-HUGO"    },
+  { name: "Isac",     nodeId: "elev-ISAC"    },
+  { name: "Jonna",    nodeId: "elev-JONNA"   },
+  { name: "Josefine", nodeId: "elev-JOSEFINE"},
+  { name: "Kalle",    nodeId: "elev-KALLE"   },
+  { name: "Kerim",    nodeId: "elev-KERIM"   },
+  { name: "Lukas",    nodeId: "elev-LUKAS"   },
+  { name: "Matilda",  nodeId: "elev-MATILDA" },
+  { name: "Milo H",   nodeId: "elev-MILO-H"  },
+  { name: "Milo L",   nodeId: "elev-MILO-L"  },
+  { name: "Miralie",  nodeId: "elev-MIRALIE" },
+  { name: "Nathan",   nodeId: "elev-NATHAN"  },
+  { name: "Nils",     nodeId: "elev-NILS"    },
+  { name: "Pontus",   nodeId: "elev-PONTUS"  },
+  { name: "Robin",    nodeId: "elev-ROBIN"   },
+  { name: "Steve",    nodeId: "elev-STEVE"   },
+  { name: "Tien",     nodeId: "elev-TIEN"    },
+  { name: "Vide",     nodeId: "elev-VIDE"    },
 ];
 
 function initStudentDropdown() {
@@ -523,14 +543,18 @@ async function loadMap() {
 }
 
 function initMapInteractions(svg) {
-  svg.querySelectorAll('a').forEach(anchor => {
-    anchor.addEventListener('click', e => {
-      e.preventDefault();
-      const group = anchor.querySelector('g[data-name]') || anchor.closest('g[data-name]');
-      const name = group ? group.getAttribute('data-name') : null;
-      const skip = ['LäorPlan', 'Lager 2'];
-      if (name && !skip.includes(name)) openPanel(name);
-    });
+  svg.addEventListener('click', e => {
+    // Walk up the DOM tree from the click target to find a named group
+    let el = e.target;
+    while (el && el !== svg) {
+      const name = el.getAttribute('data-name');
+      if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
+        e.preventDefault();
+        openPanel(name);
+        return;
+      }
+      el = el.parentElement;
+    }
   });
 }
 
