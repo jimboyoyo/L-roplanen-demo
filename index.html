@@ -596,7 +596,7 @@ function nodeToPath(name) {
  const baseName = name.replace(/-(\d+)$/, (match, n, offset, str) => {
     const before = str.slice(0, offset);
     return /\d$/.test(before) ? '' : match;
- 
+   });
   if (baseName.startsWith('role-'))    return 'content/roles/'    + baseName.slice(5)    + '.json';
   if (baseName.startsWith('project-')) return 'content/projects/' + baseName.slice(8)    + '.json';
   return null;
