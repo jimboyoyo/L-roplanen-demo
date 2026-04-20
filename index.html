@@ -500,9 +500,11 @@ function initStudentDropdown() {
 function goToStudent(nodeId) {
   if (!nodeId) return;
   const svg = getSvg();
-  if (!svg) return;
+  if (!svg) { console.log('No SVG found'); return; }
 
+  console.log('Looking for student node:', nodeId);
   const el = svg.querySelector(`[data-name="${nodeId}"]`);
+  console.log('Found element:', el);
   if (!el) { console.warn(`Student node "${nodeId}" not found`); return; }
 
   const bbox = el.getBBox();
@@ -552,14 +554,18 @@ function initMapInteractions(svg) {
 
   svg.addEventListener('click', e => {
     let el = e.target;
+    console.log('Click target:', el.tagName, el.getAttribute('data-name'));
     while (el && el !== svg) {
       const name = el.getAttribute('data-name');
+      console.log('Checking:', el.tagName, name);
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
+        console.log('Opening panel for:', name);
         openPanel(name);
         return;
       }
       el = el.parentElement;
     }
+    console.log('No matching node found');
   });
 }
 
