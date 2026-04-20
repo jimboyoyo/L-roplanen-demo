@@ -105,9 +105,9 @@
 
   /* SIDE PANEL */
   .panel {
-    width: 60%;
+    width: 360px;
     min-width: 360px;
-    background: #ffffff;
+    background: #111827;
     border-left: 1px solid rgba(255,255,255,0.1);
     display: flex;
     flex-direction: column;
@@ -132,7 +132,7 @@
   .panel-title {
     font-size: 16px;
     font-weight: 700;
-    color: #000000;
+    color: #fff;
     letter-spacing: 0.05em;
   }
 
@@ -447,12 +447,12 @@
 
 <script>
 // ─── NODE CONTENT DATA ───────────────────────────────────────────────
-// Each key matches the id attribute of a group in your SVG.
+// Each key matches the data-name attribute of a group in your SVG.
 // Add entries here as you build out the full map.
 // "link" is the OneDrive folder/file URL for that node.
 
 // ─── STUDENT POSITIONS ───────────────────────────────────────────────
-// Each entry maps a student name to the id of their SVG object.
+// Each entry maps a student name to the data-name of their SVG object.
 // The map will pan and zoom to that object when selected.
 // Add one entry per student once you export the full map SVG.
 
@@ -500,24 +500,40 @@ function initStudentDropdown() {
 function goToStudent(nodeId) {
   if (!nodeId) return;
   const svg = getSvg();
-  if (!svg) { console.log('No SVG found'); return; }
+  if (!svg) return;
 
-  console.log('Looking for student node:', nodeId);
-  const el = svg.querySelector(`[id="${nodeId}"]`);
-  console.log('Found element:', el);
+  const el = svg.querySelector(`[id="${nodeId}"]`) || svg.querySelector(`[data-name="${nodeId}"]`);
   if (!el) { console.warn(`Student node "${nodeId}" not found`); return; }
 
-  const bbox = el.getBBox();
-  const centerX = bbox.x + bbox.width  / 2;
-  const centerY = bbox.y + bbox.height / 2;
+  let centerX, centerY;
 
-  // Zoom to show roughly 1/4 of the map width around the student
+  if (el.tagName.toLowerCase() === 'use') {
+    // <use> elements report wrong getBBox — read position from transform instead
+    const transform = el.getAttribute('transform') || '';
+    const tMatch = transform.match(/translate\(\s*([\d.+-]+)[\s,]+([\d.+-]+)\s*\)/);
+    const sMatch = transform.match(/scale\(\s*([\d.+-]+)\s*\)/);
+    const s = sMatch ? parseFloat(sMatch[1]) : 1;
+    const w = parseFloat(el.getAttribute('width') || 0) * s;
+    const h = parseFloat(el.getAttribute('height') || 0) * s;
+    if (tMatch) {
+      centerX = parseFloat(tMatch[1]) + w / 2;
+      centerY = parseFloat(tMatch[2]) + h / 2;
+    } else {
+      const bbox = el.getBBox();
+      centerX = bbox.x + bbox.width / 2;
+      centerY = bbox.y + bbox.height / 2;
+    }
+  } else {
+    const bbox = el.getBBox();
+    centerX = bbox.x + bbox.width / 2;
+    centerY = bbox.y + bbox.height / 2;
+  }
+
   const newW = origW * 0.25;
   const newH = newW * (origH / origW);
   vw = newW; vh = newH;
   vx = centerX - newW / 2;
   vy = centerY - newH / 2;
-  console.log(vx,vy);
 
   const svg2 = getSvg();
   svg2.style.transition = 'all 0.5s ease';
@@ -555,23 +571,20 @@ function initMapInteractions(svg) {
 
   svg.addEventListener('click', e => {
     let el = e.target;
-    console.log('Click target:', el.tagName, el.getAttribute('id'));
     while (el && el !== svg) {
-      const name = el.getAttribute('id');
-      console.log('Checking:', el.tagName, name);
+      // Check both id and data-name since Illustrator may use either
+      const name = el.getAttribute('id') || el.getAttribute('data-name');
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        console.log('Opening panel for:', name);
         openPanel(name);
         return;
       }
       el = el.parentElement;
     }
-    console.log('No matching node found');
   });
 }
 
 
-// Maps SVG id → content file path (relative to content/ folder)
+// Maps SVG data-name → content file path (relative to content/ folder)
 
 // ─── PANEL LOGIC ──────────────────────────────────────────────────────
 // Node names in the SVG follow the convention:
