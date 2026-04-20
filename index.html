@@ -594,7 +594,7 @@ function initMapInteractions(svg) {
 // No manual mapping needed — just name your Illustrator layers correctly.
 
 function nodeToPath(name) {
-  const baseName = name.replace(/-(\d+)$/, (match, n, offset, str) => {
+  const baseName = name.replace(/-([2-9]|\d{2,})$/, ''); => {
     const before = str.slice(0, offset);
     return /\d$/.test(before) ? '' : match;
   });
