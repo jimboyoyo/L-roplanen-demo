@@ -570,25 +570,23 @@ async function loadMap() {
 }
 
 function initMapInteractions(svg) {
-  // Neutralise all anchor hrefs so the browser doesn't navigate on click
   svg.querySelectorAll('a').forEach(a => {
     a.removeAttribute('href');
-    a.removeAttribute('xlink:href');
     a.style.cursor = 'pointer';
   });
 
   svg.addEventListener('click', e => {
     let el = e.target;
     while (el && el !== svg) {
-      // Check both id and data-name since Illustrator may use either
       const name = el.getAttribute('id') || el.getAttribute('data-name');
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        openPanel(name);
+        // Pass the element 'el' as well as the 'name'
+        openPanel(name, el); 
         return;
       }
       el = el.parentElement;
     }
-   closePanel();
+    closePanel();
   });
 }
 
@@ -611,32 +609,43 @@ const baseName = name.replace(/-(\d+)$/, (match, n, offset, str) => {
   return null;
 }
 
-async function openPanel(name) {
-  document.getElementById('panelTitle').textContent = name;
-  document.getElementById('panelSubtitle').textContent = '';
-  document.getElementById('panelBody').innerHTML =
-    `<div class="empty-state"><div class="empty-icon">⋯</div>Laddar...</div>`;
+async function openPanel(name, element) {
+  // 1. Show the panel
   document.getElementById('panel').classList.remove('closed');
+  
+  // 2. Move the Map to the "Side Center" (20% from the left)
+  if (element) {
+    const svg = getSvg();
+    const bbox = element.getBBox();
+    const centerX = bbox.x + bbox.width / 2;
+    const centerY = bbox.y + bbox.height / 2;
+
+    // We want the node to be at 20% of the screen width (the middle of the 40% gap)
+    // Shift vx so centerX is at vw * 0.2
+    vx = centerX - (vw * 0.2);
+    vy = centerY - (vh * 0.5);
+
+    svg.style.transition = 'all 0.5s ease-out';
+    applyViewBox(svg);
+    setTimeout(() => { svg.style.transition = ''; }, 500);
+  }
+
+  // 3. Load the content (Your existing logic)
+  document.getElementById('panelTitle').textContent = name;
+  document.getElementById('panelBody').innerHTML = `<div class="empty-state">Laddar...</div>`;
 
   const file = nodeToPath(name);
   if (!file) {
-    document.getElementById('panelBody').innerHTML =
-      `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu för den här noden.</div>`;
+    document.getElementById('panelBody').innerHTML = `<div class="empty-state">Ingen uppgift inlagd än.</div>`;
     return;
   }
 
   try {
     const res = await fetch(file);
-    if (!res.ok) throw new Error('not found');
     const data = await res.json();
-    if (name.startsWith('role-')) {
-      renderRole(data);
-    } else {
-      renderProject(data);
-    }
+    name.startsWith('role-') ? renderRole(data) : renderProject(data);
   } catch(e) {
-    document.getElementById('panelBody').innerHTML =
-      `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu för den här noden.</div>`;
+    document.getElementById('panelBody').innerHTML = `<div class="empty-state">Fel vid laddning.</div>`;
   }
 }
 
@@ -754,6 +763,10 @@ function renderProject(d) {
 
 function closePanel() {
   document.getElementById('panel').classList.add('closed');
+  
+  // Optional: Center the last view back to the middle of the screen
+  vx = vx + (vw * 0.3); // Moves it back by half the panel's width
+  applyViewBox(getSvg());
 }
 
 // Modal removed — content now renders directly in the panel.
