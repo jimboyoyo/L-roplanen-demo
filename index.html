@@ -506,7 +506,7 @@ function renderRole(d) {
                </div>`;
     }
  if (d.video2) {
-    const embedUrl = youtubeEmbed(d.video1);
+    const embedUrl = youtubeEmbed(d.video2);
     if (embedUrl) {
       html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;">
                  <iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;"
@@ -515,7 +515,7 @@ function renderRole(d) {
                </div>`;
     }
    if (d.video3) {
-    const embedUrl = youtubeEmbed(d.video1);
+    const embedUrl = youtubeEmbed(d.video3);
     if (embedUrl) {
       html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;">
                  <iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;"
