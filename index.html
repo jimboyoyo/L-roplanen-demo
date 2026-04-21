@@ -498,7 +498,19 @@ function renderRole(d) {
 
   if (d.exercises?.length) {
     html += `<div class="section-label">Övningar</div>`;
-   // Videos and exercise files interleaved
+    d.exercises.forEach((ex, i) => {
+      html += `<div style="padding:12px 0;border-bottom:1px solid #eee;">
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;">
+          <div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#eee;
+                      display:flex;align-items:center;justify-content:center;font-size:11px;
+                      font-weight:700;color:#888;">${i + 1}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:3px;">${ex.title}</div>
+            ${ex.description ? `<div style="font-size:12px;color:#666;line-height:1.5;">${ex.description}</div>` : ''}
+          </div>
+        </div>`;
+
+      // Videos and exercise files interleaved
       [1, 2, 3].forEach(n => {
         const vidUrl = ex[`video${n}`];
         const fileUrl = ex[`exercise_file_${n}`];
@@ -530,7 +542,7 @@ function renderRole(d) {
 
       html += `</div>`;
     });
-  
+  }
 
   if (d.outro) {
     html += `<p style="font-size:12px;color:#aaa;line-height:1.6;margin-top:16px;">${d.outro}</p>`;
@@ -538,8 +550,6 @@ function renderRole(d) {
 
   document.getElementById('panelBody').innerHTML = html;
 }
-
-
 // ─── PROJECT RENDERER ─────────────────────────────────────────────────
 
 
