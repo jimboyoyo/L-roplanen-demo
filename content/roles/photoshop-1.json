@@ -2,33 +2,40 @@
   "id": "role-photoshop-1",
   "title": "Photoshop Nivå 1",
   "type": "Roll",
-  "yrkesinfo": "Att ha kunskap om Photoshop är grunden för allt ditt framtida bildbehandlande. Photoshop är ett branschledande program för redigering av bilder, och har varit standard för proffessionell bildredigering de senaste 20 åren.",
+  "yrkesinfo": "Att ha kunskap om Photoshop är grunden för allt ditt framtida bildbehandlande. Photoshop är ett branschledande program för redigering av bilder, och har varit standard för proffessionell bildredigering de senaste 20 åren. Därför är det viktigt att du lär dig grunden bra. Studera videorna här noga, en i taget, och gör den tillhörande övningen själv på din dator. ",
     
   "exercises": [
     {
       "title": "Photoshop: Overview",
       "description": "Lär dig vad som är vad i Photoshop",
       "video1": "https://www.youtube.com/watch?v=nkGa32s2-mg",
-      "exercise_file_1": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjrcycGbhNFCjDu5GIG-BH4BnGBVHuUq588_MvLNlGxfNw?e=6cvr1E",
+      "exercise_file_1": "https://orebrokommun-my.sharepoint.com/:i:/g/personal/jim_bernstrom_orebro_se/IQASjmX_wBZVQozDVCTNi7VcASCZ3YpTuL6qunHBAmu3_IE?e=Dccz7A",
       "video2": "https://youtu.be/nWrzR3a6Fug",
-      "exercise_file_2": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjrcycGbhNFCjDu5GIG-BH4BnGBVHuUq588_MvLNlGxfNw?e=6cvr1E",
+      "exercise_file_2": "https://orebrokommun-my.sharepoint.com/:i:/g/personal/jim_bernstrom_orebro_se/IQCB5LGfTTnSQJDJ_ctv6SQSAcMQWEUYHIbOhDR6OwU9cAg?e=WvDLTX",
       "video3": "https://youtu.be/ltV3KH-mu2E",
-      "exercise_file_3": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjrcycGbhNFCjDu5GIG-BH4BnGBVHuUq588_MvLNlGxfNw?e=6cvr1E",
-      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjrcycGbhNFCjDu5GIG-BH4BnGBVHuUq588_MvLNlGxfNw?e=6cvr1E"
+      "exercise_file_3": "https://orebrokommun-my.sharepoint.com/:i:/g/personal/jim_bernstrom_orebro_se/IQDfcv7hcxq1TKcqxfxXj7dAAU8XhTyI7HQmzT1OhOXeZZ4?e=NoF19O",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgBSdxKxbYsVRpF6rr94MKmnAbimtg74GdCSqp0PSAYnhrs?e=bIxfQh"
 
       
     },
     {
       "title": "Photoshop: Markera och maska",
       "description": "Lär dig välja delar av en bild och hur masker fungerar - något du kommer behöva göra i nästan alla dina projekt framöver.",
-      
-      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/ErzRRsBv72hOlw2GUJhSzqYB4DEsF-ZdZk1t-2CwR5ymJA?e=6dOQDb"
+      "video1": "https://youtu.be/WdQBBiRHQWo",
+      "exercise_file_1": "https://orebrokommun-my.sharepoint.com/:i:/g/personal/jim_bernstrom_orebro_se/IQBh9URvyKigQ66CE9KVWA3HASMeyMBZ3Zjaie5f0AJ5psE?e=D9f83r",
+      "video2": "https://youtu.be/eoz8vvd2Arc",
+      "exercise_file_2": "https://orebrokommun-my.sharepoint.com/:i:/g/personal/jim_bernstrom_orebro_se/IQCN6VGxOW4gT51UJDh9MDM3AeMXEybyMAFs70N_u693cek?e=i8QDY9",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgCYnMAliUDZTpEoglYgcGdeAejnO8Cd__k-cBqUUu-zRfo?e=oWc61U"
 
     },
     {
       "title": "Photoshop: Montage",
       "description": "Lär dig hur du sätter ihop olika bilder till en!",
-      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EulYDQcnJulJjj51iXQSKiMB0PZSDrZSnsEVR8bpCk5pzg?e=9TUNld"
+      "video3": "https://youtu.be/MXcOrz3kXY8",
+      "exercise_file_1": "https://orebrokommun-my.sharepoint.com/:i:/g/personal/jim_bernstrom_orebro_se/IQCpVlCJwO7dQYijXiju_mJdAWUyI05ozydiH7Y2GtyF_z0?e=dLhYXh",
+      "exercise_file_2": "https://orebrokommun-my.sharepoint.com/:i:/g/personal/jim_bernstrom_orebro_se/IQAwZLON5I-ER7p2GxiHPfqWAU9Ak3ziv4Y528AjI9DPsLQ?e=D1GPPi",
+      "exercise_file_3": "https://orebrokommun-my.sharepoint.com/:i:/r/personal/jim_bernstrom_orebro_se/Documents/Projektstruktur/2.%20Skills/Adobe%20Photoshop/Photoshop%20Niv%C3%A5%201/3.%20Photoshop_%20Montage/%C3%96vning%201%20-%20Dykaren/F%C3%A4rdigt%20exempel.jpg?csf=1&web=1&e=IELmq8",      
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgCkMo55El66TpriUiGhlLXiAeoRd_myHdUrrx3Rr1alLhg?e=zSbJMD"
     }
   ],
   "outro": "När du är färdig med Photoshop 1 kan du fortsätta vidare på kartan."
