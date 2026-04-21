@@ -490,6 +490,14 @@ function renderRole(d) {
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = 'Roll';
   let html = '';
+
+
+  // 1. Yrkesinfo
+  if (d.yrkesinfo) {
+    html += `<div class="section-label">Om rollen</div>
+             <p class="intro-text">${d.yrkesinfo}</p>`;
+  }
+
  if (d.video1) {
     const embedUrl = youtubeEmbed(d.video1);
     if (embedUrl) {
@@ -500,14 +508,6 @@ function renderRole(d) {
                </div>`;
     }
  }
-
-  // 1. Yrkesinfo
-  if (d.yrkesinfo) {
-    html += `<div class="section-label">Om rollen</div>
-             <p class="intro-text">${d.yrkesinfo}</p>`;
-  }
-
-
   
   // 2. OneDrive Folder
   if (d.folderEmbedUrl) {
@@ -525,25 +525,56 @@ function renderRole(d) {
       </div>`; // FIX: Moved backtick before the semicolon
   }
 
-  // 3. Exercises
+  function renderRole(d) {
+  document.getElementById('panelTitle').textContent = d.title;
+  document.getElementById('panelSubtitle').textContent = 'Roll';
+  let html = '';
+
+  // 1. Role Info
+  if (d.yrkesinfo) {
+    html += `<div class="section-label">Om rollen</div>
+             <p class="intro-text">${d.yrkesinfo}</p>`;
+  }
+
+  // 2. Exercises Loop (Updated to include videos)
   if (d.exercises?.length) {
     html += `<div class="section-label">Övningar</div>`;
     d.exercises.forEach((ex, i) => {
       html += `
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eee;">
-          <div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#eee;
-                      display:flex;align-items:center;justify-content:center;font-size:11px;
-                      font-weight:700;color:#888;margin-top:1px;">${i + 1}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:3px;">${ex.title}</div>
-            ${ex.description ? `<div style="font-size:12px;color:#666;line-height:1.5;margin-bottom:8px;">${ex.description}</div>` : ''}
-            <a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-bottom:0; text-decoration:none;">
+        <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid #eee;">
+          <div style="flex-shrink:0; width:24px; height:24px; border-radius:50%; background:#eee;
+                      display:flex; align-items:center; justify-content:center; font-size:11px;
+                      font-weight:700; color:#888; margin-top:1px;">${i + 1}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:700; color:#111; margin-bottom:3px;">${ex.title}</div>
+            ${ex.description ? `<div style="font-size:12px; color:#666; line-height:1.5; margin-bottom:8px;">${ex.description}</div>` : ''}`;
+
+      // --- NEW VIDEO LOGIC FOR EXERCISES ---
+      // This checks for video1, video2, and video3 inside the exercise
+      [ex.video1, ex.video2, ex.video3].forEach(vidUrl => {
+        if (vidUrl) {
+          const embedUrl = youtubeEmbed(vidUrl);
+          if (embedUrl) {
+            html += `
+              <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; margin:8px 0;">
+                <iframe src="${embedUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" 
+                  allowfullscreen></iframe>
+              </div>`;
+          }
+        }
+      });
+
+      html += `
+            <a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-top:8px; text-decoration:none;">
               <span class="resource-icon">📁</span>Öppna övning
             </a>
           </div>
         </div>`;
-    }); // FIX: Added closing brace and parenthesis for forEach
+    });
   }
+
+  document.getElementById('panelBody').innerHTML = html;
+}
 
   // 4. Outro
   if (d.outro) {
