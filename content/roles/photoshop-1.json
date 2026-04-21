@@ -3,11 +3,12 @@
   "title": "Photoshop Nivå 1",
   "type": "Roll",
   "yrkesinfo": "Att ha kunskap om Photoshop är grunden för allt ditt framtida bildbehandlande. Photoshop är ett branschledande program för redigering av bilder, och har varit standard för proffessionell bildredigering de senaste 20 åren.",
- "exercises": [
+
+  "exercises": [
     {
       "title": "Photoshop: Overview",
       "description": "Lär dig vad som är vad i Photoshop",
-      "video1": "https://youtu.be/nkGa32s2-mg",
+      "video1": "https://www.youtube.com/watch?v=nkGa32s2-mg",
       "video2": "https://youtu.be/nWrzR3a6Fug",
       "video3": "https://youtu.be/ltV3KH-mu2E",
       "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjrcycGbhNFCjDu5GIG-BH4BnGBVHuUq588_MvLNlGxfNw?e=6cvr1E"
