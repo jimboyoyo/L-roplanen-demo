@@ -481,7 +481,11 @@ async function openPanel(name, element) {
 function closePanel() {
   document.getElementById('panel').classList.add('closed');
 }
-
+function youtubeEmbed(url) {
+  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+}
+ 
 function renderRole(d) {
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = 'Roll';
@@ -492,7 +496,35 @@ function renderRole(d) {
     html += `<div class="section-label">Om rollen</div>
              <p class="intro-text">${d.yrkesinfo}</p>`;
   }
+ if (d.video1) {
+    const embedUrl = youtubeEmbed(d.video1);
+    if (embedUrl) {
+      html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;">
+                 <iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;"
+                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                   allowfullscreen></iframe>
+               </div>`;
+    }
+ if (d.video2) {
+    const embedUrl = youtubeEmbed(d.video1);
+    if (embedUrl) {
+      html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;">
+                 <iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;"
+                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                   allowfullscreen></iframe>
+               </div>`;
+    }
+   if (d.video3) {
+    const embedUrl = youtubeEmbed(d.video1);
+    if (embedUrl) {
+      html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;">
+                 <iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;"
+                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                   allowfullscreen></iframe>
+               </div>`;
+    }
 
+  
   // 2. OneDrive Folder
   if (d.folderEmbedUrl) {
     html += `
@@ -540,10 +572,7 @@ function renderRole(d) {
 
 // ─── PROJECT RENDERER ─────────────────────────────────────────────────
 
-function youtubeEmbed(url) {
-  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
-}
+
 
 function renderProject(d) {
   document.getElementById('panelTitle').textContent = d.title;
