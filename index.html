@@ -404,11 +404,12 @@ function initMapInteractions(svg) {
 
 // ─── PANEL LOGIC ──────────────────────────────────────────────────────
 
-function nodeToPath(name) {
+
   // Strip Illustrator duplicate suffix: -2, -3 etc. but keep intentional -1, -2 in role names
+function nodeToPath(name) {
   const baseName = name.replace(/-([2-9]|\d{2,})$/, '');
   if (baseName.startsWith('role-'))    return 'content/roles/'    + baseName.slice(5) + '.json';
-  if (baseName.startsWith('project-')) return 'content/projects/' + baseName.slice(8) + '.json';
+  if (baseName.startsWith('project-')) return 'content/projects/' + baseName.slice(8); // no extension — resolved below
   return null;
 }
 
@@ -467,11 +468,24 @@ async function openPanel(name, element) {
     return;
   }
 
-  try {
-    const res = await fetch(file);
-    if (!res.ok) throw new Error('not found');
-    const data = await res.json();
-    name.startsWith('role-') ? renderRole(data) : renderProject(data);
+try {
+    if (name.startsWith('project-')) {
+      // Try PDF first, fall back to JSON
+      const pdfRes = await fetch(file + '.pdf', { method: 'HEAD' });
+      if (pdfRes.ok) {
+        renderPdf(file + '.pdf');
+        return;
+      }
+      const jsonRes = await fetch(file + '.json');
+      if (!jsonRes.ok) throw new Error('not found');
+      const data = await jsonRes.json();
+      renderProject(data);
+    } else {
+      const res = await fetch(file);
+      if (!res.ok) throw new Error('not found');
+      const data = await res.json();
+      renderRole(data);
+    }
   } catch(e) {
     document.getElementById('panelBody').innerHTML =
       `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu.</div>`;
@@ -481,6 +495,14 @@ async function openPanel(name, element) {
 function closePanel() {
   document.getElementById('panel').classList.add('closed');
 }
+ 
+function renderPdf(url) {
+  document.getElementById('panelBody').style.padding = '0';
+  document.getElementById('panelBody').style.overflow = 'hidden';
+  document.getElementById('panelBody').innerHTML =
+    `<iframe src="${url}" style="width:100%;height:100%;border:none;display:block;"></iframe>`;
+}
+ 
 function youtubeEmbed(url) {
   const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   return match ? `https://www.youtube.com/embed/${match[1]}` : null;
