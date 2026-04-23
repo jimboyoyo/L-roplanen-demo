@@ -589,13 +589,22 @@ async function renderPdf(url) {
       }).promise;
 
       // Annotation layer
-      const annotationLayerDiv = document.createElement('div');
-      annotationLayerDiv.classList.add('annotationLayer');
-      annotationLayerDiv.style.cssText = `
-        position: absolute;
-        inset: 0;
-      `;
-      wrapper.appendChild(annotationLayerDiv);
+const annotationLayer = new pdfjsLib.AnnotationLayer({
+  div: annotationLayerDiv,
+  page,
+  viewport: scaledViewport.clone({ dontFlip: true }),
+  linkService: {
+    getDestinationHash: () => '',
+    getAnchorUrl: () => '',
+    navigateTo: () => {},
+    externalLinkTarget: 2,
+    externalLinkRel: 'noopener noreferrer',
+    externalLinkEnabled: true,
+  },
+  renderForms: false,
+});
+
+await annotationLayer.render({ annotations });
 
       const annotations = await page.getAnnotations();
       pdfjsLib.AnnotationLayer.render({
