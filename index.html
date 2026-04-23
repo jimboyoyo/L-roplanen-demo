@@ -552,8 +552,11 @@ async function renderPdf(url) {
       }).promise;
 
       // Annotation layer — manual link injection
+// Annotation layer — manual link injection
 const annotations = await page.getAnnotations();
+console.log('Annotations page', pageNum, annotations);
 const linkAnnotations = annotations.filter(a => a.subtype === 'Link' && a.url);
+console.log('Links found:', linkAnnotations);
 
 for (const ann of linkAnnotations) {
   const [x1, y1, x2, y2] = ann.rect;
