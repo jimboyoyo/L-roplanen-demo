@@ -589,7 +589,7 @@ async function renderPdf(url) {
       }).promise;
 
       // Annotation layer
-// Annotation layer
+
 const annotationLayerDiv = document.createElement('div');
 annotationLayerDiv.classList.add('annotationLayer');
 annotationLayerDiv.style.cssText = `
@@ -616,6 +616,7 @@ const annotationLayer = new pdfjsLib.AnnotationLayer({
 await annotationLayer.render({ annotations });
 
 container.appendChild(wrapper);
+    }
  
 function youtubeEmbed(url) {
   const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
