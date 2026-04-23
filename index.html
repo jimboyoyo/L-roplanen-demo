@@ -588,35 +588,17 @@ async function renderPdf(url) {
         viewport: scaledViewport,
       }).promise;
 
-      // Annotation layer
-
-const annotationLayerDiv = document.createElement('div');
-annotationLayerDiv.classList.add('annotationLayer');
-annotationLayerDiv.style.cssText = `
-  position: absolute;
-  inset: 0;
-`;
-wrapper.appendChild(annotationLayerDiv);
-
-const annotations = await page.getAnnotations();
-const annotationLayer = new pdfjsLib.AnnotationLayer({
-  div: annotationLayerDiv,
-  page,
-  viewport: scaledViewport.clone({ dontFlip: true }),
-  linkService: {
-    getDestinationHash: () => '',
-    getAnchorUrl: () => '',
-    navigateTo: () => {},
-    externalLinkTarget: 2,
-    externalLinkRel: 'noopener noreferrer',
-    externalLinkEnabled: true,
-  },
-  renderForms: false,
-});
-await annotationLayer.render({ annotations });
-
-container.appendChild(wrapper);
-    }
+     async function renderPdf(url) {
+  const body = document.getElementById('panelBody');
+  body.style.padding = '0';
+  body.style.overflow = 'hidden';
+  body.style.background = '#fff';
+  body.innerHTML = `
+    <iframe
+      src="${url}"
+      style="width:100%; height:100%; border:none; display:block;"
+    ></iframe>`;
+}
  
 function youtubeEmbed(url) {
   const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
