@@ -496,11 +496,80 @@ function closePanel() {
   document.getElementById('panel').classList.add('closed');
 }
  
-function renderPdf(url) {
-  document.getElementById('panelBody').style.padding = '0';
-  document.getElementById('panelBody').style.overflow = 'hidden';
-  document.getElementById('panelBody').innerHTML =
-    `<iframe src="${url}" style="width:100%;height:100%;border:none;display:block;"></iframe>`;
+// ─── PDF RENDERER (PDF.js) ────────────────────────────────────────────
+
+let pdfJsLoaded = false;
+
+async function loadPdfJs() {
+  if (pdfJsLoaded) return;
+  await new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
+    script.type = 'module';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  pdfJsLoaded = true;
+}
+
+async function renderPdf(url) {
+  const body = document.getElementById('panelBody');
+  body.style.padding = '0';
+  body.style.overflow = 'hidden';
+  body.style.background = '#fff';
+  body.innerHTML = `
+    <div id="pdfContainer" style="
+      width: 100%; height: 100%;
+      overflow-y: auto; overflow-x: hidden;
+      background: #fff;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 16px 0; gap: 12px;
+    "></div>`;
+
+  const container = document.getElementById('pdfContainer');
+
+  try {
+    // Load PDF.js as a module
+    const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+
+    const pdf = await pdfjsLib.getDocument(url).promise;
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+
+      // Scale to fit panel width (panel is 60vw, minus padding)
+      const panelWidth = body.clientWidth - 32;
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = panelWidth / viewport.width;
+      const scaledViewport = page.getViewport({ scale });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = scaledViewport.width;
+      canvas.height = scaledViewport.height;
+      canvas.style.cssText = `
+        display: block;
+        width: ${scaledViewport.width}px;
+        height: ${scaledViewport.height}px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+        border-radius: 4px;
+      `;
+
+      await page.render({
+        canvasContext: canvas.getContext('2d'),
+        viewport: scaledViewport
+      }).promise;
+
+      container.appendChild(canvas);
+    }
+  } catch (e) {
+    body.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">⚠️</div>
+      Kunde inte ladda PDF: ${e.message}
+    </div>`;
+  }
 }
  
 function youtubeEmbed(url) {
