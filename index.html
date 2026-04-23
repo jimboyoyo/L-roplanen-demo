@@ -541,6 +541,8 @@ async function renderPdf(url) {
         line-height: 1;
         text-size-adjust: none;
         forced-color-adjust: none;
+        pointer-events: none;
+        
       `;
       wrapper.appendChild(textLayerDiv);
 
@@ -577,6 +579,8 @@ for (const ann of linkAnnotations) {
     left: ${left}px; top: ${top}px;
     width: ${width}px; height: ${height}px;
     cursor: pointer;
+      pointer-events: all;
+     z-index: 1;
   `;
   wrapper.appendChild(link);
 }
