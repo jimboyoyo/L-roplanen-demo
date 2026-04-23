@@ -588,39 +588,32 @@ async function renderPdf(url) {
         viewport: scaledViewport,
       }).promise;
 
-      // Annotation layer
-      const annotationLayerDiv = document.createElement('div');
-      annotationLayerDiv.classList.add('annotationLayer');
-      annotationLayerDiv.style.cssText = `
-        position: absolute;
-        inset: 0;
-      `;
-      wrapper.appendChild(annotationLayerDiv);
+      // Annotation layer — manual link injection
+const annotations = await page.getAnnotations();
+const linkAnnotations = annotations.filter(a => a.subtype === 'Link' && a.url);
 
-      const annotations = await page.getAnnotations();
-      const annotationLayer = new pdfjsLib.AnnotationLayer({
-        div: annotationLayerDiv,
-        page,
-        viewport: scaledViewport.clone({ dontFlip: true }),
-         linkService: {
-           getDestinationHash: () => '',
-           getAnchorUrl: () => '',
-           navigateTo: () => {},
-           addLinkAttributes: (element, url) => {
-             element.href = url;
-             element.target = '_blank';
-             element.rel = 'noopener noreferrer';
-           },
-           externalLinkTarget: 2,
-           externalLinkRel: 'noopener noreferrer',
-           externalLinkEnabled: true,
-         },
-        renderForms: false,
-      });
-      await annotationLayer.render({ annotations });
+for (const ann of linkAnnotations) {
+  const [x1, y1, x2, y2] = ann.rect;
+  const pt1 = scaledViewport.convertToViewportPoint(x1, y1);
+  const pt2 = scaledViewport.convertToViewportPoint(x2, y2);
 
-      container.appendChild(wrapper);
-    }
+  const left   = Math.min(pt1[0], pt2[0]);
+  const top    = Math.min(pt1[1], pt2[1]);
+  const width  = Math.abs(pt2[0] - pt1[0]);
+  const height = Math.abs(pt2[1] - pt1[1]);
+
+  const link = document.createElement('a');
+  link.href = ann.url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.style.cssText = `
+    position: absolute;
+    left: ${left}px; top: ${top}px;
+    width: ${width}px; height: ${height}px;
+    cursor: pointer;
+  `;
+  wrapper.appendChild(link);
+}
 
   } catch (e) {
     body.innerHTML = `<div class="empty-state">
