@@ -614,6 +614,8 @@ for (const ann of linkAnnotations) {
   `;
   wrapper.appendChild(link);
 }
+      container.appendChild(wrapper);  // ← was missing
+    }                                  // ← closes the for (pageNum) loop
 
   } catch (e) {
     body.innerHTML = `<div class="empty-state">
