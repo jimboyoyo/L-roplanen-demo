@@ -602,14 +602,19 @@ async function renderPdf(url) {
         div: annotationLayerDiv,
         page,
         viewport: scaledViewport.clone({ dontFlip: true }),
-        linkService: {
-          getDestinationHash: () => '',
-          getAnchorUrl: () => '',
-          navigateTo: () => {},
-          externalLinkTarget: 2,
-          externalLinkRel: 'noopener noreferrer',
-          externalLinkEnabled: true,
-        },
+         linkService: {
+           getDestinationHash: () => '',
+           getAnchorUrl: () => '',
+           navigateTo: () => {},
+           addLinkAttributes: (element, url) => {
+             element.href = url;
+             element.target = '_blank';
+             element.rel = 'noopener noreferrer';
+           },
+           externalLinkTarget: 2,
+           externalLinkRel: 'noopener noreferrer',
+           externalLinkEnabled: true,
+         },
         renderForms: false,
       });
       await annotationLayer.render({ annotations });
