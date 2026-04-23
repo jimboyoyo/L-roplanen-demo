@@ -589,6 +589,16 @@ async function renderPdf(url) {
       }).promise;
 
       // Annotation layer
+// Annotation layer
+const annotationLayerDiv = document.createElement('div');
+annotationLayerDiv.classList.add('annotationLayer');
+annotationLayerDiv.style.cssText = `
+  position: absolute;
+  inset: 0;
+`;
+wrapper.appendChild(annotationLayerDiv);
+
+const annotations = await page.getAnnotations();
 const annotationLayer = new pdfjsLib.AnnotationLayer({
   div: annotationLayerDiv,
   page,
@@ -603,36 +613,9 @@ const annotationLayer = new pdfjsLib.AnnotationLayer({
   },
   renderForms: false,
 });
-
 await annotationLayer.render({ annotations });
 
-      const annotations = await page.getAnnotations();
-      pdfjsLib.AnnotationLayer.render({
-        viewport: scaledViewport.clone({ dontFlip: true }),
-        div: annotationLayerDiv,
-        annotations,
-        page,
-        linkService: {
-          getDestinationHash: () => '',
-          getAnchorUrl: () => '',
-          navigateTo: () => {},
-          externalLinkTarget: 2,       // _blank
-          externalLinkRel: 'noopener noreferrer',
-          externalLinkEnabled: true,
-        },
-        renderForms: false,
-      });
-
-      container.appendChild(wrapper);
-    }
-
-  } catch (e) {
-    body.innerHTML = `<div class="empty-state">
-      <div class="empty-icon">⚠️</div>
-      Kunde inte ladda PDF: ${e.message}
-    </div>`;
-  }
-}
+container.appendChild(wrapper);
  
 function youtubeEmbed(url) {
   const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
