@@ -86,6 +86,7 @@
   .zoom-btn:hover { background: rgba(255,255,255,0.18); }
 
   /* SIDE PANEL — slides over the map from the right */
+ 
   .panel {
     position: absolute;
     right: 0; top: 0; bottom: 0;
@@ -480,12 +481,12 @@ async function loadPdfJs() {
 
 async function renderPdf(url) {
   const body = document.getElementById('panelBody');
-  body.style.padding = '0';
+  body.style.padding = '10';
   body.style.overflow = 'hidden';
-  body.style.background = '#525659';
+  body.style.background = '#fff';
   body.innerHTML = `
     <div id="pdfContainer" style="
-      width: 90%; height: 100%;
+      width: 100%; height: 100%;
       overflow-y: auto; overflow-x: hidden;
       background: #fff;
       display: flex; flex-direction: column; align-items: center;
