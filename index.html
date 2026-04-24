@@ -373,9 +373,13 @@ function initMapInteractions(svg) {
 
   // Strip Illustrator duplicate suffix: -2, -3 etc. but keep intentional -1, -2 in role names
 function nodeToPath(name) {
-  const baseName = name.replace(/-([2-9]|\d{2,})$/, '');
-  if (baseName.startsWith('role-'))    return 'content/roles/'    + baseName.slice(5) + '.json';
-  if (baseName.startsWith('project-')) return 'content/projects/' + baseName.slice(8); // no extension — resolved below
+  if (name.startsWith('role-')) {
+    const resolved = name.replace(/(-\d+)-\d+$/, '$1');
+    return 'content/roles/' + resolved.slice(5) + '.json';
+  }
+  if (name.startsWith('project-')) {
+    return 'content/projects/' + name.slice(8);
+  }
   return null;
 }
 
