@@ -607,6 +607,10 @@ function youtubeEmbed(url) {
 function renderRole(d) {
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = 'Roll';
+  const body = document.getElementById('panelBody');
+  body.style.padding = '';
+  body.style.overflow = '';
+  body.style.background = '';
   let html = '';
 
   if (d.yrkesinfo) {
@@ -654,7 +658,7 @@ function renderRole(d) {
       // Folder link
       if (ex.folderUrl) {
         html += `<a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-top:6px;">
-                   <span class="resource-icon">📁</span>Öppna övningsmapp
+                   <span class="resource-icon">📁</span>Öppna övningsmapp:
                  </a>`;
       }
 
