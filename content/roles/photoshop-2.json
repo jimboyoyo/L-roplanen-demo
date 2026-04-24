@@ -1,0 +1,25 @@
+{
+  "id": "role-photoshop-2",
+  "title": "Photoshop Nivå 2",
+  "type": "Roll",
+  "yrkesinfo": "Redo att gå på djupet med Photoshop? På andra nivån får du lära dig mer avancerad bildredigering. Photoshop används flitigt inom olika medieyrken. Programmet är standard för nästan all bildredigering. Fotografer och retuscherare, formgivare, webdesigners, grafiska designers, konstnärer, illustratörer, tatuerare, videoredigerare…. I nästan alla yrken inom media används Photoshop.",
+  "exercises": [
+    {
+      "title": "Automatiska markeringar",
+      "description": "Lär dig låta AI markera åt dig!"
+    },
+    {
+      "title": "Bildjusteringar",
+      "description": "Ändra färg och annat snabbt!"
+    },
+    {
+      "title": "Blend Modes / Blandningslägen",
+      "description": "Hur blandar sig olika lager med varandra?"
+    },
+    {
+      "title": "Text i Photoshop",
+      "description": "Photoshop är inte bara för bilder."
+    }
+  ],
+  "outro": "Du har nu en djupare kunskap om Photoshop! Fortsätt på kartan med några av de mer avancerade projekten för att få använda och förstärka dina förmågor."
+}

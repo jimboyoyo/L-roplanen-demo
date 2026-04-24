@@ -1,0 +1,25 @@
+{
+  "id": "role-photoshop-3",
+  "title": "Photoshop Nivå 3",
+  "type": "Roll",
+  "yrkesinfo": "De Photoshop-tekniker du får lära dig på nivå 3 används inom professionell fotoretusch och annan avancerad bildredigering.",
+  "exercises": [
+    {
+      "title": "Avancerad markera och maska",
+      "description": "Lär dig markera även de svåraste sakerna!"
+    },
+    {
+      "title": "Lagerstilar",
+      "description": "Applicera effekter och stilar på innehållet i dina lager."
+    },
+    {
+      "title": "Brush Control",
+      "description": "Arbeta med penseln som proffsen gör."
+    },
+    {
+      "title": "Dodge and Burn",
+      "description": "Lär dig forma ljus och skugga i bilder."
+    }
+  ],
+  "outro": "Nu har du en mycket god kunskap om Photoshop, som bör räcka för även de tuffaste situationer. Du bör också ha tillräckligt med erfarenhet för att enkelt följa guider och självständigt lösa problem i Photoshop."
+}

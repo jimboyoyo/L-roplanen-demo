@@ -1,0 +1,21 @@
+{
+  "id": "role-photoshop-4",
+  "title": "Photoshop Nivå 4",
+  "type": "Roll",
+  "yrkesinfo": "Photoshop 4 är den sista nivån på kartan. Efter detta bör du ha kontroll på Photoshop, och möjligheten att själv lösa alla möjliga sorters bildproblem. Efter detta är det framförallt övning och nya metoder som krävs, inte mer kunskap om programmet i sig.",
+  "exercises": [
+    {
+      "title": "Filter",
+      "description": "Ger dig många möjligheter att förändra din bild."
+    },
+    {
+      "title": "Mockups",
+      "description": "Skapa mallar och mockups för att få dina färdiga projekt att komma till liv."
+    },
+    {
+      "title": "Basic Retouch",
+      "description": "Grundläggande retouchverktyg i Photoshop. Photoshop-magi."
+    }
+  ],
+  "outro": "Utmana dig själv med komplicerade projekt. Skapa många olika sorters bilder i Photoshop. Använd Photoshop i andra projekt än Photoshop-delen av kartan."
+}
