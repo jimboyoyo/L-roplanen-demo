@@ -1,0 +1,22 @@
+{
+  "id": "role-klippare-3",
+  "title": "Klippare Nivå 3",
+  "type": "Roll",
+  "yrkesinfo": "Klippare jobbar också med enklare specialeffekter. Att justera tid och hastighet på klipp, att maska och att keya är viktiga uppgifter för en klippare.",
+  "exercises": [
+    {
+      "title": "Effect Controls",
+      "description": "Gör inställningar för enskilda klipp.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EuleFmPjcGxFqr7X71J4tw8BPAI6uaQQnREbOqADN4Kl1A?e=BjsrNI"
+    },
+    {
+      "title": "Ändra hastighet på klipp",
+      "description": "Lär dig styra tid och tempo i ditt klippta material."
+    },
+    {
+      "title": "Greenscreen och Keying",
+      "description": "Lär dig jobba med greenscreen och keying i Premiere Pro."
+    }
+  ],
+  "outro": "Visa lärare dina färdiga övningar och fortsätt vidare på kartan!"
+}

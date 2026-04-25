@@ -1,0 +1,19 @@
+{
+  "id": "role-klippare-1",
+  "title": "Klippare Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "En klippare, även kallad filmredigerare eller videoredigerare, spelar en viktig roll i film- och TV-produktion. Deras huvudsakliga uppgift är att sammanställa det filmade materialet till en färdig produkt genom att redigera och klippa ihop scenerna. Klipparen ansvarar för urval av tagningar, tidslinje och struktur, rytm och tempo, övergångar och specialeffekter, samt samarbete med regissören. Kort sagt är klipparen ansvarig för att omvandla råmaterial till en sammanhängande och färdig film eller TV-produktion.",
+  "exercises": [
+    {
+      "title": "Importera, klipp, exportera i Premiere Pro",
+      "description": "Lär dig grunderna i Premiere Pro.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjVU0eC1B3hMk1j4ZrlBPJwBFZ0MCyWZUGM-Bb4oarQ2uQ?e=oICX44"
+    },
+    {
+      "title": "Övergångar i Premiere Pro",
+      "description": "Lite kreativ frihet med övergångar.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EsAX7lwtOjhOilZ2gELWvvYB7p-l8uI3TZtcDUIFclrpmQ?e=ow6cqq"
+    }
+  ],
+  "outro": "Visa lärare dina exporterade filmer."
+}

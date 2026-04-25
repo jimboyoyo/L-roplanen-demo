@@ -1,0 +1,24 @@
+{
+  "id": "role-klippare-2",
+  "title": "Klippare Nivå 2",
+  "type": "Roll",
+  "yrkesinfo": "Som klippare på nivå 2 kommer du kunna göra mer med Premiere Pro. Du får lära dig jobba med text, grafik och captions för att kunna göra dina filmer mer informativa och tillgänglighetsanpassade.",
+  "exercises": [
+    {
+      "title": "Text och grafik i Premiere Pro",
+      "description": "Lägg till text och grafik i dina klipp.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EoADHAPhpOpOlXjZtkB2EUQBCxALBsQFks04MSGl3-Z_aw?e=rN2NVm"
+    },
+    {
+      "title": "Undertexter med Transcript och Captions",
+      "description": "Gör dina filmer tillgänglighetsanpassade med undertexter.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EkQ6wGz-z1hEttDv7EAoI_kBNoqAf20dirB5S2z2pQDhcA?e=MLWnQm"
+    },
+    {
+      "title": "Berätta med Kamerarörelser",
+      "description": "Lär dig hur kamerarörelser påverkar berättelsen.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/ERnfKI-_yqRMjdtYpdswiGYBxSCeW2pPBKjmFBUufvZ7gg?e=7J8ak8"
+    }
+  ],
+  "outro": "Visa lärare dina färdiga filmer och fortsätt vidare på kartan!"
+}
