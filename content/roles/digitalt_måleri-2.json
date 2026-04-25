@@ -1,0 +1,24 @@
+{
+  "id": "role-digitalt_måleri-2",
+  "title": "Digitalt Måleri Nivå 2",
+  "type": "Roll",
+  "yrkesinfo": "Att jobba med att måla digitalt innebär att du kommunicerar med bilder. På den här nivån får du därför lära dig nya metoder för att måla, som tränar dig att tänka mer visuellt. Du får också lära dig mer om Photoshops pensel-system.",
+  "exercises": [
+    {
+      "title": "Digitalt måleri: Shape Blocking",
+      "description": "Målerimetoden "Shape blocking" tränar dig i att tänka mer på formen på det du målat än dess linje.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/ErsnJ3TPQGlPqJkZmCqathUBUt-mCPm0fUhiTM_JoCDrKQ?e=Rlc7va"
+    },
+    {
+      "title": "Custom Brushes i Photoshop",
+      "description": "Installera nya specialpenslar i Photoshop för bättre känsla av måleri.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EmY0xdlnUr1LiKQAfaE7QwkB1wXHhjWtBN1IAhpoevBF8A?e=J6TMEn"
+    },
+    {
+      "title": "Wacom Cintiq",
+      "description": "Måla digitalt på skärm.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/EWZUs14oZNZPvRYOG2R5Y5AB_63S30JR9RdVF_9TwXw4ew?e=enlDYY"
+    }
+  ],
+  "outro": "Visa resultatet för lärare, sen kan du fortsätta vidare på kartan!"
+}

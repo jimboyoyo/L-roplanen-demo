@@ -1,0 +1,24 @@
+{
+  "id": "role-digitalt_måleri-1",
+  "title": "Digitalt Måleri Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "Digitalt Måleri kan ske i många olika program, med många olika verktyg. Här kommer du lära dig hur du gör i Photoshop med hjälp av ritplatta. Digitalt Måleri används inom många olika yrken. Serietecknare, javisst, men också inom concept art för spel och film, mattemålning inom film, industridesign, konst, reklam… Digitalt Måleri är, precis som traditionellt måleri och teckning, starkt beroende av din skicklighet som tecknare. Programmen erbjuder många tekniska lösningar som gör det smidigare, men samma praktiska övningar och tänk gäller för en konstnär oavsett om de målar digitalt eller analogt.",
+  "exercises": [
+    {
+      "title": "Hårdvara ritplatta",
+      "description": "Lär dig använda en ritplatta.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EkkzKnd4QJhPhvIn4G486EABpjQXilPtcnvkhf6A5Eu9gw?e=wklVPg"
+    },
+    {
+      "title": "Photoshop Brush Control",
+      "description": "Arbeta med penseln som proffsen gör.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/Ekczvr78ov5ArFOecpqCShMBtBxrh9Rp6IYXE5AvMdP40A?e=WjgkWq"
+    },
+    {
+      "title": "Grund i Digitalt Måleri: Trelagersmetoden",
+      "description": "Lär dig grundmetoden för digitalt måleri i Photoshop.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/El5CN9yCCRdFlcnFuIXbe9kBG3Ya3qBkDobBH6LRQCbkQw?e=pbMIch"
+    }
+  ],
+  "outro": "Använd dina kunskaper för att måla eller skapa illustrationer!"
+}
