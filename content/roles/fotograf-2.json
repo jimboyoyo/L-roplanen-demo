@@ -1,0 +1,24 @@
+{
+  "id": "role-fotograf-2",
+  "title": "Fotograf Nivå 2",
+  "type": "Roll",
+  "yrkesinfo": "På den andra nivån får du ta kontrollen över Tiden med kameran! Du får lära dig vad Slutaren är, hur den fungerar, och vilka effekter den har på bilden. Sedan får du lära dig om olika utsnitt för att kunna variera ditt berättande, och grunderna i ljuslära.",
+  "exercises": [
+    {
+      "title": "DSLR: Slutare",
+      "description": "Frys tiden eller smeta ut den!",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EofhBLRmH3JFiHDKsKru-2QBCmgafqHWSSLj_NMHQzsbrQ?e=sA5jB6"
+    },
+    {
+      "title": "Komposition: Utsnitt",
+      "description": "Närbild, helbild och alla de andra…",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/EZf61NN--F9Dkyip3MB0eHoBhai4Ie4ZBCpF_o0VHeNing?e=AxAbhy"
+    },
+    {
+      "title": "Ljuslära 1: Ljustyper",
+      "description": "Mjukt och hårt ljus.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/EUkTn6e-7KlMm3yMfYfkIdkB4k5KqwYqaR-DOU_QAdmqQg?e=BH66Kp"
+    }
+  ],
+  "outro": "Visa lärare efter varje övning. När du är färdig med alla, är du fotograf på nivå 2 och kan göra projekt med mer fokus på berättande fotografi, med större tekniskt kunnande."
+}

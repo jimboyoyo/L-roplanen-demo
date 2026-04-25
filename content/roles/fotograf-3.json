@@ -1,0 +1,29 @@
+{
+  "id": "role-fotograf-3",
+  "title": "Fotograf Nivå 3",
+  "type": "Roll",
+  "yrkesinfo": "Dags att ta kontroll över skärpedjupet! Som Fotograf på nivå 3 kommer du lära dig om kamerans bländare och dess effekter på ett foto, hur en fotograf tänker kring ljusriktning, och hur bilden kan komponeras i olika perspektiv. Med denna kunskap är du sedan redo att ta dig an mer verklighetsbaserade projekt och uppdrag.",
+  "exercises": [
+    {
+      "title": "DSLR Bländare",
+      "description": "Ta kontroll över bländaren och dess effekter!",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/ElQctMlqhjZLkiEvXTQ4lVIBQzV5oxr1FoizwkwYZGlGkQ?e=1KZxHr"
+    },
+    {
+      "title": "Ljuslära: Ljusriktningar",
+      "description": "Lär dig mer om ljus, fotografens viktigaste redskap!",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/Em5iY8nmTItHvYUuATkotuEBWlZ2XX2dUUVx0VYGhCOoRA?e=n8fyrt"
+    },
+    {
+      "title": "Komposition: Kameraperspektiv",
+      "description": "Hur påverkar perspektivet bildens berättelse?",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EsV_CVJK6UhAo5O22rr1M_8BsBr_9zrl6A6YVRGBhI1Hkg?e=mlKpDm"
+    },
+    {
+      "title": "Redigera bilder i Lightroom",
+      "description": "Redigera bilder i Lightroom på mobilen och datorn.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/Edsdve6BugxJr89V8GKM7jQBSuh53sLG5GylPdt3S5GvJQ?e=dMOZhz"
+    }
+  ],
+  "outro": "Efter varje övning, visa lärare ditt resultat. När du är färdig med alla övningar har du blivit Fotograf på nivå 3 och kan ta dig an mer komplexa projekt med större kontroll över ditt fotografiska uttryck!"
+}
