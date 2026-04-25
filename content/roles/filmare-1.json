@@ -1,0 +1,19 @@
+{
+  "id": "role-filmare-1",
+  "title": "Filmare Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "Vid en medieproduktion ansvarar den som filmar, ofta kallad kameraman eller filmfotograf, för att fånga visuellt material genom att hantera kamerautrustning. Detta inkluderar att komponera bilder, justera belysning och fokus, samt följa regissörens anvisningar för att skapa en visuellt tilltalande och tekniskt korrekt produktion. Att hantera en kamera korrekt är början för en filmare, sedan följer kunskap om bildens språk, kamerans rörelser och vinklar.",
+  "exercises": [
+    {
+      "title": "Filma med DSLR",
+      "description": "Förbered kameran och spela in film.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EpH4nBbuKK9GtluDO_VEazQBfzfo7MsJWG6AivxVwqjsTQ?e=jqvUSO"
+    },
+    {
+      "title": "Filhantering för DSLR",
+      "description": "Hur du flyttar filmer från kamera till dator, och hur du bör organisera dem.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EjiV9SQdSDBFkHXo_SIVVrcBXk44LxOulH2R4LltdAreTg?e=iuAGZZ"
+    }
+  ],
+  "outro": "Visa lärare dina filmade klipp i fin ordning på din dator."
+}
