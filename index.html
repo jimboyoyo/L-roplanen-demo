@@ -378,20 +378,15 @@ async function loadMap() {
   initViewBox(svg);
   initMapInteractions(svg);
 
- // animate from 100% to 20% in to coordinates 300,50
+      svg.style.opacity = '0';
+      svg.style.transition = 'opacity 0.6s ease';
+      
+      zoom(5.0, 300, 50);
+      requestAnimationFrame(() => {
+        svg.style.opacity = '1';
+      });
+      setTimeout(() => { svg.style.transition = ''; }, 600);
  
-  const steps = 10;
-  let i = 0;
-  const targetFactor = Math.pow(5.0, 1 / steps); // 5x zoom spread over 40 steps
-  
-  const animate = () => {
-    if (i >= steps) return;
-    zoom(targetFactor, 300, 50); // 300, 50 is your screen target point
-    i++;
-    requestAnimationFrame(animate);
-  };
-
-requestAnimationFrame(animate);
  
   // Hide loader
   const loader = document.getElementById('mapLoader');
