@@ -1,0 +1,19 @@
+{
+  "id": "role-blender-1",
+  "title": "Blender Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "En 3D-artist arbetar med att skapa tredimensionella bilder och modeller som används i spel, film, reklam, produktdesign, arkitektur och animation. I sitt yrkesliv använder de specialiserade datorprogram för att bygga modeller, lägga på texturer (ytor och material), sätta ljus och animera hur objekten rör sig. Arbetet kan vara både kreativt och tekniskt, och det kräver ofta samarbete med andra yrkesgrupper, som designers, programmerare eller regissörer.",
+  "exercises": [
+    {
+      "title": "Introduktion till Blender",
+      "description": "Lär dig vad Blender är och hur det fungerar.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQBe-szjXEPATYFGA1Y0H26KAThORzBhqZ_Kyt4rbd5aBhI?e=QL2BuN"
+    },
+    {
+      "title": "Grundläggande modellering i Blender",
+      "description": "Lär dig grunderna i 3D-modellering.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQA-MhvjUWNKTKraQxBGr3jtAU-vwcUR81964QyeAd9xtdw?e=WxLGhl"
+    }
+  ],
+  "outro": "Du kan nu göra projekt på Läroplanen som går ut på att bygga modeller i 3D. Gör några sådana för att bli van med tekniken, sedan kan du gå vidare till Blender nivå 2 och lära dig om texturering och material."
+}
