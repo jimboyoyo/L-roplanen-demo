@@ -352,15 +352,31 @@ function goToStudent(nodeId) {
 
   const newW = origW * 0.10;
   const newH = newW * (origH / origW);
-  vw = newW; vh = newH;
-  vx = centerX - newW / 2;
-  vy = centerY - newH / 2;
 
-const svg2 = getSvg();
-  svg2.style.transition = 'all 2s ease';
-  applyViewBox(svg2);
-  setTimeout(() => { svg2.style.transition = ''; }, 500);
+ const targetVx = centerX - newW / 2;
+  const targetVy = centerY - newH / 2;
+  const targetVw = newW;
+  const targetVh = newH;
 
+  const steps = 40;
+  let i = 0;
+  const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+
+  const svg2 = getSvg();
+  const animate = () => {
+    if (i >= steps) return;
+    const t = i / steps;
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    vx = startVx + (targetVx - startVx) * ease;
+    vy = startVy + (targetVy - startVy) * ease;
+    vw = startVw + (targetVw - startVw) * ease;
+    vh = startVh + (targetVh - startVh) * ease;
+       console.log(i, vx, vy, vw, vh);
+    applyViewBox(svg2);
+    i++;
+    requestAnimationFrame(animate);
+  };
+  requestAnimationFrame(animate);
 
  
 }
