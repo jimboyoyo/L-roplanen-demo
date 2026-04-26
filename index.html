@@ -196,6 +196,33 @@
   }
   .student-select select:hover { border-color: rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.12); }
   .student-select select option { background: #1a1a2e; color: #fff; }
+
+/*Loading animation before maps appears*/
+ #mapLoader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a1a;
+    z-index: 20;
+    transition: opacity 0.4s ease;
+  }
+  #mapLoader.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loader-ring {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(255,255,255,0.08);
+    border-top-color: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+
+ 
 </style>
 </head>
 <body>
@@ -220,7 +247,13 @@
       <button class="zoom-btn" onclick="zoom(1.2)">+</button>
       <button class="zoom-btn" onclick="zoom(0.8)">−</button>
       <button class="zoom-btn" onclick="resetView()" title="Återställ vy" style="font-size:12px;">↺</button>
+
+        <div id="mapLoader">
+         <div class="loader-ring"></div>
+       </div>
+     
     </div>
+   
   </div>
 
   <div class="panel closed" id="panel">
@@ -344,6 +377,11 @@ async function loadMap() {
   initViewBox(svg);
   initMapInteractions(svg);
 zoom(5.0, 300, 50);
+
+  // Hide loader
+  const loader = document.getElementById('mapLoader');
+  loader.classList.add('hidden');
+  setTimeout(() => loader.remove(), 400); // clean up after fade
  
 }
 
