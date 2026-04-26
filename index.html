@@ -366,7 +366,7 @@ function goToStudent(nodeId) {
   const animate = () => {
     if (i >= steps) return;
     const t = i / steps;
-    const ease = t < 0.3 ? 2*t*t : -1+(4-2*t)*t;
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
     vx = startVx + (targetVx - startVx) * ease;
     vy = startVy + (targetVy - startVy) * ease;
     vw = startVw + (targetVw - startVw) * ease;
