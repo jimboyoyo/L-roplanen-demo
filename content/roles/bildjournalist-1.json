@@ -1,0 +1,22 @@
+{
+  "id": "role-bildjournalist-1",
+  "title": "Bildjournalist Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "En bildjournalist, eller pressfotograf, berättar nyheter med bilder och film. Det kan handla om att fotografera en olycka, filma en intervju eller visa vardagslivet på en plats. Målet är alltid att ge en sann och rättvis bild av verkligheten. En bildjournalist arbetar ibland tillsammans med reportrar som skriver, men bilder och filmer kan också stå för sig själva och berätta hela historien. I dag förväntas bildjournalister både kunna fotografera, filma och redigera material för tidningar, webben och sociala medier. Kort sagt: en bildjournalist använder kameran för att berätta historier som informerar, berör och hjälper oss att förstå världen.",
+  "exercises": [
+    {
+      "title": "Bildjournalistens Berättande Bilder",
+      "description": "Lär dig hur bildjournalisten använder bilder för att berätta en historia.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/EUGCwgDVAytPkg_wP20wRuMBYtdzBMjyky3HUqegbuQ9vQ?e=DWOQH9"
+    },
+    {
+      "title": "Pressetiska regler",
+      "description": "Lär dig de pressetiska reglerna som styr journalistikens yrkesutövning."
+    },
+    {
+      "title": "Bildredaktör: Variation och Enhetlighet i bildval",
+      "description": "Lär dig tänka som en bildredaktör när du väljer och kombinerar bilder."
+    }
+  ],
+  "outro": "Du är nu redo att ta dig an projekten i JOURNALIST-cirkeln. Dessa projekt kan du göra i antingen video, foto eller blandad form."
+}
