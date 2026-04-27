@@ -44,7 +44,6 @@ Nod-ID:n i map.svg måste matcha filnamnen — en nod med id role-photoshop-1 la
 ##Köra lokalt
 Inget byggsteg krävs. Servera mappen med valfri statisk filserver, till exempel:
 bashnpx serve .
-# eller
 python -m http.server
 Öppna sedan http://localhost:3000 (eller den port som visas) i din webbläsare.
 
