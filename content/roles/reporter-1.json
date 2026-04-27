@@ -1,0 +1,23 @@
+{
+  "id": "role-reporter-1",
+  "title": "Reporter Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "En reporter arbetar med att samla in, undersöka och rapportera nyheter eller information till allmänheten. Deras arbetsuppgifter kan inkludera: Nyhetsinsamling: Reportern söker efter nyheter genom att intervjua människor, delta i presskonferenser, övervaka nyhetsflöden och följa upp tips. Undersökande journalistik: Vissa reportrar fokuserar på att gräva djupare i ett ämne, undersöka dokument, lagar och händelser för att avslöja fakta som inte är allmänt kända. Artiklar eller inslag: Efter att ha samlat information skriver reportern artiklar eller förbereder inslag för TV, radio, tidningar eller digitala plattformar. Fältarbete: Många reportrar arbetar ute på fältet och rapporterar direkt från händelser som olyckor, demonstrationer, sportevenemang eller kulturella evenemang. Faktagranskning: Det är viktigt att reportern säkerställer att informationen är korrekt innan den publiceras. Reportern kan specialisera sig inom olika områden, som politik, sport, kultur eller ekonomi, och deras arbete spelar en avgörande roll i att informera och påverka samhället.",
+  "exercises": [
+    {
+      "title": "Mikrofon till kamera",
+      "description": "Lär dig koppla mikrofon till kamera för att spela in ljud.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/Eh4fKXrn2AJOqBBxCeQn0R8BU4uwPa9NIKmHaHNS4ij6oQ?e=EgeI8N"
+    },
+    {
+      "title": "Research: Intervjuer",
+      "description": "Förklarar hur en reporter förbereder sig.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/EvWuna4Kal5Ikx5jcjyaZvABt3UQE1QNmb3MXr14n8c3dA?e=qp8lHa"
+    },
+    {
+      "title": "En reporter i arbete",
+      "description": "Kolla denna korta video för att se hur en reporter arbetar. Videon är på engelska.",
+      "video1": "https://www.youtube.com/watch?v=SATFMmhm3ys"
+    }
+  ]
+}
