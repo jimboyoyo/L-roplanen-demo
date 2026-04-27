@@ -41,14 +41,17 @@ json{
 
 Nod-ID:n i map.svg måste matcha filnamnen — en nod med id role-photoshop-1 laddar content/roles/photoshop-1.json.
 
-##Köra lokalt
+## Köra lokalt
 Inget byggsteg krävs. Servera mappen med valfri statisk filserver, till exempel:
 bashnpx serve .
 python -m http.server
 Öppna sedan http://localhost:3000 (eller den port som visas) i din webbläsare.
 
-Kartredigering
+## Kartredigering
 Kartan är byggd i Adobe Illustrator och exporterad som SVG. Nod-element ska ha ett id-attribut som matchar mönstret role-[namn] eller project-[namn] för att vara klickbara. Illustrator kan lägga till dublettändelser (t.ex. -2) som appen automatiskt tar bort för rollnoder.
+
+## Utveckling
+All kod videbokad med Claude. 
 
 
 ## Licens
