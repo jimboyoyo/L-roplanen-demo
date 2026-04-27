@@ -1,0 +1,24 @@
+{
+  "id": "role-regissor-1",
+  "title": "Regissör Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "En regissör är personen som leder arbetet med en film, teaterföreställning eller tv-produktion. Regissören bestämmer hur berättelsen ska visas för publiken. Det är regissörens jobb att tolka manuset och skapa en tydlig vision för hur allt ska se ut och kännas. Regissören arbetar nära skådespelarna och hjälper dem att förstå sina roller. Regissören visar hur scener ska spelas och ger feedback för att få fram rätt känslor. Regissören samarbetar också med andra i teamet, till exempel kameratekniker, scenograf, ljus- och ljudtekniker. En regissör ansvarar för att hela produktionen blir så bra som möjligt. Det betyder att hen måste planera, göra val och lösa problem som uppstår under arbetets gång. Målet är att skapa en färdig föreställning eller film som berättar historien på ett tydligt och engagerande sätt.",
+  "exercises": [
+    {
+      "title": "Bildutsnitt",
+      "description": "Kunskap om bildutsnitt och hur de används är extra viktigt för en regissör.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQCX-tTTfvhfQ5MoqdzAdHh6AYWouCHuGQQqRf6NFR3jYp4?e=qSyeWH"
+    },
+    {
+      "title": "Kameraperspektiv",
+      "description": "Hur man använder olika kameraperspektiv.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQDemjsHjkVhQY43scXevWTmAai5SS2tcnVEhooM3R8ahY0?e=LRrhZc"
+    },
+    {
+      "title": "Bildmanus",
+      "description": "Bildmanus är ett viktigt verktyg för att visualisera filmen i förväg.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQA_yVpWTO-yQ65rFxa685wdAUNExp8XlUcZFAm4vve6ozU?e=vP9Cem"
+    }
+  ],
+  "outro": "Som Regissör har du nu verktygen att planera för olika sorters spelfilmer, och ansvara för dessa produktioner! Så, ut och gör film!"
+}
