@@ -1,0 +1,18 @@
+{
+  "id": "role-studiofotograf-1",
+  "title": "Studiofotograf Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "En studiofotograf tar professionella bilder i en fotostudio. De arbetar med ljussättning, bakgrunder och olika poser för att få fram den bästa bilden. De kan fota porträtt, mode, produktbilder eller reklambilder. Studiofotografer använder kameror, ljusutrustning och redigeringsprogram för att skapa högkvalitativa bilder. I fotostudion kan fotografen ta full kontroll över fotograferandet.",
+  "exercises": [
+    {
+      "title": "Studions delar",
+      "description": "Lär dig om studions delar och hur du förbereder den för fotografering.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/EYVsDRP0ZytEhE4ezyp40DMBQlNjT5uo0EkWn4c7W8kSgg?e=7eZZl2"
+    },
+    {
+      "title": "Grundläggande ljussättning",
+      "description": "Lär dig grunderna i ljussättning för studiofotografering. Lär dig om trepunktsljus och hur man riggar det i studion.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQA5EGHCiCa1TpOKXQCtJzoxATfdqb4FjUCvrmaNk0rcPtY?e=kKHTuJ"
+    }
+  ]
+}
