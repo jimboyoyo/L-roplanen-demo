@@ -481,17 +481,24 @@ function initProjectSearch() {
     if (el) {
       openPanel(node.id, el);
       // Also pan to it
-      try {
-        const bbox = el.getBBox();
-        const cx = bbox.x + bbox.width / 2;
-        const cy = bbox.y + bbox.height / 2;
-        vx = cx - vw * 0.15;
-        vy = cy - vh * 0.5;
-        const s = getSvg();
-        s.style.transition = 'all 0.4s ease-out';
-        applyViewBox(s);
-        setTimeout(() => { s.style.transition = ''; }, 400);
-      } catch(e) {}
+    try {
+  const bbox = el.getBBox();
+  const cx = bbox.x + bbox.width / 2;
+  const cy = bbox.y + bbox.height / 2;
+  
+  // Zoom to a comfortable level centered on the node
+  const targetW = origW * 0.15;
+  const targetH = targetW * (origH / origW);
+  vw = targetW;
+  vh = targetH;
+  vx = cx - targetW * 0.15;
+  vy = cy - targetH * 0.5;
+
+  const s = getSvg();
+  s.style.transition = 'all 0.4s ease-out';
+  applyViewBox(s);
+  setTimeout(() => { s.style.transition = ''; }, 400);
+} catch(e) {}
     } else {
       openPanel(node.id, null);
     }
