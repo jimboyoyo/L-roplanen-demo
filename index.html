@@ -839,7 +839,9 @@ function printCurrentPdf() {
   document.body.appendChild(iframe);
   iframe.addEventListener('load', () => {
     iframe.contentWindow.print();
-    setTimeout(() => document.body.removeChild(iframe), 1000);
+    window.addEventListener('afterprint', () => {
+      document.body.removeChild(iframe);
+    }, { once: true });
   });
 }
  
