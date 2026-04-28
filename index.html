@@ -263,7 +263,9 @@
         <div class="panel-title" id="panelTitle">—</div>
         <div class="panel-subtitle" id="panelSubtitle"></div>
       </div>
-      <button class="close-btn" onclick="closePanel()">×</button>
+<button class="print-btn" id="printBtn" onclick="printCurrentPdf()" style="display:none; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer; padding:0; line-height:1; flex-shrink:0; margin-left:8px;" title="Skriv ut">🖨</button>
+<button class="close-btn" onclick="closePanel()">×</button>
+     
     </div>
     <div class="panel-body" id="panelBody">
       <div class="empty-state">
@@ -532,10 +534,14 @@ try {
 function closePanel() {
   document.getElementById('panel').classList.add('closed');
 }
+
+// for printpdf  button 
+let currentPdfUrl = null;
  
 // ─── PDF RENDERER (PDF.js) ────────────────────────────────────────────
 
 let pdfJsLoaded = false;
+ 
 
 async function loadPdfJs() {
   if (pdfJsLoaded) return;
@@ -551,6 +557,9 @@ async function loadPdfJs() {
 }
 
 async function renderPdf(url) {
+ currentPdfUrl = url;
+ document.getElementById('printBtn').style.display = 'inline-block';
+ 
   const body = document.getElementById('panelBody');
   body.style.padding = '0';
   body.style.overflow = 'hidden';
@@ -672,6 +681,10 @@ function youtubeEmbed(url) {
 }
  
 function renderRole(d) {
+//hide the print button
+currentPdfUrl = null;
+document.getElementById('printBtn').style.display = 'none';
+ 
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = 'Roll';
   const body = document.getElementById('panelBody');
@@ -744,6 +757,10 @@ function renderRole(d) {
 
 
 function renderProject(d) {
+//hide the print button
+ currentPdfUrl = null;
+document.getElementById('printBtn').style.display = 'none';
+ 
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = [d.type, d.duration].filter(Boolean).join(' · ');
   let html = '';
@@ -809,6 +826,15 @@ function renderProject(d) {
   document.getElementById('panelBody').innerHTML = html;
 }
 
+// ________________ print button functionality
+ 
+ function printCurrentPdf() {
+  if (!currentPdfUrl) return;
+  const win = window.open(currentPdfUrl, '_blank');
+  win.addEventListener('load', () => win.print(), { once: true });
+}
+ 
+ 
 // ─── MODAL ────────────────────────────────────────────────────────────
 
 function closeModal() {
