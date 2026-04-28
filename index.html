@@ -437,7 +437,7 @@ function initProjectSearch() {
   function getHits(q) {
     if (!q) return [];
     const lower = q.toLowerCase();
-    return projectNodes.filter(n => n.label.toLowerCase().includes(lower)).slice(0, 12);
+    return projectNodes.filter(n => n.label.toLowerCase().includes(lower));
   }
 
   function highlight(text, q) {
