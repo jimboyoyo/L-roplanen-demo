@@ -221,7 +221,73 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+/* project search box */
 
+/* Search bar */
+.search-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.search-input {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.8);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 10px 5px 28px;
+  width: 180px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.search-input::placeholder { color: rgba(255,255,255,0.3); }
+.search-input:focus { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); }
+.search-icon {
+  position: absolute;
+  left: 8px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 240px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 100;
+  overflow: hidden;
+  display: none;
+}
+.search-dropdown.open { display: block; }
+.search-result {
+  padding: 9px 14px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-result:last-child { border-bottom: none; }
+.search-result:hover, .search-result.active { background: rgba(255,255,255,0.1); color: #fff; }
+.search-result em {
+  font-style: normal;
+  color: #fff;
+  font-weight: 700;
+}
+.search-no-results {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  font-style: italic;
+}
+ 
  
 </style>
 </head>
@@ -235,6 +301,20 @@
       <option value="">— Välj elev —</option>
     </select>
   </div>
+
+<div class="search-wrap">
+  <span class="search-icon">🔍</span>
+  <input
+    id="projectSearch"
+    class="search-input"
+    type="text"
+    placeholder="Sök projekt…"
+    autocomplete="off"
+    spellcheck="false"
+  />
+  <div class="search-dropdown" id="searchDropdown"></div>
+</div>
+ 
   <span class="hint">Klicka på en nod för att öppna innehållet &nbsp;·&nbsp; Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
 </header>
 
@@ -325,6 +405,132 @@ function initStudentDropdown() {
   });
 }
 
+// ─── PROJECT SEARCH ───────────────────────────────────────────────────
+
+let projectNodes = []; // { id, label }
+
+function initProjectSearch() {
+  const svg = getSvg();
+  if (!svg) return;
+  projectNodes = [];
+  svg.querySelectorAll('[id]').forEach(el => {
+    const id = el.getAttribute('id');
+    if (id && id.startsWith('project-')) {
+      // Make a readable label from the id
+      const label = id
+        .slice(8)                          // strip "project-"
+        .replace(/-/g, ' ')               // dashes → spaces
+        .replace(/\b\w/g, c => c.toUpperCase()); // Title Case
+      // Avoid duplicates
+      if (!projectNodes.find(n => n.id === id)) {
+        projectNodes.push({ id, label, el });
+      }
+    }
+  });
+}
+
+(function setupSearch() {
+  const input = document.getElementById('projectSearch');
+  const dropdown = document.getElementById('searchDropdown');
+  let activeIdx = -1;
+
+  function getHits(q) {
+    if (!q) return [];
+    const lower = q.toLowerCase();
+    return projectNodes.filter(n => n.label.toLowerCase().includes(lower)).slice(0, 12);
+  }
+
+  function highlight(text, q) {
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return text;
+    return text.slice(0, idx) +
+      `<em>${text.slice(idx, idx + q.length)}</em>` +
+      text.slice(idx + q.length);
+  }
+
+  function renderDropdown(hits, q) {
+    activeIdx = -1;
+    if (hits.length === 0) {
+      dropdown.innerHTML = `<div class="search-no-results">Inga träffar</div>`;
+    } else {
+      dropdown.innerHTML = hits.map((n, i) =>
+        `<div class="search-result" data-idx="${i}">${highlight(n.label, q)}</div>`
+      ).join('');
+      dropdown.querySelectorAll('.search-result').forEach((el, i) => {
+        el.addEventListener('mousedown', e => {
+          e.preventDefault(); // don't blur input
+          selectResult(hits[i]);
+        });
+      });
+    }
+    dropdown.classList.add('open');
+  }
+
+  function closeDropdown() {
+    dropdown.classList.remove('open');
+    activeIdx = -1;
+  }
+
+  function selectResult(node) {
+    input.value = '';
+    closeDropdown();
+    // Find the SVG element and open its panel
+    const svg = getSvg();
+    if (!svg) return;
+    const el = svg.getElementById(node.id);
+    if (el) {
+      openPanel(node.id, el);
+      // Also pan to it
+      try {
+        const bbox = el.getBBox();
+        const cx = bbox.x + bbox.width / 2;
+        const cy = bbox.y + bbox.height / 2;
+        vx = cx - vw * 0.15;
+        vy = cy - vh * 0.5;
+        const s = getSvg();
+        s.style.transition = 'all 0.4s ease-out';
+        applyViewBox(s);
+        setTimeout(() => { s.style.transition = ''; }, 400);
+      } catch(e) {}
+    } else {
+      openPanel(node.id, null);
+    }
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (!q) { closeDropdown(); return; }
+    renderDropdown(getHits(q), q);
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = dropdown.querySelectorAll('.search-result');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'Enter') {
+      if (activeIdx >= 0 && items[activeIdx]) {
+        items[activeIdx].dispatchEvent(new MouseEvent('mousedown'));
+      }
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+      input.blur();
+    }
+  });
+
+  input.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+  input.addEventListener('focus', () => {
+    const q = input.value.trim();
+    if (q) renderDropdown(getHits(q), q);
+  });
+})();
+ 
+ 
 function goToStudent(nodeId) {
   if (!nodeId) return;
   const svg = getSvg();
@@ -401,6 +607,7 @@ async function loadMap() {
   document.getElementById('mapCanvas').appendChild(svg);
   initViewBox(svg);
   initMapInteractions(svg);
+  initProjectSearch();
 
       svg.style.opacity = '0';
       svg.style.transition = 'opacity 1s ease';
