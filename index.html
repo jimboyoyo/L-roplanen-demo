@@ -481,23 +481,32 @@ function initProjectSearch() {
     if (el) {
       openPanel(node.id, el);
       // Also pan to it
-    try {
+  try {
   const bbox = el.getBBox();
   const cx = bbox.x + bbox.width / 2;
   const cy = bbox.y + bbox.height / 2;
-  
-  // Zoom to a comfortable level centered on the node
+
   const targetW = origW * 0.15;
   const targetH = targetW * (origH / origW);
-  vw = targetW;
-  vh = targetH;
-  vx = cx - targetW * 0.15;
-  vy = cy - targetH * 0.5;
+  const targetVx = cx - targetW * 0.15;
+  const targetVy = cy - targetH * 0.5;
 
-  const s = getSvg();
-  s.style.transition = 'all 0.4s ease-out';
-  applyViewBox(s);
-  setTimeout(() => { s.style.transition = ''; }, 400);
+  const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+  const duration = 500; // ms
+  const startTime = performance.now();
+
+  function animateSearch(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease in-out quad
+    vx = startVx + (targetVx - startVx) * ease;
+    vy = startVy + (targetVy - startVy) * ease;
+    vw = startVw + (targetW - startVw) * ease;
+    vh = startVh + (targetH - startVh) * ease;
+    applyViewBox(getSvg());
+    if (t < 1) requestAnimationFrame(animateSearch);
+  }
+  requestAnimationFrame(animateSearch);
 } catch(e) {}
     } else {
       openPanel(node.id, null);
