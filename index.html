@@ -831,10 +831,16 @@ document.getElementById('printBtn').style.display = 'none';
 
 // ________________ print button functionality
  
- function printCurrentPdf() {
+function printCurrentPdf() {
   if (!currentPdfUrl) return;
-  const win = window.open(currentPdfUrl, '_blank');
-  win.addEventListener('load', () => win.print(), { once: true });
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed; top:-9999px; left:-9999px; width:1px; height:1px;';
+  iframe.src = currentPdfUrl;
+  document.body.appendChild(iframe);
+  iframe.addEventListener('load', () => {
+    iframe.contentWindow.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  });
 }
  
  
