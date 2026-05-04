@@ -287,6 +287,90 @@
   color: rgba(255,255,255,0.3);
   font-style: italic;
 }
+
+
+/* HELP STUFF */
+
+ .help-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px; color: rgba(255,255,255,0.85);
+  font-family: inherit; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; padding: 5px 12px;
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.help-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+
+.help-corner {
+  position: absolute;
+  top: 12px; left: 12px;
+  z-index: 20;
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 220px;
+}
+.help-queue-list {
+  background: rgba(10,10,26,0.92);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: none;
+}
+.help-queue-list.visible { display: block; }
+.help-queue-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.35); text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.help-queue-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 12px; color: rgba(255,255,255,0.8);
+}
+.help-queue-item:last-child { border-bottom: none; }
+.help-queue-num {
+  font-size: 10px; color: rgba(255,255,255,0.3);
+  flex-shrink: 0; width: 14px;
+}
+.help-queue-name { flex: 1; }
+.help-queue-delete {
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,0.2); font-size: 14px; padding: 0;
+  line-height: 1; transition: color 0.15s; flex-shrink: 0;
+}
+.help-queue-delete:hover { color: rgba(255,80,80,0.8); }
+.help-queue-delete.locked { opacity: 0; pointer-events: none; }
+.help-popup {
+  background: rgba(10,10,26,0.95);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px; padding: 12px; display: none;
+}
+.help-popup.visible { display: block; }
+.help-popup label {
+  display: block; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; color: rgba(255,255,255,0.4);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.help-popup input {
+  width: 100%; background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+  color: #fff; font-family: inherit; font-size: 13px;
+  padding: 7px 10px; outline: none; margin-bottom: 8px;
+  box-sizing: border-box;
+}
+.help-popup input:focus { border-color: rgba(255,255,255,0.4); }
+.help-popup-submit {
+  width: 100%; background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+  color: rgba(255,255,255,0.85); font-family: inherit;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  padding: 7px; cursor: pointer; transition: background 0.15s;
+}
+.help-popup-submit:hover { background: rgba(255,255,255,0.18); }
+.help-already {
+  font-size: 11px; color: rgba(255,200,100,0.8);
+  text-align: center; margin-top: 6px;
+}
  
  
 </style>
@@ -295,6 +379,9 @@
 
 <header>
   <h1>LÄROPLANEN</h1>
+ 
+ <button class="help-btn" onclick="toggleHelpPopup()">HJÄLP!</button>
+ 
   <div class="student-select">
     <label for="studentSelect">Elev</label>
     <select id="studentSelect" onchange="closePanel(); goToStudent(this.value)">
@@ -319,6 +406,20 @@
 </header>
 
 <div class="shell">
+
+<div class="help-corner" id="helpCorner">
+  <div class="help-queue-list" id="helpQueueList">
+    <div class="help-queue-title">Kö för hjälp</div>
+    <div id="helpQueueItems"></div>
+  </div>
+  <div class="help-popup" id="helpPopup">
+    <label>Ditt namn</label>
+    <input type="text" id="helpNameInput" placeholder="Skriv ditt namn…" maxlength="30" />
+    <button class="help-popup-submit" onclick="submitHelpRequest()">Räck upp handen</button>
+    <div class="help-already" id="helpAlready"></div>
+  </div>
+</div>
+ 
   <div class="map-area" id="mapArea">
     <div class="map-canvas" id="mapCanvas">
       <!-- SVG loaded dynamically from map.svg -->
@@ -1196,6 +1297,130 @@ area.addEventListener('touchmove', e => {
 area.addEventListener('touchend', e => {
   lastTouches = e.touches.length > 0 ? e.touches : null;
 }, { passive: false });
+
+
+// ─── FIREBASE HELP QUEUE ──────────────────────────────────────────────
+
+// 🔧 REPLACE THIS with your own config from Firebase console
+  const firebaseConfig = {
+    apiKey: "AIzaSyBmTngmHOQZ8Szv2I7o-zzqMfebQQvybx8",
+    authDomain: "laroplanen-help.firebaseapp.com",
+    databaseURL: "https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "laroplanen-help",
+    storageBucket: "laroplanen-help.firebasestorage.app",
+    messagingSenderId: "895065825769",
+    appId: "1:895065825769:web:2e519fa850e24f9a2b6b78"
+  };
+
+let helpDb = null;
+let helpPopupOpen = false;
+let helpMyToken = localStorage.getItem('help-token') || null;
+
+// Load Firebase and connect
+(function initFirebase() {
+  const script1 = document.createElement('script');
+  script1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+  script1.onload = () => {
+    const script2 = document.createElement('script');
+    script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+    script2.onload = () => {
+      firebase.initializeApp(firebaseConfig);
+      helpDb = firebase.database();
+
+      // This is the magic: onValue fires instantly on any change, on all clients
+      helpDb.ref('helpQueue').on('value', snapshot => {
+        const data = snapshot.val() || {};
+        const queue = Object.values(data).sort((a, b) => a.ts - b.ts);
+        renderHelpQueue(queue);
+      });
+    };
+    document.head.appendChild(script2);
+  };
+  document.head.appendChild(script1);
+})();
+
+function toggleHelpPopup() {
+  helpPopupOpen = !helpPopupOpen;
+  document.getElementById('helpPopup').classList.toggle('visible', helpPopupOpen);
+  if (helpPopupOpen) {
+    document.getElementById('helpNameInput').focus();
+    document.getElementById('helpAlready').textContent = '';
+  }
+}
+
+async function submitHelpRequest() {
+  const name = document.getElementById('helpNameInput').value.trim();
+  if (!name || !helpDb) return;
+
+  // If this student already has a token, check if they're in the queue
+  if (helpMyToken) {
+    const snap = await helpDb.ref('helpQueue/' + helpMyToken).get();
+    if (snap.exists()) {
+      document.getElementById('helpAlready').textContent = 'Du är redan i kön!';
+      return;
+    }
+  }
+
+  // Generate token, save to localStorage
+  helpMyToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('help-token', helpMyToken);
+
+  // Write to Firebase — the key IS the token, makes deletion trivial
+  await helpDb.ref('helpQueue/' + helpMyToken).set({
+    name: name,
+    token: helpMyToken,
+    ts: Date.now()
+  });
+
+  document.getElementById('helpNameInput').value = '';
+  helpPopupOpen = false;
+  document.getElementById('helpPopup').classList.remove('visible');
+}
+
+async function deleteHelpEntry(token) {
+  if (!helpDb) return;
+  await helpDb.ref('helpQueue/' + token).remove();
+}
+
+function renderHelpQueue(queue) {
+  const list = document.getElementById('helpQueueList');
+  const items = document.getElementById('helpQueueItems');
+
+  if (!queue.length) {
+    list.classList.remove('visible');
+    return;
+  }
+
+  list.classList.add('visible');
+  items.innerHTML = queue.map((entry, i) => {
+    const isMine = entry.token === helpMyToken;
+    return `<div class="help-queue-item">
+      <span class="help-queue-num">${i + 1}</span>
+      <span class="help-queue-name">${entry.name}</span>
+      <button class="help-queue-delete ${isMine ? '' : 'locked'}"
+        onclick="deleteHelpEntry('${entry.token}')"
+        title="Ta bort">×</button>
+    </div>`;
+  }).join('');
+}
+
+// Close popup on outside click
+document.addEventListener('click', e => {
+  if (!helpPopupOpen) return;
+  const corner = document.getElementById('helpCorner');
+  const btn = document.querySelector('.help-btn');
+  if (!corner.contains(e.target) && !btn.contains(e.target)) {
+    helpPopupOpen = false;
+    document.getElementById('helpPopup').classList.remove('visible');
+  }
+});
+
+// Enter key submits
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && helpPopupOpen) submitHelpRequest();
+});
+
+ 
 </script>
 
 </body>
