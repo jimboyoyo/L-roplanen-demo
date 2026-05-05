@@ -371,6 +371,14 @@
   font-size: 11px; color: rgba(255,200,100,0.8);
   text-align: center; margin-top: 6px;
 }
+
+#starCanvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.map-canvas { position: relative; z-index: 1; }
  
  
 </style>
@@ -1420,6 +1428,82 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && helpPopupOpen) submitHelpRequest();
 });
 
+// ─── PARALLAX STARFIELD ───────────────────────────────────────────────
+
+(function initStarfield() {
+  const area = document.getElementById('mapArea');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'starCanvas';
+  area.insertBefore(canvas, area.firstChild);
+  const ctx = canvas.getContext('2d');
+
+  const LAYERS = [
+    { count: 80,  size: [0.8, 1.4], opacity: [0.15, 0.3],  parallax: 0.02 },
+    { count: 50,  size: [1.4, 2.2], opacity: [0.25, 0.45], parallax: 0.05 },
+    { count: 25,  size: [2.2, 3.5], opacity: [0.4,  0.65], parallax: 0.10 },
+    { count: 10,  size: [3.5, 5.5], opacity: [0.55, 0.8],  parallax: 0.18 },
+  ];
+
+  let stars = [];
+  let W = 0, H = 0;
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function build() {
+    W = area.clientWidth;
+    H = area.clientHeight;
+    canvas.width  = W;
+    canvas.height = H;
+    stars = [];
+    LAYERS.forEach(layer => {
+      for (let i = 0; i < layer.count; i++) {
+        stars.push({
+          x:        rand(0, W),
+          y:        rand(0, H),
+          r:        rand(layer.size[0],    layer.size[1]),
+          opacity:  rand(layer.opacity[0], layer.opacity[1]),
+          parallax: layer.parallax,
+          twinkle:  rand(0, Math.PI * 2),
+          twinkleSpeed: rand(0.003, 0.012),
+        });
+      }
+    });
+  }
+
+  let lastVx = 0, lastVy = 0, lastVw = 1;
+
+  function draw(ts) {
+    requestAnimationFrame(draw);
+    if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+
+    const panX = vx / (origW || 1) * W;
+    const panY = vy / (origH || 1) * H;
+
+    stars.forEach(s => {
+      s.twinkle += s.twinkleSpeed;
+      const twinkleFactor = 0.85 + 0.15 * Math.sin(s.twinkle);
+
+      const dx = -panX * s.parallax;
+      const dy = -panY * s.parallax;
+
+      let sx = ((s.x + dx) % W + W) % W;
+      let sy = ((s.y + dy) % H + H) % H;
+
+      ctx.beginPath();
+      ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${(s.opacity * twinkleFactor).toFixed(3)})`;
+      ctx.fill();
+    });
+
+    lastVx = vx; lastVy = vy; lastVw = vw;
+  }
+
+  build();
+  window.addEventListener('resize', build);
+  requestAnimationFrame(draw);
+})();
+ 
  
 </script>
 
