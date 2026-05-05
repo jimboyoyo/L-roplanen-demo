@@ -300,76 +300,89 @@
   transition: background 0.15s, border-color 0.15s;
 }
 .help-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
-
 .help-corner {
   position: absolute;
   top: 12px; left: 12px;
   z-index: 20;
-  display: flex; flex-direction: column; gap: 8px;
-  max-width: 220px;
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 264px;
 }
+
 .help-queue-list {
-  background: rgba(10,10,26,0.92);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 8px;
-  padding: 10px 12px;
+  background: #fff;
+  border: 2px solid #1a1a2e;
+  border-radius: 11px;
+  padding: 14px 17px;
   display: none;
 }
 .help-queue-list.visible { display: block; }
+
 .help-queue-title {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.35); text-transform: uppercase;
-  margin-bottom: 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+  color: #888; text-transform: uppercase;
+  margin-bottom: 11px;
 }
+
 .help-queue-item {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; padding: 5px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  font-size: 12px; color: rgba(255,255,255,0.8);
+  gap: 11px; padding: 7px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 17px; color: #111; font-weight: 600;
 }
 .help-queue-item:last-child { border-bottom: none; }
+
 .help-queue-num {
-  font-size: 10px; color: rgba(255,255,255,0.3);
-  flex-shrink: 0; width: 14px;
+  font-size: 13px; color: #aaa;
+  flex-shrink: 0; width: 19px;
 }
+
 .help-queue-name { flex: 1; }
+
 .help-queue-delete {
   background: none; border: none; cursor: pointer;
-  color: rgba(255,255,255,0.2); font-size: 14px; padding: 0;
+  color: #ccc; font-size: 19px; padding: 0;
   line-height: 1; transition: color 0.15s; flex-shrink: 0;
 }
-.help-queue-delete:hover { color: rgba(255,80,80,0.8); }
+.help-queue-delete:hover { color: rgba(255,80,80,0.9); }
 .help-queue-delete.locked { opacity: 0; pointer-events: none; }
+
 .help-popup {
-  background: rgba(10,10,26,0.95);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 8px; padding: 12px; display: none;
+  background: #fff;
+  border: 2px solid #1a1a2e;
+  border-radius: 11px;
+  padding: 17px;
+  display: none;
 }
 .help-popup.visible { display: block; }
+
 .help-popup label {
-  display: block; font-size: 10px; font-weight: 700;
-  letter-spacing: 0.1em; color: rgba(255,255,255,0.4);
-  text-transform: uppercase; margin-bottom: 6px;
+  display: block; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.1em; color: #888;
+  text-transform: uppercase; margin-bottom: 8px;
 }
+
 .help-popup input {
-  width: 100%; background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
-  color: #fff; font-family: inherit; font-size: 13px;
-  padding: 7px 10px; outline: none; margin-bottom: 8px;
+  width: 100%; background: #f5f5f5;
+  border: 1px solid #ccc; border-radius: 7px;
+  color: #111; font-family: inherit; font-size: 18px;
+  padding: 10px 14px; outline: none; margin-bottom: 11px;
   box-sizing: border-box;
 }
-.help-popup input:focus { border-color: rgba(255,255,255,0.4); }
+.help-popup input::placeholder { color: #bbb; }
+.help-popup input:focus { border-color: #1a1a2e; }
+
 .help-popup-submit {
-  width: 100%; background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
-  color: rgba(255,255,255,0.85); font-family: inherit;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
-  padding: 7px; cursor: pointer; transition: background 0.15s;
+  width: 100%; background: #1a1a2e;
+  border: 1px solid #1a1a2e; border-radius: 7px;
+  color: #fff; font-family: inherit;
+  font-size: 17px; font-weight: 700; letter-spacing: 0.06em;
+  padding: 11px; cursor: pointer; transition: background 0.15s;
 }
-.help-popup-submit:hover { background: rgba(255,255,255,0.18); }
+.help-popup-submit:hover { background: #2e2e4e; }
+
 .help-already {
-  font-size: 11px; color: rgba(255,200,100,0.8);
-  text-align: center; margin-top: 6px;
+  font-size: 15px; color: #cc8800;
+  text-align: center; margin-top: 8px;
 }
 
 #starCanvas {
