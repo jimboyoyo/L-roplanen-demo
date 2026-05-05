@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hjälpkö</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    background: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 48px 40px;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  #queue {
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .queue-item {
+    background: #fff;
+    border: 2px solid #1a1a2e;
+    border-radius: 16px;
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .queue-num {
+    font-size: 28px;
+    font-weight: 700;
+    color: #ccc;
+    width: 40px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .queue-name {
+    flex: 1;
+    font-size: 48px;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.1;
+  }
+
+  .queue-delete {
+    background: none;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    color: #ccc;
+    font-size: 28px;
+    width: 52px;
+    height: 52px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: border-color 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .queue-delete:hover {
+    border-color: #e55;
+    color: #e55;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: #ccc;
+    font-size: 28px;
+    font-weight: 700;
+    margin-top: 80px;
+    letter-spacing: 0.05em;
+  }
+
+  .empty-sub {
+    text-align: center;
+    color: #ddd;
+    font-size: 16px;
+    margin-top: 12px;
+  }
+
+  #status {
+    position: fixed;
+    bottom: 20px;
+    right: 24px;
+    font-size: 12px;
+    color: #ccc;
+    letter-spacing: 0.08em;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .dot.live { background: #4caf50; }
+</style>
+</head>
+<body>
+
+<h1>Kö för hjälp</h1>
+<div id="queue"></div>
+<div id="status"><span class="dot" id="dot"></span><span id="statusText">Ansluter…</span></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBmTngmHOQZ8Szv2I7o-zzqMfebQQvybx8",
+    authDomain: "laroplanen-help.firebaseapp.com",
+    databaseURL: "https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "laroplanen-help",
+    storageBucket: "laroplanen-help.firebasestorage.app",
+    messagingSenderId: "895065825769",
+    appId: "1:895065825769:web:2e519fa850e24f9a2b6b78"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const queueEl     = document.getElementById('queue');
+  const dot         = document.getElementById('dot');
+  const statusText  = document.getElementById('statusText');
+
+  db.ref('helpQueue').on('value', snapshot => {
+    dot.classList.add('live');
+    statusText.textContent = 'Live';
+
+    const data = snapshot.val() || {};
+    const items = Object.values(data).sort((a, b) => a.ts - b.ts);
+
+    queueEl.innerHTML = '';
+
+    if (items.length === 0) {
+      queueEl.innerHTML = `
+        <div class="empty-state">Ingen i kön just nu</div>
+        <div class="empty-sub">Elever räcker upp handen via läroplanen</div>`;
+      return;
+    }
+
+    items.forEach((entry, i) => {
+      const div = document.createElement('div');
+      div.className = 'queue-item';
+      div.innerHTML = `
+        <span class="queue-num">${i + 1}</span>
+        <span class="queue-name">${entry.name}</span>
+        <button class="queue-delete" title="Ta bort" onclick="remove('${entry.token}')">×</button>`;
+      queueEl.appendChild(div);
+    });
+  }, err => {
+    dot.classList.remove('live');
+    statusText.textContent = 'Anslutningsfel';
+    console.error(err);
+  });
+
+  function remove(token) {
+    db.ref('helpQueue/' + token).remove();
+  }
+</script>
+</body>
+</html>
