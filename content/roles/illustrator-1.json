@@ -1,0 +1,24 @@
+{
+  "id": "role-illustrator-1",
+  "title": "Illustrator Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "Illustrator är ett program för att skapa vektorgrafik. Det används av proffs inom design, illustration, och layout för att skapa ALLT MÖJLIGT! Till skillnad från Photoshop är Illustrator ett vektorprogram. Istället för pixlar, skapar man olika former och objekt som tillsammans bygger upp en bild. Resultatet är bilder som kan förstoras och förminskas hur mycket som helst.",
+  "exercises": [
+    {
+      "title": "Välkommen till Illustrator",
+      "description": "Din resa i Illustrator och vektorgrafikens land börjar med den här korta videon, som förklarar skillnaden mellan vektorgrafik och pixelgrafik – de två grundläggande formerna av datorbilder.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgDTyjD1vBGKTbWckf7h1tgQAX8nf3I4X3yqKcTbNX8VHNw?e=9bmk9f"
+    },
+    {
+      "title": "Former i Illustrator",
+      "description": "Lär dig jobba med och skapa former av olika slag.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/g/personal/jim_bernstrom_orebro_se/IgD5AEExlSBGTrHsTnzYKzATAQ1uNhnf3z3kVJUCnQpUlGE?e=hlwlJN"
+    },
+    {
+      "title": "Text i Illustrator",
+      "description": "Man kan också jobba med text i Illustrator, och skriva både kort och långt!",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/r/personal/jim_bernstrom_orebro_se/Documents/Projektstruktur/2.%20Skills/Adobe%20Illustrator/Illustrator%20Niv%C3%A5%201/3.%20Text%20i%20Illustrator?csf=1&web=1&e=VYUIc3"
+    }
+  ],
+  "outro": "Börja din resa inom grafisk design med nästa projekt på kartan – Ikonerna!"
+}
