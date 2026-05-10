@@ -465,11 +465,18 @@
         <div class="panel-title" id="panelTitle">—</div>
         <div class="panel-subtitle" id="panelSubtitle"></div>
       </div>
+     
+
 <div style="display:flex; align-items:center; gap:12px; flex-shrink:0; margin-left:auto;">
+  <a id="panelFolderBtn" target="_blank" rel="noopener noreferrer"
+    style="display:none; align-items:center; justify-content:center;
+           color:#aaa; font-size:18px; text-decoration:none; line-height:1;"
+    title="Öppna OneDrive-mapp">📁</a>
   <button class="print-btn" id="printBtn" onclick="printCurrentPdf()" 
     style="display:none; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer; padding:0; line-height:1;" title="Skriv ut">🖨</button>
   <button class="close-btn" onclick="closePanel()" style="margin-left:0;">×</button>
 </div>
+
      
     </div>
     <div class="panel-body" id="panelBody">
@@ -764,8 +771,11 @@ async function loadMap() {
  
 }
 
+// REPLACE WITH:
 function initMapInteractions(svg) {
   svg.querySelectorAll('a').forEach(a => {
+    const href = a.getAttribute('href') || a.getAttribute('xlink:href') || '';
+    if (href) a.setAttribute('data-url', href);
     a.removeAttribute('href');
     a.removeAttribute('xlink:href');
     a.style.cursor = 'pointer';
@@ -776,7 +786,13 @@ function initMapInteractions(svg) {
     while (el && el !== svg) {
       const name = el.getAttribute('id') || el.getAttribute('data-name');
       if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        openPanel(name, el);
+        let anchor = el;
+        while (anchor && anchor !== svg) {
+          if (anchor.getAttribute('data-url')) break;
+          anchor = anchor.parentElement;
+        }
+        const folderUrl = anchor?.getAttribute('data-url') || '';
+        openPanel(name, el, folderUrl);
         return;
       }
       el = el.parentElement;
@@ -800,7 +816,7 @@ function nodeToPath(name) {
   return null;
 }
 
-async function openPanel(name, element) {
+async function openPanel(name, element, folderUrl = '') {
   document.getElementById('panel').classList.remove('closed');
 
   // Pan map so clicked node sits in centre of the left 40% of the screen
@@ -843,8 +859,18 @@ async function openPanel(name, element) {
   }
 
  
+  // REPLACE WITH:
   document.getElementById('panelTitle').textContent = name;
   document.getElementById('panelSubtitle').textContent = '';
+
+  const folderBtn = document.getElementById('panelFolderBtn');
+  if (folderUrl) {
+    folderBtn.href = folderUrl;
+    folderBtn.style.display = 'inline-flex';
+  } else {
+    folderBtn.style.display = 'none';
+  }
+
   document.getElementById('panelBody').innerHTML =
     `<div class="empty-state"><div class="empty-icon">⋯</div>Laddar...</div>`;
 
