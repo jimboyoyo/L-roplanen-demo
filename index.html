@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LäroPlanen</title>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf_viewer.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    background: #0a0a1a;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .hint {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .shell {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+  }
+
+  .map-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .map-area:active { cursor: grabbing; }
+
+  .map-canvas { width: 100%; height: 100%; }
+  .map-canvas svg { display: block; }
+  .map-canvas svg a { cursor: pointer; }
+  .map-canvas svg a:hover rect,
+  .map-canvas svg a:hover circle { opacity: 0.85; }
+
+  .zoom-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 5;
+  }
+
+  .zoom-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s;
+  }
+  .zoom-btn:hover { background: rgba(255,255,255,0.18); }
+
+  .panel {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    z-index: 10;
+    width: 60%;
+    min-width: 360px;
+    background: #fff;
+    border-left: 1px solid rgba(0,0,0,0.1);
+    box-shadow: -5px 0 20px rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    overflow: hidden;
+  }
+  .panel.closed { transform: translateX(100%); }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-shrink: 0;
+  }
+
+  .panel-title { font-size: 18px; font-weight: 700; color: #111; letter-spacing: 0.02em; }
+  .panel-subtitle { font-size: 12px; color: #888; margin-top: 3px; }
+
+  .close-btn {
+    background: none; border: none; color: #aaa;
+    font-size: 22px; cursor: pointer; padding: 0;
+    line-height: 1; flex-shrink: 0; margin-left: 12px;
+  }
+  .close-btn:hover { color: #333; }
+
+  .panel-body {
+    flex: 1; overflow-y: auto; padding: 20px; background: #fff;
+  }
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-track { background: #fff; }
+  .panel-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    color: #aaa; text-transform: uppercase;
+    margin-bottom: 8px; margin-top: 20px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .intro-text { font-size: 14px; line-height: 1.7; color: #222; margin-bottom: 4px; }
+
+  .step-list { list-style: none; padding: 0; }
+  .step-list li {
+    font-size: 13px; color: #333;
+    padding: 6px 0 6px 16px;
+    border-bottom: 1px solid #eee;
+    position: relative; line-height: 1.5;
+  }
+  .step-list li::before {
+    content: ''; position: absolute; left: 0; top: 13px;
+    width: 5px; height: 5px; border-radius: 50%; background: #ccc;
+  }
+  .step-list li:last-child { border-bottom: none; }
+
+  .phase-header {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: #aaa; text-transform: uppercase; padding: 10px 0 4px;
+  }
+
+  .resource-btn {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 10px 12px; margin-bottom: 6px;
+    background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px;
+    color: #333; font-size: 13px; font-family: inherit;
+    cursor: pointer; text-align: left; text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .resource-btn:hover { background: #eee; border-color: #bbb; }
+  .resource-icon { font-size: 16px; flex-shrink: 0; }
+
+  .empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; text-align: center;
+    color: #bbb; font-size: 13px; line-height: 1.6; padding: 40px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+  .textLayer span {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+  }
+
+  .student-select { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .student-select label { font-size: 11px; color: rgba(255,255,255,0.3); white-space: nowrap; }
+  .student-select select {
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px; color: rgba(255,255,255,0.8); font-family: inherit;
+    font-size: 12px; padding: 5px 10px; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none; padding-right: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.3)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+  }
+  .student-select select:hover { border-color: rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.12); }
+  .student-select select option { background: #1a1a2e; color: #fff; }
+
+  #mapLoader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a1a;
+    z-index: 20;
+    transition: opacity 0.4s ease;
+  }
+  #mapLoader.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loader-ring {
+    width: 100px; height: 100px;
+    border: 10px solid rgba(255,255,255,0.08);
+    border-top-color: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .search-wrap { position: relative; flex-shrink: 0; }
+  .search-input {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.8);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 5px 10px 5px 28px;
+    width: 180px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .search-input::placeholder { color: rgba(255,255,255,0.3); }
+  .search-input:focus { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); }
+  .search-icon {
+    position: absolute;
+    left: 8px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 240px;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 100;
+    overflow: hidden;
+    display: none;
+  }
+  .search-dropdown.open { display: block; }
+  .search-result {
+    padding: 9px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:hover, .search-result.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .search-result em { font-style: normal; color: #fff; font-weight: 700; }
+  .search-no-results {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+  }
+
+  .help-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px; color: rgba(255,255,255,0.85);
+    font-family: inherit; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; padding: 5px 12px;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .help-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+  .help-corner {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 20;
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 264px;
+  }
+
+  .help-queue-list {
+    background: #fff;
+    border: 2px solid #1a1a2e;
+    border-radius: 11px;
+    padding: 14px 17px;
+    display: none;
+  }
+  .help-queue-list.visible { display: block; }
+  .help-queue-title {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+    color: #888; text-transform: uppercase; margin-bottom: 11px;
+  }
+  .help-queue-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 11px; padding: 7px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 17px; color: #111; font-weight: 600;
+  }
+  .help-queue-item:last-child { border-bottom: none; }
+  .help-queue-num { font-size: 13px; color: #aaa; flex-shrink: 0; width: 19px; }
+  .help-queue-name { flex: 1; }
+  .help-queue-delete {
+    background: none; border: none; cursor: pointer;
+    color: #ccc; font-size: 19px; padding: 0;
+    line-height: 1; transition: color 0.15s; flex-shrink: 0;
+  }
+  .help-queue-delete:hover { color: rgba(255,80,80,0.9); }
+  .help-queue-delete.locked { opacity: 0; pointer-events: none; }
+
+  .help-popup {
+    background: #fff;
+    border: 2px solid #1a1a2e;
+    border-radius: 11px;
+    padding: 17px;
+    display: none;
+  }
+  .help-popup.visible { display: block; }
+  .help-popup label {
+    display: block; font-size: 13px; font-weight: 700;
+    letter-spacing: 0.1em; color: #888;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .help-popup input {
+    width: 100%; background: #f5f5f5;
+    border: 1px solid #ccc; border-radius: 7px;
+    color: #111; font-family: inherit; font-size: 18px;
+    padding: 10px 14px; outline: none; margin-bottom: 11px;
+    box-sizing: border-box;
+  }
+  .help-popup input::placeholder { color: #bbb; }
+  .help-popup input:focus { border-color: #1a1a2e; }
+  .help-popup-submit {
+    width: 100%; background: #1a1a2e;
+    border: 1px solid #1a1a2e; border-radius: 7px;
+    color: #fff; font-family: inherit;
+    font-size: 17px; font-weight: 700; letter-spacing: 0.06em;
+    padding: 11px; cursor: pointer; transition: background 0.15s;
+  }
+  .help-popup-submit:hover { background: #2e2e4e; }
+  .help-already { font-size: 15px; color: #cc8800; text-align: center; margin-top: 8px; }
+
+  #starCanvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .map-canvas { position: relative; z-index: 1; }
+
+  /* ── Student icons on the SVG map ── */
+  .student-icon {
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .student-icon:hover { opacity: 0.85; }
+
+  .student-label {
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-size: 11px;
+    fill: #fff;
+    text-anchor: middle;
+    pointer-events: none;
+    paint-order: stroke;
+    stroke: rgba(0,0,0,0.6);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>LÄROPLANEN</h1>
+
+  <button class="help-btn" onclick="toggleHelpPopup()">HJÄLP!</button>
+
+  <div class="student-select">
+    <label for="studentSelect">Elev</label>
+    <select id="studentSelect" onchange="closePanel(); goToStudent(this.value)">
+      <option value="">— Välj elev —</option>
+    </select>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input
+      id="projectSearch"
+      class="search-input"
+      type="text"
+      placeholder="Sök projekt…"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <div class="search-dropdown" id="searchDropdown"></div>
+  </div>
+
+  <span class="hint">Klicka på en nod för att öppna innehållet &nbsp;·&nbsp; Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
+</header>
+
+<div class="shell">
+
+  <div class="help-corner" id="helpCorner">
+    <div class="help-queue-list" id="helpQueueList">
+      <div class="help-queue-title">Kö för hjälp</div>
+      <div id="helpQueueItems"></div>
+    </div>
+    <div class="help-popup" id="helpPopup">
+      <label>Ditt namn</label>
+      <input type="text" id="helpNameInput" placeholder="Skriv ditt namn…" maxlength="30" />
+      <button class="help-popup-submit" onclick="submitHelpRequest()">Räck upp handen</button>
+      <div class="help-already" id="helpAlready"></div>
+    </div>
+  </div>
+
+  <div class="map-area" id="mapArea">
+    <div class="map-canvas" id="mapCanvas">
+      <!-- SVG loaded dynamically from map.svg -->
+    </div>
+
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+      <button class="zoom-btn" onclick="zoom(0.8)">−</button>
+      <button class="zoom-btn" onclick="resetView()" title="Återställ vy" style="font-size:12px;">↺</button>
+    </div>
+
+    <div id="mapLoader">
+      <div class="loader-ring"></div>
+    </div>
+  </div>
+
+  <div class="panel closed" id="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title" id="panelTitle">—</div>
+        <div class="panel-subtitle" id="panelSubtitle"></div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px; flex-shrink:0; margin-left:auto;">
+        <a id="panelFolderBtn" target="_blank" rel="noopener noreferrer"
+          style="display:none; align-items:center; justify-content:center;
+                 color:#aaa; font-size:18px; text-decoration:none; line-height:1;"
+          title="Öppna OneDrive-mapp">📁</a>
+        <button class="print-btn" id="printBtn" onclick="printCurrentPdf()"
+          style="display:none; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer; padding:0; line-height:1;" title="Skriv ut">🖨</button>
+        <button class="close-btn" onclick="closePanel()" style="margin-left:0;">×</button>
+      </div>
+    </div>
+    <div class="panel-body" id="panelBody">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        Klicka på en nod på kartan för att se innehållet här.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8t6cBm7poXfXN9FBkzxf_paP7j_6_eggDs_pkuwqtFRHESoxk7kUcrn6hG9VaD0PaJla4KGLfIJbO/pub?gid=0&single=true&output=csv';
+const MAP_SVG_URL   = 'https://jimboyoyo.github.io/L-roplanen-demo/map.svg';
+const STUDENTS_DIR  = 'students/';   // folder where PNGs live
+const ICON_SIZE     = 60;            // px width & height of each student icon in SVG units
+const ICON_OFFSET   = ICON_SIZE / 2; // so icon is centred on the node coordinate
+
+
+// ─── STUDENTS (for the dropdown) ─────────────────────────────────────────────
+
+const students = [
+  { name: "Agnes",    nodeId: "elev-AGNES"    },
+  { name: "Ahmad",    nodeId: "elev-AHMAD"    },
+  { name: "Al-Kasem", nodeId: "elev-ALKASEM"  },
+  { name: "Amna",     nodeId: "elev-AMNA"     },
+  { name: "Benji",    nodeId: "elev-BENJI"    },
+  { name: "Ebba",     nodeId: "elev-EBBA"     },
+  { name: "Emil",     nodeId: "elev-EMIL"     },
+  { name: "Eric",     nodeId: "elev-ERIC"     },
+  { name: "Erland",   nodeId: "elev-ERLAND"   },
+  { name: "Felix",    nodeId: "elev-FELIX"    },
+  { name: "Hugo",     nodeId: "elev-HUGO"     },
+  { name: "Isac",     nodeId: "elev-ISAC"     },
+  { name: "Jonna",    nodeId: "elev-JONNA"    },
+  { name: "Josefine", nodeId: "elev-JOSEFINE" },
+  { name: "Kalle",    nodeId: "elev-KALLE"    },
+  { name: "Kerim",    nodeId: "elev-KERIM"    },
+  { name: "Lukas",    nodeId: "elev-LUKAS"    },
+  { name: "Matilda",  nodeId: "elev-MATILDA"  },
+  { name: "Milo H",   nodeId: "elev-MILO-H"   },
+  { name: "Milo L",   nodeId: "elev-MILO-L"   },
+  { name: "Miralie",  nodeId: "elev-MIRALIE"  },
+  { name: "Nathan",   nodeId: "elev-NATHAN"   },
+  { name: "Nils",     nodeId: "elev-NILS"     },
+  { name: "Pontus",   nodeId: "elev-PONTUS"   },
+  { name: "Robin",    nodeId: "elev-ROBIN"    },
+  { name: "Steve",    nodeId: "elev-STEVE"    },
+  { name: "Tien",     nodeId: "elev-TIEN"     },
+  { name: "Vide",     nodeId: "elev-VIDE"     },
+];
+
+function initStudentDropdown() {
+  const select = document.getElementById('studentSelect');
+  students.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.nodeId;
+    opt.textContent = s.name;
+    select.appendChild(opt);
+  });
+}
+
+
+// ─── CSV PARSER ───────────────────────────────────────────────────────────────
+
+function parseCSV(text) {
+  // Returns array of { name, nodeId } skipping the header row
+  return text
+    .trim()
+    .split('\n')
+    .slice(1)                          // skip header
+    .map(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      return { name: cols[0], nodeId: cols[1] };
+    })
+    .filter(r => r.name && r.nodeId); // skip empty rows
+}
+
+
+// ─── GET NODE CENTRE from the loaded SVG ──────────────────────────────────────
+
+function getNodeCenter(svg, nodeId) {
+  const el = svg.getElementById(nodeId);
+  if (!el) return null;
+
+  // Strategy 1: circle/ellipse cx cy
+  if (el.tagName === 'circle' || el.tagName === 'ellipse') {
+    return {
+      x: parseFloat(el.getAttribute('cx') || 0),
+      y: parseFloat(el.getAttribute('cy') || 0),
+    };
+  }
+
+  // Strategy 2: rect / image x y w h
+  if (el.getAttribute('x') !== null && el.getAttribute('y') !== null) {
+    return {
+      x: parseFloat(el.getAttribute('x')) + parseFloat(el.getAttribute('width')  || 0) / 2,
+      y: parseFloat(el.getAttribute('y')) + parseFloat(el.getAttribute('height') || 0) / 2,
+    };
+  }
+
+  // Strategy 3: transform="translate(x, y)" on the element itself
+  const t = el.getAttribute('transform') || '';
+  const tm = t.match(/translate\(\s*([\d.+-]+)[\s,]+([\d.+-]+)/);
+  if (tm) {
+    return { x: parseFloat(tm[1]), y: parseFloat(tm[2]) };
+  }
+
+  // Strategy 4: check first child shape
+  const child = el.querySelector('circle, ellipse, rect, path');
+  if (child) {
+    let cx = 0, cy = 0;
+    if (child.tagName === 'circle' || child.tagName === 'ellipse') {
+      cx = parseFloat(child.getAttribute('cx') || 0);
+      cy = parseFloat(child.getAttribute('cy') || 0);
+    } else if (child.getAttribute('x') !== null) {
+      cx = parseFloat(child.getAttribute('x') || 0) + parseFloat(child.getAttribute('width')  || 0) / 2;
+      cy = parseFloat(child.getAttribute('y') || 0) + parseFloat(child.getAttribute('height') || 0) / 2;
+    }
+    // Add parent translate if present
+    if (tm) { cx += parseFloat(tm[1]); cy += parseFloat(tm[2]); }
+    if (cx || cy) return { x: cx, y: cy };
+  }
+
+  // Strategy 5: getBBox (only works on inline SVG in same document)
+  try {
+    const bb = el.getBBox();
+    return { x: bb.x + bb.width / 2, y: bb.y + bb.height / 2 };
+  } catch(e) {}
+
+  return null;
+}
+
+
+// ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
+
+function placeStudentIcons(svg, assignments) {
+  // Remove any previously placed icons (so this is safe to call again)
+  svg.querySelectorAll('.student-icon-group').forEach(el => el.remove());
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+
+  // Create a top-level group so icons sit above everything else
+  const layer = document.createElementNS(svgNS, 'g');
+  layer.setAttribute('id', 'student-layer');
+
+  assignments.forEach(({ name, nodeId }) => {
+    const center = getNodeCenter(svg, nodeId);
+    if (!center) {
+      console.warn(`Could not find coordinates for node "${nodeId}" (student: ${name})`);
+      return;
+    }
+
+    const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const imgSrc = `${STUDENTS_DIR}${fname}.png`;
+
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'student-icon-group');
+    g.setAttribute('data-student', name);
+    g.setAttribute('data-node', nodeId);
+    g.style.cursor = 'pointer';
+
+    // Circular clip so the PNG looks like an avatar
+    const clipId = `clip-student-${fname}`;
+    const defs = document.createElementNS(svgNS, 'defs');
+    const clip = document.createElementNS(svgNS, 'clipPath');
+    clip.setAttribute('id', clipId);
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', center.x);
+    circle.setAttribute('cy', center.y);
+    circle.setAttribute('r', ICON_OFFSET);
+    clip.appendChild(circle);
+    defs.appendChild(clip);
+    g.appendChild(defs);
+
+    // White backing circle (visible if PNG has transparency)
+    const backing = document.createElementNS(svgNS, 'circle');
+    backing.setAttribute('cx', center.x);
+    backing.setAttribute('cy', center.y);
+    backing.setAttribute('r', ICON_OFFSET);
+    backing.setAttribute('fill', 'white');
+    backing.setAttribute('stroke', 'rgba(255,255,255,0.6)');
+    backing.setAttribute('stroke-width', '3');
+    g.appendChild(backing);
+
+    // The actual image
+    const img = document.createElementNS(svgNS, 'image');
+    img.setAttribute('href', imgSrc);
+    img.setAttribute('x', center.x - ICON_OFFSET);
+    img.setAttribute('y', center.y - ICON_OFFSET);
+    img.setAttribute('width',  ICON_SIZE);
+    img.setAttribute('height', ICON_SIZE);
+    img.setAttribute('clip-path', `url(#${clipId})`);
+    img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    g.appendChild(img);
+
+    // Name label below the icon
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', center.x);
+    label.setAttribute('y', center.y + ICON_OFFSET + 16);
+    label.setAttribute('class', 'student-label');
+    label.textContent = name;
+    g.appendChild(label);
+
+    // Click → open node panel
+    g.addEventListener('click', e => {
+      e.stopPropagation();
+      const nodeEl = svg.getElementById(nodeId);
+      openPanel(nodeId, nodeEl);
+    });
+
+    layer.appendChild(g);
+  });
+
+  svg.appendChild(layer);
+}
+
+
+// ─── FETCH SHEET + PLACE ICONS ────────────────────────────────────────────────
+
+async function loadStudentPositions(svg) {
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    if (!res.ok) throw new Error(`Sheet fetch failed: ${res.status}`);
+    const csv = await res.text();
+    const assignments = parseCSV(csv);
+    console.log(`Loaded ${assignments.length} student assignments from sheet`, assignments);
+    placeStudentIcons(svg, assignments);
+  } catch(e) {
+    console.warn('Could not load student positions:', e.message);
+  }
+}
+
+
+// ─── PROJECT SEARCH ───────────────────────────────────────────────────────────
+
+let projectNodes = [];
+
+function initProjectSearch() {
+  const svg = getSvg();
+  if (!svg) return;
+  projectNodes = [];
+  svg.querySelectorAll('[id]').forEach(el => {
+    const id = el.getAttribute('id');
+    if (id && id.startsWith('project-')) {
+      const label = id.slice(8).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      if (!projectNodes.find(n => n.id === id)) {
+        projectNodes.push({ id, label, el });
+      }
+    }
+  });
+}
+
+(function setupSearch() {
+  const input = document.getElementById('projectSearch');
+  const dropdown = document.getElementById('searchDropdown');
+  let activeIdx = -1;
+
+  function getHits(q) {
+    if (!q) return [];
+    const lower = q.toLowerCase();
+    return projectNodes.filter(n => n.label.toLowerCase().includes(lower));
+  }
+
+  function highlight(text, q) {
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return text;
+    return text.slice(0, idx) +
+      `<em>${text.slice(idx, idx + q.length)}</em>` +
+      text.slice(idx + q.length);
+  }
+
+  function renderDropdown(hits, q) {
+    activeIdx = -1;
+    if (hits.length === 0) {
+      dropdown.innerHTML = `<div class="search-no-results">Inga träffar</div>`;
+    } else {
+      dropdown.innerHTML = hits.map((n, i) =>
+        `<div class="search-result" data-idx="${i}">${highlight(n.label, q)}</div>`
+      ).join('');
+      dropdown.querySelectorAll('.search-result').forEach((el, i) => {
+        el.addEventListener('mousedown', e => {
+          e.preventDefault();
+          selectResult(hits[i]);
+        });
+      });
+    }
+    dropdown.classList.add('open');
+  }
+
+  function closeDropdown() { dropdown.classList.remove('open'); activeIdx = -1; }
+
+  function selectResult(node) {
+    input.value = '';
+    closeDropdown();
+    const svg = getSvg();
+    if (!svg) return;
+    const el = svg.getElementById(node.id);
+    if (el) {
+      openPanel(node.id, el);
+      try {
+        const bbox = el.getBBox();
+        const cx = bbox.x + bbox.width / 2;
+        const cy = bbox.y + bbox.height / 2;
+        const targetW = origW * 0.15;
+        const targetH = targetW * (origH / origW);
+        const targetVx = cx - targetW * 0.15;
+        const targetVy = cy - targetH * 0.5;
+        const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+        const duration = 500;
+        const startTime = performance.now();
+        function animateSearch(now) {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+          vx = startVx + (targetVx - startVx) * ease;
+          vy = startVy + (targetVy - startVy) * ease;
+          vw = startVw + (targetW  - startVw) * ease;
+          vh = startVh + (targetH  - startVh) * ease;
+          applyViewBox(getSvg());
+          if (t < 1) requestAnimationFrame(animateSearch);
+        }
+        requestAnimationFrame(animateSearch);
+      } catch(e) {}
+    } else {
+      openPanel(node.id, null);
+    }
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (!q) { closeDropdown(); return; }
+    renderDropdown(getHits(q), q);
+  });
+  input.addEventListener('keydown', e => {
+    const items = dropdown.querySelectorAll('.search-result');
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
+    else if (e.key === 'Enter') { if (activeIdx >= 0 && items[activeIdx]) items[activeIdx].dispatchEvent(new MouseEvent('mousedown')); }
+    else if (e.key === 'Escape') { closeDropdown(); input.blur(); }
+  });
+  input.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+  input.addEventListener('focus', () => { const q = input.value.trim(); if (q) renderDropdown(getHits(q), q); });
+})();
+
+
+function goToStudent(nodeId) {
+  if (!nodeId) return;
+  const svg = getSvg();
+  if (!svg) return;
+  const el = svg.querySelector(`[id="${nodeId}"]`) || svg.querySelector(`[data-name="${nodeId}"]`);
+  if (!el) { console.warn(`Student node "${nodeId}" not found`); return; }
+  let centerX, centerY;
+  if (el.tagName.toLowerCase() === 'use') {
+    const transform = el.getAttribute('transform') || '';
+    const tMatch = transform.match(/translate\(\s*([\d.+-]+)[\s,]+([\d.+-]+)\s*\)/);
+    const sMatch = transform.match(/scale\(\s*([\d.+-]+)\s*\)/);
+    const s = sMatch ? parseFloat(sMatch[1]) : 1;
+    const w = parseFloat(el.getAttribute('width') || 0) * s;
+    const h = parseFloat(el.getAttribute('height') || 0) * s;
+    if (tMatch) { centerX = parseFloat(tMatch[1]) + w / 2; centerY = parseFloat(tMatch[2]) + h / 2; }
+    else { const bbox = el.getBBox(); centerX = bbox.x + bbox.width / 2; centerY = bbox.y + bbox.height / 2; }
+  } else {
+    const bbox = el.getBBox();
+    centerX = bbox.x + bbox.width / 2;
+    centerY = bbox.y + bbox.height / 2;
+  }
+  const newW = origW * 0.10;
+  const newH = newW * (origH / origW);
+  const targetVx = centerX - newW / 2;
+  const targetVy = centerY - newH / 2;
+  const steps = 10; let i = 0;
+  const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+  const svg2 = getSvg();
+  const animate = () => {
+    if (i >= steps) return;
+    const t = i / steps;
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    vx = startVx + (targetVx - startVx) * ease;
+    vy = startVy + (targetVy - startVy) * ease;
+    vw = startVw + (newW - startVw) * ease;
+    vh = startVh + (newH - startVh) * ease;
+    applyViewBox(svg2);
+    i++; requestAnimationFrame(animate);
+  };
+  requestAnimationFrame(animate);
+}
+
+
+// ─── SVG LOADER ───────────────────────────────────────────────────────────────
+
+async function loadMap() {
+  const res = await fetch('map.svg');
+  const text = await res.text();
+  const parser = new DOMParser();
+  const svgDoc = parser.parseFromString(text, 'image/svg+xml');
+  const svg = svgDoc.querySelector('svg');
+  svg.removeAttribute('width');
+  svg.removeAttribute('height');
+  svg.style.width = '100%';
+  svg.style.height = '100%';
+  document.getElementById('mapCanvas').appendChild(svg);
+  initViewBox(svg);
+  initMapInteractions(svg);
+  initProjectSearch();
+
+  svg.style.opacity = '0';
+  svg.style.transition = 'opacity 1s ease';
+  zoom(5.0, 300, 50);
+  requestAnimationFrame(() => { svg.style.opacity = '1'; });
+  setTimeout(() => { svg.style.transition = ''; }, 600);
+
+  // Hide loader
+  const loader = document.getElementById('mapLoader');
+  loader.classList.add('hidden');
+  setTimeout(() => loader.remove(), 400);
+
+  // Load students from Google Sheet and place on map
+  await loadStudentPositions(svg);
+}
+
+
+function initMapInteractions(svg) {
+  svg.querySelectorAll('a').forEach(a => {
+    const href = a.getAttribute('href') || a.getAttribute('xlink:href') || '';
+    if (href) a.setAttribute('data-url', href);
+    a.removeAttribute('href');
+    a.removeAttribute('xlink:href');
+    a.style.cursor = 'pointer';
+  });
+
+  svg.addEventListener('click', e => {
+    // Ignore clicks on student icons (they handle their own click)
+    if (e.target.closest('.student-icon-group')) return;
+    let el = e.target;
+    while (el && el !== svg) {
+      const name = el.getAttribute('id') || el.getAttribute('data-name');
+      if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
+        let anchor = el;
+        while (anchor && anchor !== svg) {
+          if (anchor.getAttribute('data-url')) break;
+          anchor = anchor.parentElement;
+        }
+        const folderUrl = anchor?.getAttribute('data-url') || '';
+        openPanel(name, el, folderUrl);
+        return;
+      }
+      el = el.parentElement;
+    }
+    closePanel();
+  });
+}
+
+
+// ─── PANEL LOGIC ──────────────────────────────────────────────────────────────
+
+function nodeToPath(name) {
+  if (name.startsWith('role-')) {
+    const resolved = name.replace(/(-\d+)-\d+$/, '$1');
+    return 'content/roles/' + resolved.slice(5) + '.json';
+  }
+  if (name.startsWith('project-')) {
+    return 'content/projects/' + name.slice(8);
+  }
+  return null;
+}
+
+async function openPanel(name, element, folderUrl = '') {
+  document.getElementById('panel').classList.remove('closed');
+
+  if (element) {
+    const rect = element.getBoundingClientRect();
+    const screenX = rect.left + rect.width / 2;
+    if (screenX > window.innerWidth * 0.4) {
+      try {
+        const bbox = element.getBBox();
+        const centerX = bbox.x + bbox.width / 2;
+        const centerY = bbox.y + bbox.height / 2;
+        vx = centerX - vw * 0.15;
+        vy = centerY - vh * 0.2;
+        const svg = getSvg();
+        svg.style.transition = 'all 0.4s ease-out';
+        applyViewBox(svg);
+        setTimeout(() => { svg.style.transition = ''; }, 400);
+      } catch(e) { console.error("Centering failed", e); }
+    }
+  }
+
+  document.getElementById('panelTitle').textContent = name;
+  document.getElementById('panelSubtitle').textContent = '';
+
+  const folderBtn = document.getElementById('panelFolderBtn');
+  if (folderUrl) { folderBtn.href = folderUrl; folderBtn.style.display = 'inline-flex'; }
+  else { folderBtn.style.display = 'none'; }
+
+  document.getElementById('panelBody').innerHTML =
+    `<div class="empty-state"><div class="empty-icon">⋯</div>Laddar...</div>`;
+
+  const file = nodeToPath(name);
+  if (!file) {
+    document.getElementById('panelBody').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu.</div>`;
+    return;
+  }
+
+  try {
+    if (name.startsWith('project-')) {
+      const pdfRes = await fetch(file + '.pdf', { method: 'HEAD' });
+      if (pdfRes.ok) { renderPdf(file + '.pdf'); return; }
+      const jsonRes = await fetch(file + '.json');
+      if (!jsonRes.ok) throw new Error('not found');
+      const data = await jsonRes.json();
+      renderProject(data);
+    } else {
+      const res = await fetch(file);
+      if (!res.ok) throw new Error('not found');
+      const data = await res.json();
+      renderRole(data);
+    }
+  } catch(e) {
+    document.getElementById('panelBody').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">◎</div>Ingen uppgift inlagd ännu.</div>`;
+  }
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.add('closed');
+}
+
+let currentPdfUrl = null;
+
+async function renderPdf(url) {
+  currentPdfUrl = url;
+  document.getElementById('printBtn').style.display = 'inline-block';
+  const body = document.getElementById('panelBody');
+  body.style.padding = '0';
+  body.style.overflow = 'hidden';
+  body.style.background = '#fff';
+  body.innerHTML = `
+    <div id="pdfContainer" style="
+      width: 100%; height: 100%;
+      overflow-y: auto; overflow-x: hidden;
+      background: #fff;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 16px 0; gap: 12px;
+    "></div>`;
+  const container = document.getElementById('pdfContainer');
+  try {
+    const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+    const pdf = await pdfjsLib.getDocument(url).promise;
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const panelWidth = body.clientWidth - 32;
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = panelWidth / viewport.width;
+      const scaledViewport = page.getViewport({ scale });
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = `position:relative;width:${scaledViewport.width}px;height:${scaledViewport.height}px;box-shadow:0 2px 12px rgba(0,0,0,0.3);border-radius:4px;`;
+      const canvas = document.createElement('canvas');
+      canvas.width = scaledViewport.width; canvas.height = scaledViewport.height;
+      canvas.style.cssText = `display:block;width:100%;height:100%;`;
+      wrapper.appendChild(canvas);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledViewport }).promise;
+      const textLayerDiv = document.createElement('div');
+      textLayerDiv.classList.add('textLayer');
+      textLayerDiv.style.cssText = `position:absolute;inset:0;overflow:hidden;line-height:1;pointer-events:none;`;
+      wrapper.appendChild(textLayerDiv);
+      const textContent = await page.getTextContent();
+      await pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport: scaledViewport }).promise;
+      const annotations = await page.getAnnotations();
+      annotations.filter(a => a.subtype === 'Link' && a.url).forEach(ann => {
+        const [x1,y1,x2,y2] = ann.rect;
+        const pt1 = scaledViewport.convertToViewportPoint(x1,y1);
+        const pt2 = scaledViewport.convertToViewportPoint(x2,y2);
+        const link = document.createElement('a');
+        link.href = ann.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.style.cssText = `position:absolute;left:${Math.min(pt1[0],pt2[0])}px;top:${Math.min(pt1[1],pt2[1])}px;width:${Math.abs(pt2[0]-pt1[0])}px;height:${Math.abs(pt2[1]-pt1[1])}px;cursor:pointer;pointer-events:all;z-index:1;`;
+        wrapper.appendChild(link);
+      });
+      container.appendChild(wrapper);
+    }
+  } catch(e) {
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div>Kunde inte ladda PDF: ${e.message}</div>`;
+  }
+}
+
+function youtubeEmbed(url) {
+  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+}
+
+function renderRole(d) {
+  currentPdfUrl = null;
+  document.getElementById('printBtn').style.display = 'none';
+  document.getElementById('panelTitle').textContent = d.title;
+  document.getElementById('panelSubtitle').textContent = 'Roll';
+  const body = document.getElementById('panelBody');
+  body.style.padding = ''; body.style.overflow = ''; body.style.background = '';
+  let html = '';
+  if (d.yrkesinfo) html += `<div class="section-label">Om rollen</div><p class="intro-text">${d.yrkesinfo}</p>`;
+  if (d.exercises?.length) {
+    html += `<div class="section-label">Övningar</div>`;
+    d.exercises.forEach((ex, i) => {
+      html += `<div style="padding:12px 0;border-bottom:1px solid #eee;">
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;">
+          <div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#888;">${i+1}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:3px;">${ex.title}</div>
+            ${ex.description ? `<div style="font-size:12px;color:#666;line-height:1.5;">${ex.description}</div>` : ''}
+          </div>
+        </div>`;
+      [1,2,3].forEach(n => {
+        const vidUrl = ex[`video${n}`];
+        const fileUrl = ex[`exercise_file_${n}`];
+        if (vidUrl) { const embedUrl = youtubeEmbed(vidUrl); if (embedUrl) html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin:8px 0;"><iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`; }
+        if (fileUrl) html += `<a class="resource-btn" href="${fileUrl}" target="_blank" style="margin-top:6px;"><span class="resource-icon">⬇️</span>Övningsfil ${n}</a>`;
+      });
+      if (ex.folderUrl) html += `<a class="resource-btn" href="${ex.folderUrl}" target="_blank" style="margin-top:6px;"><span class="resource-icon">📁</span>Öppna övningsmapp:</a>`;
+      html += `</div>`;
+    });
+  }
+  if (d.outro) html += `<p style="font-size:12px;color:#aaa;line-height:1.6;margin-top:16px;">${d.outro}</p>`;
+  document.getElementById('panelBody').innerHTML = html;
+}
+
+function renderProject(d) {
+  currentPdfUrl = null;
+  document.getElementById('printBtn').style.display = 'none';
+  document.getElementById('panelTitle').textContent = d.title;
+  document.getElementById('panelSubtitle').textContent = [d.type, d.duration].filter(Boolean).join(' · ');
+  let html = '';
+  if (d.video) { const embedUrl = youtubeEmbed(d.video); if (embedUrl) html += `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:16px;"><iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`; }
+  if (d.scenario) html += `<div class="section-label">Scenario</div><p class="intro-text">${d.scenario}</p>`;
+  if (d.intro)    html += `<div class="section-label">Om uppgiften</div><p class="intro-text">${d.intro}</p>`;
+  if (d.themes?.length) { html += `<div class="section-label">Tema</div><ul class="step-list">`; d.themes.forEach(t => { html += `<li>${t}</li>`; }); html += `</ul>`; }
+  if (d.steps) { html += `<div class="section-label">Steg för steg</div>`; for (const [phase, steps] of Object.entries(d.steps)) { html += `<div class="phase-header">${phase}</div><ul class="step-list">`; steps.forEach(s => { html += `<li>${s}</li>`; }); html += `</ul>`; } }
+  if (d.bonus) { html += `<div class="phase-header">Bonus</div><ul class="step-list"><li>`; html += d.bonusUrl ? `<a href="${d.bonusUrl}" target="_blank" style="color:#555;">${d.bonus}</a>` : d.bonus; html += `</li></ul>`; }
+  if (d.deliverables?.length) { html += `<div class="section-label">Ska lämnas in</div><ul class="step-list">`; d.deliverables.forEach(item => { html += `<li>${item}</li>`; }); html += `</ul>`; }
+  if (d.resources?.length) { html += `<div class="section-label">Resurser</div>`; d.resources.forEach(r => { html += `<a class="resource-btn" href="${r.url}" target="_blank"><span class="resource-icon">🔗</span>${r.label}</a>`; }); }
+  if (d.examples?.length) { html += `<div class="section-label">Exempel</div>`; d.examples.forEach(r => { html += `<a class="resource-btn" href="${r.url}" target="_blank"><span class="resource-icon">🖼</span>${r.label}</a>`; }); }
+  if (d.roles?.length) html += `<div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#bbb;">Roller: ${d.roles.join(', ')}</div>`;
+  document.getElementById('panelBody').innerHTML = html;
+}
+
+function printCurrentPdf() {
+  if (!currentPdfUrl) return;
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+  iframe.src = currentPdfUrl;
+  document.body.appendChild(iframe);
+  iframe.addEventListener('load', () => {
+    iframe.contentWindow.print();
+    window.addEventListener('afterprint', () => { document.body.removeChild(iframe); }, { once: true });
+  });
+}
+
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  initStudentDropdown();
+  loadMap();
+});
+
+
+// ─── PAN + ZOOM ───────────────────────────────────────────────────────────────
+
+let vx = 0, vy = 0, vw = 0, vh = 0;
+let origW = 0, origH = 0;
+
+function initViewBox(svg) {
+  const vb = svg.viewBox.baseVal;
+  vx = vb.x; vy = vb.y;
+  vw = origW = vb.width;
+  vh = origH = vb.height;
+  applyViewBox(svg);
+}
+
+function getSvg() { return document.querySelector('#mapCanvas svg'); }
+
+function applyViewBox(svg) {
+  if (!svg) return;
+  svg.setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
+}
+
+function zoom(factor, cx, cy) {
+  const svg = getSvg();
+  if (!svg) return;
+  const area = document.getElementById('mapArea');
+  if (cx === undefined) cx = area.clientWidth / 2;
+  if (cy === undefined) cy = area.clientHeight / 2;
+  const rect = svg.getBoundingClientRect();
+  const svgX = vx + (cx - rect.left) / rect.width  * vw;
+  const svgY = vy + (cy - rect.top)  / rect.height * vh;
+  const newW = Math.min(origW * 4, Math.max(origW * 0.15, vw * (1 / factor)));
+  const newH = newW * (origH / origW);
+  const f = newW / vw;
+  vx = svgX - (svgX - vx) * f;
+  vy = svgY - (svgY - vy) * f;
+  vw = newW; vh = newH;
+  applyViewBox(svg);
+}
+
+function resetView() {
+  const svg = getSvg();
+  if (!svg) return;
+  vx = 0; vy = 0; vw = origW; vh = origH;
+  applyViewBox(svg);
+}
+
+const area = document.getElementById('mapArea');
+let dragging = false, sx, sy, svx, svy;
+
+area.addEventListener('mousedown', e => {
+  if (e.target.closest('.zoom-btn')) return;
+  dragging = true;
+  sx = e.clientX; sy = e.clientY;
+  svx = vx; svy = vy;
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const svg = getSvg();
+  if (!svg) return;
+  const rect = svg.getBoundingClientRect();
+  const dx = (e.clientX - sx) / rect.width  * vw;
+  const dy = (e.clientY - sy) / rect.height * vh;
+  vx = svx - dx; vy = svy - dy;
+  applyViewBox(svg);
+});
+window.addEventListener('mouseup', () => dragging = false);
+
+area.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY);
+}, { passive: false });
+
+
+// ─── TOUCH ────────────────────────────────────────────────────────────────────
+
+let lastTouches = null;
+area.addEventListener('touchstart', e => { e.preventDefault(); lastTouches = e.touches; }, { passive: false });
+area.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const svg = getSvg();
+  if (!svg) return;
+  const rect = svg.getBoundingClientRect();
+  const touches = e.touches;
+  if (touches.length === 1 && lastTouches?.length === 1) {
+    const dx = (touches[0].clientX - lastTouches[0].clientX) / rect.width  * vw;
+    const dy = (touches[0].clientY - lastTouches[0].clientY) / rect.height * vh;
+    vx -= dx; vy -= dy; applyViewBox(svg);
+  } else if (touches.length === 2 && lastTouches?.length === 2) {
+    const prevDist = Math.hypot(lastTouches[0].clientX - lastTouches[1].clientX, lastTouches[0].clientY - lastTouches[1].clientY);
+    const newDist  = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+    if (prevDist === 0) return;
+    const midX = (touches[0].clientX + touches[1].clientX) / 2;
+    const midY = (touches[0].clientY + touches[1].clientY) / 2;
+    zoom(newDist / prevDist, midX, midY);
+  }
+  lastTouches = touches;
+}, { passive: false });
+area.addEventListener('touchend', e => { lastTouches = e.touches.length > 0 ? e.touches : null; }, { passive: false });
+
+
+// ─── FIREBASE HELP QUEUE ──────────────────────────────────────────────────────
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBmTngmHOQZ8Szv2I7o-zzqMfebQQvybx8",
+  authDomain: "laroplanen-help.firebaseapp.com",
+  databaseURL: "https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "laroplanen-help",
+  storageBucket: "laroplanen-help.firebasestorage.app",
+  messagingSenderId: "895065825769",
+  appId: "1:895065825769:web:2e519fa850e24f9a2b6b78"
+};
+
+let helpDb = null;
+let helpPopupOpen = false;
+let helpMyToken = localStorage.getItem('help-token') || null;
+
+(function initFirebase() {
+  const script1 = document.createElement('script');
+  script1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+  script1.onload = () => {
+    const script2 = document.createElement('script');
+    script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+    script2.onload = () => {
+      firebase.initializeApp(firebaseConfig);
+      helpDb = firebase.database();
+      helpDb.ref('helpQueue').on('value', snapshot => {
+        const data = snapshot.val() || {};
+        const queue = Object.values(data).sort((a, b) => a.ts - b.ts);
+        renderHelpQueue(queue);
+      });
+    };
+    document.head.appendChild(script2);
+  };
+  document.head.appendChild(script1);
+})();
+
+function toggleHelpPopup() {
+  helpPopupOpen = !helpPopupOpen;
+  document.getElementById('helpPopup').classList.toggle('visible', helpPopupOpen);
+  if (helpPopupOpen) { document.getElementById('helpNameInput').focus(); document.getElementById('helpAlready').textContent = ''; }
+}
+
+async function submitHelpRequest() {
+  const name = document.getElementById('helpNameInput').value.trim();
+  if (!name || !helpDb) return;
+  if (helpMyToken) {
+    const snap = await helpDb.ref('helpQueue/' + helpMyToken).get();
+    if (snap.exists()) { document.getElementById('helpAlready').textContent = 'Du är redan i kön!'; return; }
+  }
+  helpMyToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('help-token', helpMyToken);
+  await helpDb.ref('helpQueue/' + helpMyToken).set({ name, token: helpMyToken, ts: Date.now() });
+  document.getElementById('helpNameInput').value = '';
+  helpPopupOpen = false;
+  document.getElementById('helpPopup').classList.remove('visible');
+}
+
+async function deleteHelpEntry(token) {
+  if (!helpDb) return;
+  await helpDb.ref('helpQueue/' + token).remove();
+}
+
+function renderHelpQueue(queue) {
+  const list = document.getElementById('helpQueueList');
+  const items = document.getElementById('helpQueueItems');
+  if (!queue.length) { list.classList.remove('visible'); return; }
+  list.classList.add('visible');
+  items.innerHTML = queue.map((entry, i) => {
+    const isMine = entry.token === helpMyToken;
+    return `<div class="help-queue-item">
+      <span class="help-queue-num">${i+1}</span>
+      <span class="help-queue-name">${entry.name}</span>
+      <button class="help-queue-delete ${isMine ? '' : 'locked'}" onclick="deleteHelpEntry('${entry.token}')" title="Ta bort">×</button>
+    </div>`;
+  }).join('');
+}
+
+document.addEventListener('click', e => {
+  if (!helpPopupOpen) return;
+  const corner = document.getElementById('helpCorner');
+  const btn = document.querySelector('.help-btn');
+  if (!corner.contains(e.target) && !btn.contains(e.target)) {
+    helpPopupOpen = false;
+    document.getElementById('helpPopup').classList.remove('visible');
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && helpPopupOpen) submitHelpRequest();
+});
+
+
+// ─── PARALLAX STARFIELD ───────────────────────────────────────────────────────
+
+(function initStarfield() {
+  const area = document.getElementById('mapArea');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'starCanvas';
+  area.insertBefore(canvas, area.firstChild);
+  const ctx = canvas.getContext('2d');
+  const LAYERS = [
+    { count: 80,  size: [0.8, 1.4], opacity: [0.15, 0.3],  parallax: 0.02 },
+    { count: 50,  size: [1.4, 2.2], opacity: [0.25, 0.45], parallax: 0.05 },
+    { count: 25,  size: [2.2, 3.5], opacity: [0.4,  0.65], parallax: 0.10 },
+    { count: 10,  size: [3.5, 5.5], opacity: [0.55, 0.8],  parallax: 0.18 },
+  ];
+  let stars = [], W = 0, H = 0;
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function build() {
+    W = area.clientWidth; H = area.clientHeight;
+    canvas.width = W; canvas.height = H; stars = [];
+    LAYERS.forEach(layer => {
+      for (let i = 0; i < layer.count; i++) {
+        stars.push({ x: rand(0,W), y: rand(0,H), r: rand(layer.size[0], layer.size[1]), opacity: rand(layer.opacity[0], layer.opacity[1]), parallax: layer.parallax, twinkle: rand(0, Math.PI*2), twinkleSpeed: rand(0.003, 0.012) });
+      }
+    });
+  }
+  function draw() {
+    requestAnimationFrame(draw);
+    if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    const panX = vx / (origW || 1) * W;
+    const panY = vy / (origH || 1) * H;
+    stars.forEach(s => {
+      s.twinkle += s.twinkleSpeed;
+      const tf = 0.85 + 0.15 * Math.sin(s.twinkle);
+      const sx = ((s.x - panX * s.parallax) % W + W) % W;
+      const sy = ((s.y - panY * s.parallax) % H + H) % H;
+      ctx.beginPath();
+      ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${(s.opacity * tf).toFixed(3)})`;
+      ctx.fill();
+    });
+  }
+  build();
+  window.addEventListener('resize', build);
+  requestAnimationFrame(draw);
+})();
+
+</script>
+</body>
+</html>
