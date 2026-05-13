@@ -596,7 +596,7 @@ function getNodeCenter(svg, nodeId) {
 // ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
 
 const ICON_SIZE_MIN = 28;  // smallest avatar in radial mode
-const RADIAL_OFFSET = 60; // minimum ring radius
+const RADIAL_OFFSET = 120; // minimum ring radius
 
 function placeStudentIcons(svg, assignments) {
   svg.querySelectorAll('#student-layer').forEach(el => el.remove());
@@ -685,6 +685,7 @@ function placeStudentIcons(svg, assignments) {
 
 const POLL_INTERVAL  = 30_000;   // ms between sheet checks
 const GLIDE_DURATION = 1_200;    // ms for the travel animation
+const FADE_DURATION  = 800;      // ms for fade-out when a student is removed
 const GLIDE_EASE = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
 
 // Tracks current target position of each student: { name → { cx, cy, size } }
@@ -743,7 +744,8 @@ async function loadStudentPositions(svg) {
   }
 }
 
-const FADE_DURATION  = 800;    // ms for fade-out animation
+// Stores positions seen in the previous poll but not yet confirmed
+let pendingPositions = {};
 
 // Poll the sheet and animate any students whose node changed
 async function pollSheet(svg) {
@@ -754,22 +756,39 @@ async function pollSheet(svg) {
     const assignments = parseCSV(csv);
     const newTargets  = computeTargetPositions(svg, assignments);
 
-    // Students removed from the sheet — fade out and delete
-    const removed = Object.keys(currentPositions).filter(name => !newTargets[name]);
-    removed.forEach(name => {
-      fadeOutStudent(svg, name);
-      delete currentPositions[name];
+    // Only act on changes that were ALSO seen in the previous poll
+    // i.e. two consecutive polls must agree before we move anyone
+    const confirmed = {};
+
+    Object.entries(newTargets).forEach(([name, pos]) => {
+      const prev = pendingPositions[name];
+      if (prev && Math.abs(prev.cx - pos.cx) < 2 && Math.abs(prev.cy - pos.cy) < 2) {
+        confirmed[name] = pos; // same in both polls → trustworthy
+      }
     });
 
-    // Students whose position changed — glide to new position
-    const moved = Object.entries(newTargets).filter(([name, pos]) => {
+    // Also confirm removals — student must be absent in two consecutive polls
+    const confirmedRemovals = Object.keys(currentPositions).filter(name =>
+      !newTargets[name] && !pendingPositions[name]
+    );
+
+    // Store this poll's result for next time
+    pendingPositions = newTargets;
+
+    // Now act on confirmed changes only
+    const moved = Object.entries(confirmed).filter(([name, pos]) => {
       const old = currentPositions[name];
       return !old || Math.abs(old.cx - pos.cx) > 1 || Math.abs(old.cy - pos.cy) > 1;
     });
 
-    if (!moved.length && !removed.length) return;
-    if (moved.length) console.log(`Students moved: ${moved.map(([n]) => n).join(', ')}`);
-    if (removed.length) console.log(`Students removed: ${removed.join(', ')}`);
+    if (!moved.length && !confirmedRemovals.length) return;
+    if (moved.length) console.log(`Confirmed moves: ${moved.map(([n]) => n).join(', ')}`);
+    if (confirmedRemovals.length) console.log(`Confirmed removals: ${confirmedRemovals.join(', ')}`);
+
+    confirmedRemovals.forEach(name => {
+      fadeOutStudent(svg, name);
+      delete currentPositions[name];
+    });
 
     moved.forEach(([name, target]) => {
       const old        = currentPositions[name];
@@ -777,9 +796,9 @@ async function pollSheet(svg) {
       const fromCY     = old?.cy ?? target.cy;
       const nodeCenter = getNodeCenter(svg, target.nodeId);
       glideStudent(svg, name, fromCX, fromCY, target, nodeCenter);
+      currentPositions[name] = target;
     });
 
-    currentPositions = newTargets;
   } catch(e) {
     console.warn('Poll failed:', e.message);
   }
