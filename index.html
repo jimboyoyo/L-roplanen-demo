@@ -389,7 +389,7 @@
 
   <div class="student-select">
     <label for="studentSelect">Elev</label>
-    <select id="studentSelect" onchange="closePanel(); goToStudent(this.value)">
+    <select id="studentSelect" onchange="closePanel(); goToStudent(this.value); this.value = ''">
       <option value="">— Välj elev —</option>
     </select>
   </div>
@@ -478,45 +478,15 @@ const ICON_SIZE      = 60;           // diameter of each student avatar in SVG u
 const ICON_SPACING   = 10;           // gap between avatars on the ring
 
 
-// ─── STUDENTS (for the dropdown) ─────────────────────────────────────────────
 
-const students = [
-  { name: "Agnes",    nodeId: "elev-AGNES"    },
-  { name: "Ahmad",    nodeId: "elev-AHMAD"    },
-  { name: "Al-Kasem", nodeId: "elev-ALKASEM"  },
-  { name: "Amna",     nodeId: "elev-AMNA"     },
-  { name: "Benji",    nodeId: "elev-BENJI"    },
-  { name: "Ebba",     nodeId: "elev-EBBA"     },
-  { name: "Emil",     nodeId: "elev-EMIL"     },
-  { name: "Eric",     nodeId: "elev-ERIC"     },
-  { name: "Erland",   nodeId: "elev-ERLAND"   },
-  { name: "Felix",    nodeId: "elev-FELIX"    },
-  { name: "Hugo",     nodeId: "elev-HUGO"     },
-  { name: "Isac",     nodeId: "elev-ISAC"     },
-  { name: "Jonna",    nodeId: "elev-JONNA"    },
-  { name: "Josefine", nodeId: "elev-JOSEFINE" },
-  { name: "Kalle",    nodeId: "elev-KALLE"    },
-  { name: "Kerim",    nodeId: "elev-KERIM"    },
-  { name: "Lukas",    nodeId: "elev-LUKAS"    },
-  { name: "Matilda",  nodeId: "elev-MATILDA"  },
-  { name: "Milo H",   nodeId: "elev-MILO-H"   },
-  { name: "Milo L",   nodeId: "elev-MILO-L"   },
-  { name: "Miralie",  nodeId: "elev-MIRALIE"  },
-  { name: "Nathan",   nodeId: "elev-NATHAN"   },
-  { name: "Nils",     nodeId: "elev-NILS"     },
-  { name: "Pontus",   nodeId: "elev-PONTUS"   },
-  { name: "Robin",    nodeId: "elev-ROBIN"    },
-  { name: "Steve",    nodeId: "elev-STEVE"    },
-  { name: "Tien",     nodeId: "elev-TIEN"     },
-  { name: "Vide",     nodeId: "elev-VIDE"     },
-];
-
-function initStudentDropdown() {
+function initStudentDropdown(names) {
   const select = document.getElementById('studentSelect');
-  students.forEach(s => {
+  // Clear existing options except the first placeholder
+  while (select.options.length > 1) select.remove(1);
+  names.forEach(name => {
     const opt = document.createElement('option');
-    opt.value = s.nodeId;
-    opt.textContent = s.name;
+    opt.value = name;
+    opt.textContent = name;
     select.appendChild(opt);
   });
 }
@@ -596,7 +566,7 @@ function getNodeCenter(svg, nodeId) {
 // ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
 
 const ICON_SIZE_MIN = 28;  // smallest avatar in radial mode
-const RADIAL_OFFSET = 70; // minimum ring radius
+const RADIAL_OFFSET = 120; // minimum ring radius
 
 function placeStudentIcons(svg, assignments) {
   svg.querySelectorAll('#student-layer').forEach(el => el.remove());
@@ -683,7 +653,7 @@ function placeStudentIcons(svg, assignments) {
 
 // ─── LIVE POLLING + ANIMATED PLACEMENT ───────────────────────────────────────
 
-const POLL_INTERVAL  = 15_000;   // ms between sheet checks
+const POLL_INTERVAL  = 30_000;   // ms between sheet checks
 const GLIDE_DURATION = 1_200;    // ms for the travel animation
 const FADE_DURATION  = 800;      // ms for fade-out when a student is removed
 const GLIDE_EASE = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
@@ -731,13 +701,17 @@ async function loadStudentPositions(svg) {
   try {
     const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
     if (!res.ok) throw new Error(`Sheet fetch failed: ${res.status}`);
-    const csv  = await res.text();
+    const csv         = await res.text();
     const assignments = parseCSV(csv);
+
+    // Populate dropdown from sheet — only students actually in the sheet
+    const names = assignments.map(a => a.name);
+    initStudentDropdown(names);
+
     placeStudentIcons(svg, assignments);
     currentPositions = computeTargetPositions(svg, assignments);
     console.log(`Loaded ${assignments.length} student assignments`);
 
-    // Start polling for live updates
     setInterval(() => pollSheet(svg), POLL_INTERVAL);
   } catch(e) {
     console.warn('Could not load student positions:', e.message);
@@ -1039,45 +1013,38 @@ function initProjectSearch() {
 })();
 
 
-function goToStudent(nodeId) {
-  if (!nodeId) return;
+function goToStudent(name) {
+  if (!name) return;
+
+  const pos = currentPositions[name];
+  if (!pos) {
+    console.warn(`No position found for student "${name}" — not assigned on map yet`);
+    return;
+  }
+
   const svg = getSvg();
   if (!svg) return;
-  const el = svg.querySelector(`[id="${nodeId}"]`) || svg.querySelector(`[data-name="${nodeId}"]`);
-  if (!el) { console.warn(`Student node "${nodeId}" not found`); return; }
-  let centerX, centerY;
-  if (el.tagName.toLowerCase() === 'use') {
-    const transform = el.getAttribute('transform') || '';
-    const tMatch = transform.match(/translate\(\s*([\d.+-]+)[\s,]+([\d.+-]+)\s*\)/);
-    const sMatch = transform.match(/scale\(\s*([\d.+-]+)\s*\)/);
-    const s = sMatch ? parseFloat(sMatch[1]) : 1;
-    const w = parseFloat(el.getAttribute('width') || 0) * s;
-    const h = parseFloat(el.getAttribute('height') || 0) * s;
-    if (tMatch) { centerX = parseFloat(tMatch[1]) + w / 2; centerY = parseFloat(tMatch[2]) + h / 2; }
-    else { const bbox = el.getBBox(); centerX = bbox.x + bbox.width / 2; centerY = bbox.y + bbox.height / 2; }
-  } else {
-    const bbox = el.getBBox();
-    centerX = bbox.x + bbox.width / 2;
-    centerY = bbox.y + bbox.height / 2;
-  }
+
+  const centerX = pos.cx;
+  const centerY = pos.cy;
+
   const newW = origW * 0.10;
   const newH = newW * (origH / origW);
   const targetVx = centerX - newW / 2;
   const targetVy = centerY - newH / 2;
-  const steps = 10; let i = 0;
   const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
-  const svg2 = getSvg();
-  const animate = () => {
-    if (i >= steps) return;
-    const t = i / steps;
+  const startTime = performance.now();
+
+  function animate(now) {
+    const t    = Math.min((now - startTime) / 400, 1);
     const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
     vx = startVx + (targetVx - startVx) * ease;
     vy = startVy + (targetVy - startVy) * ease;
     vw = startVw + (newW - startVw) * ease;
     vh = startVh + (newH - startVh) * ease;
-    applyViewBox(svg2);
-    i++; requestAnimationFrame(animate);
-  };
+    applyViewBox(svg);
+    if (t < 1) requestAnimationFrame(animate);
+  }
   requestAnimationFrame(animate);
 }
 
@@ -1355,7 +1322,6 @@ function printCurrentPdf() {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  initStudentDropdown();
   loadMap();
 });
 
