@@ -597,7 +597,7 @@ function getNodeCenter(svg, nodeId) {
 
 // ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
 
-const RADIAL_THRESHOLD = 5;   // switch to radial above this count
+const RADIAL_THRESHOLD = 3;   // switch to radial above this count
 const ICON_SIZE_MIN    = 28;  // smallest avatar allowed in radial mode
 
 function placeStudentIcons(svg, assignments) {
@@ -688,17 +688,7 @@ function placeStudentIcons(svg, assignments) {
       img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       g.appendChild(img);
 
-      // Name label below the icon
-      const label = document.createElementNS(svgNS, 'text');
-      label.setAttribute('x', iconCX);
-      label.setAttribute('y', iconCY + iconRadius + 16);
-      label.setAttribute('class', 'student-label');
-      // Slightly smaller label for tiny radial icons
-      if (iconSize < 40) label.style.fontSize = '9px';
-      label.textContent = name;
-      g.appendChild(label);
-
-      // Click → open node panel
+          // Click → open node panel
       g.addEventListener('click', e => {
         e.stopPropagation();
         openPanel(nodeId, svg.getElementById(nodeId));
