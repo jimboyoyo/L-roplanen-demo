@@ -743,6 +743,8 @@ async function loadStudentPositions(svg) {
   }
 }
 
+const FADE_DURATION  = 800;    // ms for fade-out animation
+
 // Poll the sheet and animate any students whose node changed
 async function pollSheet(svg) {
   try {
@@ -752,21 +754,27 @@ async function pollSheet(svg) {
     const assignments = parseCSV(csv);
     const newTargets  = computeTargetPositions(svg, assignments);
 
-    // Find students whose position actually changed
+    // Students removed from the sheet — fade out and delete
+    const removed = Object.keys(currentPositions).filter(name => !newTargets[name]);
+    removed.forEach(name => {
+      fadeOutStudent(svg, name);
+      delete currentPositions[name];
+    });
+
+    // Students whose position changed — glide to new position
     const moved = Object.entries(newTargets).filter(([name, pos]) => {
       const old = currentPositions[name];
       return !old || Math.abs(old.cx - pos.cx) > 1 || Math.abs(old.cy - pos.cy) > 1;
     });
 
-    if (!moved.length) return;
-    console.log(`Students moved: ${moved.map(([n]) => n).join(', ')}`);
+    if (!moved.length && !removed.length) return;
+    if (moved.length) console.log(`Students moved: ${moved.map(([n]) => n).join(', ')}`);
+    if (removed.length) console.log(`Students removed: ${removed.join(', ')}`);
 
-    // Glide each moved student — connector lines animate inside glideStudent
     moved.forEach(([name, target]) => {
-      const old    = currentPositions[name];
-      const fromCX = old?.cx ?? target.cx;
-      const fromCY = old?.cy ?? target.cy;
-      // Node centre is where the connector line starts from
+      const old        = currentPositions[name];
+      const fromCX     = old?.cx ?? target.cx;
+      const fromCY     = old?.cy ?? target.cy;
       const nodeCenter = getNodeCenter(svg, target.nodeId);
       glideStudent(svg, name, fromCX, fromCY, target, nodeCenter);
     });
@@ -775,6 +783,40 @@ async function pollSheet(svg) {
   } catch(e) {
     console.warn('Poll failed:', e.message);
   }
+}
+
+// Fade out and remove a student's icon and connector line
+function fadeOutStudent(svg, name) {
+  if (activeAnimations[name]) cancelAnimationFrame(activeAnimations[name]);
+
+  const layer = svg.getElementById('student-layer');
+  if (!layer) return;
+
+  const fname   = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const lineId  = `connector-${fname}`;
+  const g       = layer.querySelector(`.student-icon-group[data-student="${name}"]`);
+  const line    = layer.querySelector(`[data-connector="${lineId}"]`);
+
+  if (!g && !line) return;
+
+  const startTime = performance.now();
+
+  function fade(now) {
+    const t       = Math.min((now - startTime) / FADE_DURATION, 1);
+    const opacity = 1 - t;
+    if (g)    g.style.opacity    = opacity;
+    if (line) line.style.opacity = opacity;
+
+    if (t < 1) {
+      activeAnimations[name] = requestAnimationFrame(fade);
+    } else {
+      g?.remove();
+      line?.remove();
+      delete activeAnimations[name];
+    }
+  }
+
+  activeAnimations[name] = requestAnimationFrame(fade);
 }
 
 // Smoothly glide a student's icon AND their connector line from old position to new
