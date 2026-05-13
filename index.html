@@ -476,7 +476,7 @@ const MAP_SVG_URL    = 'https://jimboyoyo.github.io/L-roplanen-demo/map.svg';
 const STUDENTS_DIR   = 'students/';  // folder where PNGs live
 const ICON_SIZE      = 60;           // diameter of each student avatar in SVG units
 const ICON_RADIUS    = ICON_SIZE / 2;
-const NODE_Y_OFFSET  = 80;           // how far below the node centre the group sits
+const NODE_Y_OFFSET  = 40;           // how far below the node centre the group sits
 const ICON_SPACING   = 10;           // gap between avatars when multiple on same node
 
 
@@ -636,46 +636,15 @@ function placeStudentIcons(svg, assignments) {
       g.setAttribute('data-node', nodeId);
       g.style.cursor = 'pointer';
 
-      // Clip path
-      const defs = document.createElementNS(svgNS, 'defs');
-      const clip = document.createElementNS(svgNS, 'clipPath');
-      clip.setAttribute('id', clipId);
-      const clipCircle = document.createElementNS(svgNS, 'circle');
-      clipCircle.setAttribute('cx', iconCX);
-      clipCircle.setAttribute('cy', iconCY);
-      clipCircle.setAttribute('r',  ICON_RADIUS);
-      clip.appendChild(clipCircle);
-      defs.appendChild(clip);
-      g.appendChild(defs);
-
-      // White backing circle
-      const backing = document.createElementNS(svgNS, 'circle');
-      backing.setAttribute('cx', iconCX);
-      backing.setAttribute('cy', iconCY);
-      backing.setAttribute('r',  ICON_RADIUS);
-      backing.setAttribute('fill', 'white');
-      backing.setAttribute('stroke', 'rgba(255,255,255,0.6)');
-      backing.setAttribute('stroke-width', '3');
-      g.appendChild(backing);
-
-      // Avatar image
+         // Avatar image
       const img = document.createElementNS(svgNS, 'image');
       img.setAttribute('href', imgSrc);
       img.setAttribute('x', iconCX - ICON_RADIUS);
       img.setAttribute('y', iconCY - ICON_RADIUS);
       img.setAttribute('width',  ICON_SIZE);
       img.setAttribute('height', ICON_SIZE);
-      img.setAttribute('clip-path', `url(#${clipId})`);
       img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
       g.appendChild(img);
-
-      // Name label below the icon
-      const label = document.createElementNS(svgNS, 'text');
-      label.setAttribute('x', iconCX);
-      label.setAttribute('y', iconCY + ICON_RADIUS + 18);
-      label.setAttribute('class', 'student-label');
-      label.textContent = name;
-      g.appendChild(label);
 
       // Connector line from node centre to icon centre
       const line = document.createElementNS(svgNS, 'line');
