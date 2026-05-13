@@ -475,9 +475,7 @@ const SHEET_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8t6cBm
 const MAP_SVG_URL    = 'https://jimboyoyo.github.io/L-roplanen-demo/map.svg';
 const STUDENTS_DIR   = 'students/';  // folder where PNGs live
 const ICON_SIZE      = 60;           // diameter of each student avatar in SVG units
-const ICON_RADIUS    = ICON_SIZE / 2;
-const NODE_Y_OFFSET  = 40;           // how far below the node centre the group sits
-const ICON_SPACING   = 10;           // gap between avatars when multiple on same node
+const ICON_SPACING   = 10;           // gap between avatars on the ring
 
 
 // ─── STUDENTS (for the dropdown) ─────────────────────────────────────────────
@@ -597,8 +595,8 @@ function getNodeCenter(svg, nodeId) {
 
 // ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
 
-const RADIAL_THRESHOLD = 3;   // switch to radial above this count
-const ICON_SIZE_MIN    = 28;  // smallest avatar allowed in radial mode
+const ICON_SIZE_MIN = 28;  // smallest avatar in radial mode
+const RADIAL_OFFSET = 120; // minimum ring radius
 
 function placeStudentIcons(svg, assignments) {
   svg.querySelectorAll('#student-layer').forEach(el => el.remove());
@@ -618,42 +616,26 @@ function placeStudentIcons(svg, assignments) {
 
   Object.entries(byNode).forEach(([nodeId, { center, students }]) => {
     const count = students.length;
-    const radial = count > RADIAL_THRESHOLD;
 
-    // ── Scale icon size down as count grows (radial only) ──────────────────
-    const iconSize = radial
-      ? Math.max(ICON_SIZE_MIN, ICON_SIZE - (count - RADIAL_THRESHOLD) * 3)
-      : ICON_SIZE;
+    // Scale icons down as count grows, floor at ICON_SIZE_MIN
+    const iconSize   = Math.max(ICON_SIZE_MIN, ICON_SIZE - Math.max(0, count - 3) * 3);
     const iconRadius = iconSize / 2;
 
-    // ── Compute positions ──────────────────────────────────────────────────
-    let positions; // array of { cx, cy }
+    // Ring radius: large enough that icons don't touch each other
+    const minCircumference = count * (iconSize + ICON_SPACING);
+    const ringRadius = Math.max(RADIAL_OFFSET, minCircumference / (2 * Math.PI));
+    const angleStep  = (2 * Math.PI) / count;
 
-    if (!radial) {
-      // Horizontal row, centred below the node
-      const rowWidth = count * iconSize + (count - 1) * ICON_SPACING;
-      const rowCY    = center.y + NODE_Y_OFFSET + iconRadius;
-      positions = students.map((_, i) => ({
-        cx: center.x - rowWidth / 2 + i * (iconSize + ICON_SPACING) + iconRadius,
-        cy: rowCY,
-      }));
-    } else {
-      // Radial ring — radius chosen so icons don't overlap each other
-      // circumference needed ≥ count * (iconSize + ICON_SPACING)
-      const minCircumference = count * (iconSize + ICON_SPACING);
-      const ringRadius = Math.max(120, minCircumference / (2 * Math.PI));
-      const angleStep  = (2 * Math.PI) / count;
-      // Start from the top (−π/2) so first student sits at 12 o'clock
-      positions = students.map((_, i) => {
-        const angle = -Math.PI / 2 + i * angleStep;
-        return {
-          cx: center.x + ringRadius * Math.cos(angle),
-          cy: center.y + ringRadius * Math.sin(angle),
-        };
-      });
-    }
+    // Positions around the ring, starting at 12 o'clock
+    const positions = students.map((_, i) => {
+      const angle = -Math.PI / 2 + i * angleStep;
+      return {
+        cx: center.x + ringRadius * Math.cos(angle),
+        cy: center.y + ringRadius * Math.sin(angle),
+      };
+    });
 
-    // ── Draw connector lines first (so they sit behind icons) ──────────────
+    // Connector lines behind icons
     positions.forEach(({ cx, cy }) => {
       const line = document.createElementNS(svgNS, 'line');
       line.setAttribute('x1', center.x);
@@ -666,11 +648,10 @@ function placeStudentIcons(svg, assignments) {
       layer.appendChild(line);
     });
 
-    // ── Draw each student icon ─────────────────────────────────────────────
+    // Student icons
     students.forEach((name, i) => {
       const { cx: iconCX, cy: iconCY } = positions[i];
-      const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const imgSrc = `${STUDENTS_DIR}${fname}.png`;
+      const fname  = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
       const g = document.createElementNS(svgNS, 'g');
       g.setAttribute('class', 'student-icon-group');
@@ -678,9 +659,8 @@ function placeStudentIcons(svg, assignments) {
       g.setAttribute('data-node', nodeId);
       g.style.cursor = 'pointer';
 
-      // Avatar image (full PNG, transparent background, no clip)
       const img = document.createElementNS(svgNS, 'image');
-      img.setAttribute('href', imgSrc);
+      img.setAttribute('href', `${STUDENTS_DIR}${fname}.png`);
       img.setAttribute('x', iconCX - iconRadius);
       img.setAttribute('y', iconCY - iconRadius);
       img.setAttribute('width',  iconSize);
@@ -688,7 +668,6 @@ function placeStudentIcons(svg, assignments) {
       img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       g.appendChild(img);
 
-          // Click → open node panel
       g.addEventListener('click', e => {
         e.stopPropagation();
         openPanel(nodeId, svg.getElementById(nodeId));
