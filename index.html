@@ -481,12 +481,11 @@ const ICON_SPACING   = 10;           // gap between avatars on the ring
 
 function initStudentDropdown(names) {
   const select = document.getElementById('studentSelect');
-  // Clear existing options except the first placeholder
   while (select.options.length > 1) select.remove(1);
   names.forEach(name => {
     const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
+    opt.value = name.trim().toLowerCase();  // normalized key
+    opt.textContent = name;                 // original casing for display
     select.appendChild(opt);
   });
 }
@@ -684,7 +683,7 @@ function computeTargetPositions(svg, assignments) {
 
     students.forEach((name, i) => {
       const angle = -Math.PI / 2 + i * angleStep;
-      targets[name] = {
+      targets[name.trim().toLowerCase()] = {
         cx:       center.x + ringRadius * Math.cos(angle),
         cy:       center.y + ringRadius * Math.sin(angle),
         iconSize,
@@ -1016,7 +1015,7 @@ function initProjectSearch() {
 function goToStudent(name) {
   if (!name) return;
 
-  const pos = currentPositions[name];
+  const pos = currentPositions[name.trim().toLowerCase()];
   if (!pos) {
     console.warn(`No position found for student "${name}" — not assigned on map yet`);
     return;
