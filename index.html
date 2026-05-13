@@ -471,11 +471,13 @@
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8t6cBm7poXfXN9FBkzxf_paP7j_6_eggDs_pkuwqtFRHESoxk7kUcrn6hG9VaD0PaJla4KGLfIJbO/pub?gid=0&single=true&output=csv';
-const MAP_SVG_URL   = 'https://jimboyoyo.github.io/L-roplanen-demo/map.svg';
-const STUDENTS_DIR  = 'students/';   // folder where PNGs live
-const ICON_SIZE     = 60;            // px width & height of each student icon in SVG units
-const ICON_OFFSET   = ICON_SIZE / 2; // so icon is centred on the node coordinate
+const SHEET_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8t6cBm7poXfXN9FBkzxf_paP7j_6_eggDs_pkuwqtFRHESoxk7kUcrn6hG9VaD0PaJla4KGLfIJbO/pub?gid=0&single=true&output=csv';
+const MAP_SVG_URL    = 'https://jimboyoyo.github.io/L-roplanen-demo/map.svg';
+const STUDENTS_DIR   = 'students/';  // folder where PNGs live
+const ICON_SIZE      = 60;           // diameter of each student avatar in SVG units
+const ICON_RADIUS    = ICON_SIZE / 2;
+const NODE_Y_OFFSET  = 80;           // how far below the node centre the group sits
+const ICON_SPACING   = 10;           // gap between avatars when multiple on same node
 
 
 // ─── STUDENTS (for the dropdown) ─────────────────────────────────────────────
@@ -596,81 +598,104 @@ function getNodeCenter(svg, nodeId) {
 // ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
 
 function placeStudentIcons(svg, assignments) {
-  // Remove any previously placed icons (so this is safe to call again)
-  svg.querySelectorAll('.student-icon-group').forEach(el => el.remove());
+  // Remove any previously placed icons
+  svg.querySelectorAll('#student-layer').forEach(el => el.remove());
 
   const svgNS = 'http://www.w3.org/2000/svg';
-
-  // Create a top-level group so icons sit above everything else
   const layer = document.createElementNS(svgNS, 'g');
   layer.setAttribute('id', 'student-layer');
 
-  assignments.forEach(({ name, nodeId }) => {
-    const center = getNodeCenter(svg, nodeId);
-    if (!center) {
-      console.warn(`Could not find coordinates for node "${nodeId}" (student: ${name})`);
-      return;
-    }
+  // Group students by nodeId so we can lay them out side by side
+  const byNode = {};
+  assignments.forEach(a => {
+    const center = getNodeCenter(svg, a.nodeId);
+    if (!center) { console.warn(`No coordinates for node "${a.nodeId}" (${a.name})`); return; }
+    if (!byNode[a.nodeId]) byNode[a.nodeId] = { center, students: [] };
+    byNode[a.nodeId].students.push(a.name);
+  });
 
-    const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    const imgSrc = `${STUDENTS_DIR}${fname}.png`;
+  Object.entries(byNode).forEach(([nodeId, { center, students }]) => {
+    const count = students.length;
+    // Total width of the row: n icons + gaps between them
+    const rowWidth = count * ICON_SIZE + (count - 1) * ICON_SPACING;
+    // Anchor point: below the node centre
+    const groupCY = center.y + NODE_Y_OFFSET + ICON_RADIUS;
 
-    const g = document.createElementNS(svgNS, 'g');
-    g.setAttribute('class', 'student-icon-group');
-    g.setAttribute('data-student', name);
-    g.setAttribute('data-node', nodeId);
-    g.style.cursor = 'pointer';
+    students.forEach((name, i) => {
+      // Centre each icon in the row
+      const iconCX = center.x - rowWidth / 2 + i * (ICON_SIZE + ICON_SPACING) + ICON_RADIUS;
+      const iconCY = groupCY;
 
-    // Circular clip so the PNG looks like an avatar
-    const clipId = `clip-student-${fname}`;
-    const defs = document.createElementNS(svgNS, 'defs');
-    const clip = document.createElementNS(svgNS, 'clipPath');
-    clip.setAttribute('id', clipId);
-    const circle = document.createElementNS(svgNS, 'circle');
-    circle.setAttribute('cx', center.x);
-    circle.setAttribute('cy', center.y);
-    circle.setAttribute('r', ICON_OFFSET);
-    clip.appendChild(circle);
-    defs.appendChild(clip);
-    g.appendChild(defs);
+      const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const imgSrc = `${STUDENTS_DIR}${fname}.png`;
+      const clipId  = `clip-student-${fname}-${nodeId.replace(/[^a-z0-9]/gi, '')}`;
 
-    // White backing circle (visible if PNG has transparency)
-    const backing = document.createElementNS(svgNS, 'circle');
-    backing.setAttribute('cx', center.x);
-    backing.setAttribute('cy', center.y);
-    backing.setAttribute('r', ICON_OFFSET);
-    backing.setAttribute('fill', 'white');
-    backing.setAttribute('stroke', 'rgba(255,255,255,0.6)');
-    backing.setAttribute('stroke-width', '3');
-    g.appendChild(backing);
+      const g = document.createElementNS(svgNS, 'g');
+      g.setAttribute('class', 'student-icon-group');
+      g.setAttribute('data-student', name);
+      g.setAttribute('data-node', nodeId);
+      g.style.cursor = 'pointer';
 
-    // The actual image
-    const img = document.createElementNS(svgNS, 'image');
-    img.setAttribute('href', imgSrc);
-    img.setAttribute('x', center.x - ICON_OFFSET);
-    img.setAttribute('y', center.y - ICON_OFFSET);
-    img.setAttribute('width',  ICON_SIZE);
-    img.setAttribute('height', ICON_SIZE);
-    img.setAttribute('clip-path', `url(#${clipId})`);
-    img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-    g.appendChild(img);
+      // Clip path
+      const defs = document.createElementNS(svgNS, 'defs');
+      const clip = document.createElementNS(svgNS, 'clipPath');
+      clip.setAttribute('id', clipId);
+      const clipCircle = document.createElementNS(svgNS, 'circle');
+      clipCircle.setAttribute('cx', iconCX);
+      clipCircle.setAttribute('cy', iconCY);
+      clipCircle.setAttribute('r',  ICON_RADIUS);
+      clip.appendChild(clipCircle);
+      defs.appendChild(clip);
+      g.appendChild(defs);
 
-    // Name label below the icon
-    const label = document.createElementNS(svgNS, 'text');
-    label.setAttribute('x', center.x);
-    label.setAttribute('y', center.y + ICON_OFFSET + 16);
-    label.setAttribute('class', 'student-label');
-    label.textContent = name;
-    g.appendChild(label);
+      // White backing circle
+      const backing = document.createElementNS(svgNS, 'circle');
+      backing.setAttribute('cx', iconCX);
+      backing.setAttribute('cy', iconCY);
+      backing.setAttribute('r',  ICON_RADIUS);
+      backing.setAttribute('fill', 'white');
+      backing.setAttribute('stroke', 'rgba(255,255,255,0.6)');
+      backing.setAttribute('stroke-width', '3');
+      g.appendChild(backing);
 
-    // Click → open node panel
-    g.addEventListener('click', e => {
-      e.stopPropagation();
-      const nodeEl = svg.getElementById(nodeId);
-      openPanel(nodeId, nodeEl);
+      // Avatar image
+      const img = document.createElementNS(svgNS, 'image');
+      img.setAttribute('href', imgSrc);
+      img.setAttribute('x', iconCX - ICON_RADIUS);
+      img.setAttribute('y', iconCY - ICON_RADIUS);
+      img.setAttribute('width',  ICON_SIZE);
+      img.setAttribute('height', ICON_SIZE);
+      img.setAttribute('clip-path', `url(#${clipId})`);
+      img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+      g.appendChild(img);
+
+      // Name label below the icon
+      const label = document.createElementNS(svgNS, 'text');
+      label.setAttribute('x', iconCX);
+      label.setAttribute('y', iconCY + ICON_RADIUS + 18);
+      label.setAttribute('class', 'student-label');
+      label.textContent = name;
+      g.appendChild(label);
+
+      // Connector line from node centre to icon centre
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', center.x);
+      line.setAttribute('y1', center.y);
+      line.setAttribute('x2', iconCX);
+      line.setAttribute('y2', iconCY - ICON_RADIUS);
+      line.setAttribute('stroke', 'rgba(255,255,255,0.25)');
+      line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '4 3');
+      layer.insertBefore(line, layer.firstChild); // lines behind icons
+
+      // Click → open node panel
+      g.addEventListener('click', e => {
+        e.stopPropagation();
+        openPanel(nodeId, svg.getElementById(nodeId));
+      });
+
+      layer.appendChild(g);
     });
-
-    layer.appendChild(g);
   });
 
   svg.appendChild(layer);
