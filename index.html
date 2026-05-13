@@ -683,7 +683,7 @@ function placeStudentIcons(svg, assignments) {
 
 // ─── LIVE POLLING + ANIMATED PLACEMENT ───────────────────────────────────────
 
-const POLL_INTERVAL  = 30_000;   // ms between sheet checks
+const POLL_INTERVAL  = 15_000;   // ms between sheet checks
 const GLIDE_DURATION = 1_200;    // ms for the travel animation
 const FADE_DURATION  = 800;      // ms for fade-out when a student is removed
 const GLIDE_EASE = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
