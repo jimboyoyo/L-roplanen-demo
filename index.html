@@ -681,19 +681,199 @@ function placeStudentIcons(svg, assignments) {
 }
 
 
-// ─── FETCH SHEET + PLACE ICONS ────────────────────────────────────────────────
+// ─── LIVE POLLING + ANIMATED PLACEMENT ───────────────────────────────────────
 
+const POLL_INTERVAL  = 30_000;   // ms between sheet checks
+const GLIDE_DURATION = 1_200;    // ms for the travel animation
+const GLIDE_EASE = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
+
+// Tracks current target position of each student: { name → { cx, cy, size } }
+let currentPositions = {};
+// Tracks active animation frames so we can cancel mid-glide
+let activeAnimations = {};
+
+// Compute the target { cx, cy, iconSize } for every student given fresh assignments
+function computeTargetPositions(svg, assignments) {
+  const targets = {};
+
+  const byNode = {};
+  assignments.forEach(a => {
+    const center = getNodeCenter(svg, a.nodeId);
+    if (!center) return;
+    if (!byNode[a.nodeId]) byNode[a.nodeId] = { center, students: [] };
+    byNode[a.nodeId].students.push(a.name);
+  });
+
+  Object.values(byNode).forEach(({ center, students }) => {
+    const count      = students.length;
+    const iconSize   = Math.max(ICON_SIZE_MIN, ICON_SIZE - Math.max(0, count - 3) * 3);
+    const minCirc    = count * (iconSize + ICON_SPACING);
+    const ringRadius = Math.max(RADIAL_OFFSET, minCirc / (2 * Math.PI));
+    const angleStep  = (2 * Math.PI) / count;
+
+    students.forEach((name, i) => {
+      const angle = -Math.PI / 2 + i * angleStep;
+      targets[name] = {
+        cx:       center.x + ringRadius * Math.cos(angle),
+        cy:       center.y + ringRadius * Math.sin(angle),
+        iconSize,
+        nodeId:   Object.keys(byNode).find(k => byNode[k].students.includes(name)),
+      };
+    });
+  });
+
+  return targets;
+}
+
+// Initial placement — no animation, just build the layer fresh
 async function loadStudentPositions(svg) {
   try {
-    const res = await fetch(SHEET_CSV_URL);
+    const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
     if (!res.ok) throw new Error(`Sheet fetch failed: ${res.status}`);
-    const csv = await res.text();
+    const csv  = await res.text();
     const assignments = parseCSV(csv);
-    console.log(`Loaded ${assignments.length} student assignments from sheet`, assignments);
     placeStudentIcons(svg, assignments);
+    currentPositions = computeTargetPositions(svg, assignments);
+    console.log(`Loaded ${assignments.length} student assignments`);
+
+    // Start polling for live updates
+    setInterval(() => pollSheet(svg), POLL_INTERVAL);
   } catch(e) {
     console.warn('Could not load student positions:', e.message);
   }
+}
+
+// Poll the sheet and animate any students whose node changed
+async function pollSheet(svg) {
+  try {
+    const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
+    if (!res.ok) return;
+    const csv         = await res.text();
+    const assignments = parseCSV(csv);
+    const newTargets  = computeTargetPositions(svg, assignments);
+
+    // Find students whose position actually changed
+    const moved = Object.entries(newTargets).filter(([name, pos]) => {
+      const old = currentPositions[name];
+      return !old || Math.abs(old.cx - pos.cx) > 1 || Math.abs(old.cy - pos.cy) > 1;
+    });
+
+    if (!moved.length) return; // nothing to do
+    console.log(`Students moved: ${moved.map(([n]) => n).join(', ')}`);
+
+    // Rebuild connector lines immediately (new ring geometry)
+    rebuildConnectorLines(svg, newTargets, assignments);
+
+    // Glide each moved student to their new position
+    moved.forEach(([name, target]) => {
+      const old = currentPositions[name];
+      const fromCX = old?.cx ?? target.cx;
+      const fromCY = old?.cy ?? target.cy;
+      glideStudent(svg, name, fromCX, fromCY, target, assignments);
+    });
+
+    currentPositions = newTargets;
+  } catch(e) {
+    console.warn('Poll failed:', e.message);
+  }
+}
+
+// Redraw only the connector lines layer, leaving icon elements in place
+function rebuildConnectorLines(svg, targets, assignments) {
+  const layer = svg.getElementById('student-layer');
+  if (!layer) return;
+  const svgNS = 'http://www.w3.org/2000/svg';
+
+  // Remove old lines
+  layer.querySelectorAll('.student-connector').forEach(l => l.remove());
+
+  // Group targets back by node to get centre coords
+  const byNode = {};
+  assignments.forEach(a => {
+    const center = getNodeCenter(svg, a.nodeId);
+    if (!center) return;
+    if (!byNode[a.nodeId]) byNode[a.nodeId] = { center, students: [] };
+    byNode[a.nodeId].students.push(a.name);
+  });
+
+  Object.values(byNode).forEach(({ center, students }) => {
+    students.forEach(name => {
+      const t = targets[name];
+      if (!t) return;
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('class', 'student-connector');
+      line.setAttribute('x1', center.x);
+      line.setAttribute('y1', center.y);
+      line.setAttribute('x2', t.cx);
+      line.setAttribute('y2', t.cy);
+      line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+      line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '4 3');
+      // Insert before first icon group so lines stay behind
+      const firstIcon = layer.querySelector('.student-icon-group');
+      firstIcon ? layer.insertBefore(line, firstIcon) : layer.appendChild(line);
+    });
+  });
+}
+
+// Smoothly glide a student's icon element from (fromCX, fromCY) to target
+function glideStudent(svg, name, fromCX, fromCY, target, assignments) {
+  // Cancel any in-progress animation for this student
+  if (activeAnimations[name]) cancelAnimationFrame(activeAnimations[name]);
+
+  const layer = svg.getElementById('student-layer');
+  if (!layer) return;
+
+  // Find or create the icon group element for this student
+  let g = layer.querySelector(`.student-icon-group[data-student="${name}"]`);
+  if (!g) {
+    // Student is new — create the element at their old/start position
+    const svgNS = 'http://www.w3.org/2000/svg';
+    g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'student-icon-group');
+    g.setAttribute('data-student', name);
+    g.style.cursor = 'pointer';
+    const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const img = document.createElementNS(svgNS, 'image');
+    img.setAttribute('href', `${STUDENTS_DIR}${fname}.png`);
+    img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    g.appendChild(img);
+    layer.appendChild(g);
+  }
+
+  g.setAttribute('data-node', target.nodeId);
+  const img      = g.querySelector('image');
+  const iconSize = target.iconSize;
+  const r        = iconSize / 2;
+
+  g.addEventListener('click', e => {
+    e.stopPropagation();
+    openPanel(target.nodeId, svg.getElementById(target.nodeId));
+  }, { once: true });
+
+  const startTime = performance.now();
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const t       = Math.min(elapsed / GLIDE_DURATION, 1);
+    const ease    = GLIDE_EASE(t);
+
+    const cx = fromCX + (target.cx - fromCX) * ease;
+    const cy = fromCY + (target.cy - fromCY) * ease;
+
+    img.setAttribute('x', cx - r);
+    img.setAttribute('y', cy - r);
+    img.setAttribute('width',  iconSize);
+    img.setAttribute('height', iconSize);
+
+    if (t < 1) {
+      activeAnimations[name] = requestAnimationFrame(step);
+    } else {
+      delete activeAnimations[name];
+    }
+  }
+
+  activeAnimations[name] = requestAnimationFrame(step);
 }
 
 
