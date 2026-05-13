@@ -758,18 +758,17 @@ async function pollSheet(svg) {
       return !old || Math.abs(old.cx - pos.cx) > 1 || Math.abs(old.cy - pos.cy) > 1;
     });
 
-    if (!moved.length) return; // nothing to do
+    if (!moved.length) return;
     console.log(`Students moved: ${moved.map(([n]) => n).join(', ')}`);
 
-    // Rebuild connector lines immediately (new ring geometry)
-    rebuildConnectorLines(svg, newTargets, assignments);
-
-    // Glide each moved student to their new position
+    // Glide each moved student — connector lines animate inside glideStudent
     moved.forEach(([name, target]) => {
-      const old = currentPositions[name];
+      const old    = currentPositions[name];
       const fromCX = old?.cx ?? target.cx;
       const fromCY = old?.cy ?? target.cy;
-      glideStudent(svg, name, fromCX, fromCY, target, assignments);
+      // Node centre is where the connector line starts from
+      const nodeCenter = getNodeCenter(svg, target.nodeId);
+      glideStudent(svg, name, fromCX, fromCY, target, nodeCenter);
     });
 
     currentPositions = newTargets;
@@ -778,57 +777,17 @@ async function pollSheet(svg) {
   }
 }
 
-// Redraw only the connector lines layer, leaving icon elements in place
-function rebuildConnectorLines(svg, targets, assignments) {
-  const layer = svg.getElementById('student-layer');
-  if (!layer) return;
-  const svgNS = 'http://www.w3.org/2000/svg';
-
-  // Remove old lines
-  layer.querySelectorAll('.student-connector').forEach(l => l.remove());
-
-  // Group targets back by node to get centre coords
-  const byNode = {};
-  assignments.forEach(a => {
-    const center = getNodeCenter(svg, a.nodeId);
-    if (!center) return;
-    if (!byNode[a.nodeId]) byNode[a.nodeId] = { center, students: [] };
-    byNode[a.nodeId].students.push(a.name);
-  });
-
-  Object.values(byNode).forEach(({ center, students }) => {
-    students.forEach(name => {
-      const t = targets[name];
-      if (!t) return;
-      const line = document.createElementNS(svgNS, 'line');
-      line.setAttribute('class', 'student-connector');
-      line.setAttribute('x1', center.x);
-      line.setAttribute('y1', center.y);
-      line.setAttribute('x2', t.cx);
-      line.setAttribute('y2', t.cy);
-      line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
-      line.setAttribute('stroke-width', '1.5');
-      line.setAttribute('stroke-dasharray', '4 3');
-      // Insert before first icon group so lines stay behind
-      const firstIcon = layer.querySelector('.student-icon-group');
-      firstIcon ? layer.insertBefore(line, firstIcon) : layer.appendChild(line);
-    });
-  });
-}
-
-// Smoothly glide a student's icon element from (fromCX, fromCY) to target
-function glideStudent(svg, name, fromCX, fromCY, target, assignments) {
-  // Cancel any in-progress animation for this student
+// Smoothly glide a student's icon AND their connector line from old position to new
+function glideStudent(svg, name, fromCX, fromCY, target, nodeCenter) {
   if (activeAnimations[name]) cancelAnimationFrame(activeAnimations[name]);
 
   const layer = svg.getElementById('student-layer');
   if (!layer) return;
+  const svgNS = 'http://www.w3.org/2000/svg';
 
-  // Find or create the icon group element for this student
+  // Find or create icon group
   let g = layer.querySelector(`.student-icon-group[data-student="${name}"]`);
   if (!g) {
-    // Student is new — create the element at their old/start position
-    const svgNS = 'http://www.w3.org/2000/svg';
     g = document.createElementNS(svgNS, 'g');
     g.setAttribute('class', 'student-icon-group');
     g.setAttribute('data-student', name);
@@ -841,17 +800,40 @@ function glideStudent(svg, name, fromCX, fromCY, target, assignments) {
     layer.appendChild(g);
   }
 
+  // Find or create this student's connector line
+  const lineId = `connector-${name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
+  let line = layer.querySelector(`[data-connector="${lineId}"]`);
+  if (!line) {
+    line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('class', 'student-connector');
+    line.setAttribute('data-connector', lineId);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '4 3');
+    // Keep lines behind icons
+    const firstIcon = layer.querySelector('.student-icon-group');
+    firstIcon ? layer.insertBefore(line, firstIcon) : layer.appendChild(line);
+  }
+
   g.setAttribute('data-node', target.nodeId);
   const img      = g.querySelector('image');
   const iconSize = target.iconSize;
   const r        = iconSize / 2;
 
-  g.addEventListener('click', e => {
+  // Re-bind click with new nodeId
+  const newG = g.cloneNode(true);
+  g.replaceWith(newG);
+  const freshImg = newG.querySelector('image');
+  newG.addEventListener('click', e => {
     e.stopPropagation();
     openPanel(target.nodeId, svg.getElementById(target.nodeId));
-  }, { once: true });
+  });
 
   const startTime = performance.now();
+
+  // Where the connector line starts from — the node centre
+  const lineSrcX = nodeCenter?.x ?? target.cx;
+  const lineSrcY = nodeCenter?.y ?? target.cy;
 
   function step(now) {
     const elapsed = now - startTime;
@@ -861,10 +843,17 @@ function glideStudent(svg, name, fromCX, fromCY, target, assignments) {
     const cx = fromCX + (target.cx - fromCX) * ease;
     const cy = fromCY + (target.cy - fromCY) * ease;
 
-    img.setAttribute('x', cx - r);
-    img.setAttribute('y', cy - r);
-    img.setAttribute('width',  iconSize);
-    img.setAttribute('height', iconSize);
+    // Move icon
+    freshImg.setAttribute('x', cx - r);
+    freshImg.setAttribute('y', cy - r);
+    freshImg.setAttribute('width',  iconSize);
+    freshImg.setAttribute('height', iconSize);
+
+    // Move connector endpoint in lockstep
+    line.setAttribute('x1', lineSrcX);
+    line.setAttribute('y1', lineSrcY);
+    line.setAttribute('x2', cx);
+    line.setAttribute('y2', cy);
 
     if (t < 1) {
       activeAnimations[name] = requestAnimationFrame(step);
