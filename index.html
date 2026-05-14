@@ -378,6 +378,34 @@
     stroke-width: 3px;
     stroke-linejoin: round;
   }
+
+  .hof-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 4px 0;
+  }
+  .hof-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .hof-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+  }
+  .hof-card img.broken { opacity: 0.15; }
+  .hof-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #111;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
 </style>
 </head>
 <body>
@@ -392,6 +420,7 @@
     <select id="studentSelect" onchange="closePanel(); goToStudent(this.value); this.value = ''">
       <option value="">— Välj elev —</option>
     </select>
+    <button class="help-btn" onclick="openHallOfFame()" title="Hall of fame">🏆</button>
   </div>
 
   <div class="search-wrap">
@@ -565,7 +594,7 @@ function getNodeCenter(svg, nodeId) {
 // ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
 
 const ICON_SIZE_MIN = 28;  // smallest avatar in radial mode
-const RADIAL_OFFSET = 60; // minimum ring radius
+const RADIAL_OFFSET = 120; // minimum ring radius
 
 function placeStudentIcons(svg, assignments) {
   svg.querySelectorAll('#student-layer').forEach(el => el.remove());
@@ -1186,6 +1215,57 @@ async function openPanel(name, element, folderUrl = '') {
 
 function closePanel() {
   document.getElementById('panel').classList.add('closed');
+}
+
+function openHallOfFame() {
+  const panel = document.getElementById('panel');
+  panel.classList.remove('closed');
+
+  document.getElementById('panelTitle').textContent = 'Hall of Fame';
+  document.getElementById('panelSubtitle').textContent = '';
+  document.getElementById('panelFolderBtn').style.display = 'none';
+  document.getElementById('printBtn').style.display = 'none';
+
+  const body = document.getElementById('panelBody');
+  body.style.padding = '20px';
+  body.style.overflow = '';
+  body.style.background = '';
+
+  // Gather names from the dropdown (populated from sheet)
+  const select = document.getElementById('studentSelect');
+  const names = Array.from(select.options)
+    .filter(o => o.value)
+    .map(o => ({ display: o.textContent, key: o.value }));
+
+  if (!names.length) {
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">🏆</div>Inga elever i listan ännu.</div>`;
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'hof-grid';
+
+  names.forEach(({ display, key }) => {
+    const fname = key.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const card  = document.createElement('div');
+    card.className = 'hof-card';
+
+    const img = document.createElement('img');
+    img.src = `${STUDENTS_DIR}${fname}.png`;
+    img.alt = display;
+    img.onerror = () => img.classList.add('broken');
+
+    const label = document.createElement('div');
+    label.className = 'hof-name';
+    label.textContent = display;
+
+    card.appendChild(img);
+    card.appendChild(label);
+    grid.appendChild(card);
+  });
+
+  body.innerHTML = '';
+  body.appendChild(grid);
 }
 
 let currentPdfUrl = null;
