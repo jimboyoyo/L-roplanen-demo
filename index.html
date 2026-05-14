@@ -394,7 +394,50 @@
     width: auto;
     display: block;
   }
-  .hof-grid {
+  .overview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .overview-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .overview-row:last-child { border-bottom: none; }
+  .overview-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .overview-folder {
+    font-size: 16px;
+    text-decoration: none;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .overview-folder:hover { opacity: 1; }
+  .overview-folder.hidden { visibility: hidden; }
+  .overview-avatars {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .overview-avatars img {
+    height: 28px;
+    width: auto;
+    display: block;
+  }
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px 16px;
@@ -441,6 +484,8 @@
     />
     <div class="search-dropdown" id="searchDropdown"></div>
   </div>
+
+  <button class="help-btn" onclick="openClassOverview()" title="Klassöversikt">📋</button>
 
   <span class="hint">Klicka på en nod för att öppna innehållet &nbsp;·&nbsp; Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
 </header>
@@ -1306,7 +1351,113 @@ function openHallOfFame() {
   body.appendChild(grid);
 }
 
-let currentPdfUrl = null;
+function openClassOverview() {
+  const panel = document.getElementById('panel');
+  panel.classList.remove('closed');
+
+  document.getElementById('panelTitle').textContent = 'Klassöversikt';
+  document.getElementById('panelSubtitle').textContent = '';
+  document.getElementById('panelFolderBtn').style.display = 'none';
+  document.getElementById('printBtn').style.display = 'none';
+  const existingAvatars = document.getElementById('panelStudents');
+  if (existingAvatars) existingAvatars.remove();
+
+  const body = document.getElementById('panelBody');
+  body.style.padding = '20px';
+  body.style.overflow = '';
+  body.style.background = '';
+
+  // Group students by nodeId
+  const byNode = {};
+  Object.entries(currentPositions).forEach(([key, pos]) => {
+    if (!byNode[pos.nodeId]) byNode[pos.nodeId] = [];
+    byNode[pos.nodeId].push(key);
+  });
+
+  if (!Object.keys(byNode).length) {
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>Inga elever placerade ännu.</div>`;
+    return;
+  }
+
+  // Get folder URLs from SVG anchor elements
+  const svg = getSvg();
+  function getFolderUrl(nodeId) {
+    if (!svg) return '';
+    const el = svg.getElementById(nodeId);
+    if (!el) return '';
+    let anchor = el;
+    while (anchor && anchor !== svg) {
+      if (anchor.getAttribute('data-url')) return anchor.getAttribute('data-url');
+      anchor = anchor.parentElement;
+    }
+    return '';
+  }
+
+  // Pretty-print node ID as a title
+  function nodeLabel(nodeId) {
+    return nodeId
+      .replace(/^(project-|role-)/, '')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  // Sort nodes alphabetically by label
+  const sortedNodes = Object.keys(byNode).sort((a, b) => nodeLabel(a).localeCompare(nodeLabel(b)));
+
+  const list = document.createElement('div');
+  list.className = 'overview-list';
+
+  sortedNodes.forEach(nodeId => {
+    const students = byNode[nodeId];
+    const folderUrl = getFolderUrl(nodeId);
+
+    const row = document.createElement('div');
+    row.className = 'overview-row';
+
+    // Left side: name (opens panel) + folder icon
+    const left = document.createElement('div');
+    left.style.cssText = 'display:flex; align-items:center; gap:6px; flex:1; min-width:0;';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'overview-name';
+    nameEl.textContent = nodeLabel(nodeId);
+    nameEl.style.cursor = 'pointer';
+    nameEl.addEventListener('click', () => {
+      const el = svg?.getElementById(nodeId);
+      openPanel(nodeId, el || null, folderUrl);
+    });
+    left.appendChild(nameEl);
+
+    const folder = document.createElement('a');
+    folder.className = 'overview-folder' + (folderUrl ? '' : ' hidden');
+    folder.textContent = '📁';
+    folder.href = folderUrl;
+    folder.target = '_blank';
+    folder.rel = 'noopener noreferrer';
+    left.appendChild(folder);
+
+    row.appendChild(left);
+
+    // Right side: student avatars
+    const avatars = document.createElement('div');
+    avatars.className = 'overview-avatars';
+    students.forEach(key => {
+      const fname = key.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const opt   = document.querySelector(`#studentSelect option[value="${key}"]`);
+      const img   = document.createElement('img');
+      img.src     = `${STUDENTS_DIR}${fname}.png`;
+      img.alt     = opt ? opt.textContent : key;
+      img.title   = opt ? opt.textContent : key;
+      avatars.appendChild(img);
+    });
+    row.appendChild(avatars);
+
+    list.appendChild(row);
+  });
+
+  body.innerHTML = '';
+  body.appendChild(list);
+}
 
 async function renderPdf(url) {
   currentPdfUrl = url;
