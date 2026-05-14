@@ -379,7 +379,21 @@
     stroke-linejoin: round;
   }
 
-  .hof-grid {
+  .panel-students {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+  .panel-student-avatar {
+    display: flex;
+    align-items: center;
+  }
+  .panel-student-avatar img {
+    height: 32px;
+    width: auto;
+    display: block;
+  }
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px 16px;
@@ -594,7 +608,8 @@ function getNodeCenter(svg, nodeId) {
 // ─── PLACE STUDENT ICONS on the SVG ──────────────────────────────────────────
 
 const ICON_SIZE_MIN = 28;  // smallest avatar in radial mode
-const RADIAL_OFFSET = 55; // minimum ring radius
+const RADIAL_OFFSET = 55;  // minimum ring radius
+const RADIAL_START  = -Math.PI / 2 + Math.PI / 8; // start at 22.5° offset from 12 o'clock
 
 function placeStudentIcons(svg, assignments) {
   svg.querySelectorAll('#student-layer').forEach(el => el.remove());
@@ -626,7 +641,7 @@ function placeStudentIcons(svg, assignments) {
 
     // Positions around the ring, starting at 12 o'clock
     const positions = students.map((_, i) => {
-      const angle = -Math.PI / 2 + Math.PI / 8 + i * angleStep;
+      const angle = -Math.PI / 2 + i * angleStep;
       return {
         cx: center.x + ringRadius * Math.cos(angle),
         cy: center.y + ringRadius * Math.sin(angle),
@@ -711,7 +726,7 @@ function computeTargetPositions(svg, assignments) {
     const angleStep  = (2 * Math.PI) / count;
 
     students.forEach((name, i) => {
-      const angle = -Math.PI / 2 + i * angleStep;
+      const angle = RADIAL_START + i * angleStep;
       targets[name.trim().toLowerCase()] = {
         cx:       center.x + ringRadius * Math.cos(angle),
         cy:       center.y + ringRadius * Math.sin(angle),
@@ -1178,6 +1193,41 @@ async function openPanel(name, element, folderUrl = '') {
 
   document.getElementById('panelTitle').textContent = name;
   document.getElementById('panelSubtitle').textContent = '';
+
+  // Show mini avatars of students currently on this node
+  const existingAvatars = document.getElementById('panelStudents');
+  if (existingAvatars) existingAvatars.remove();
+
+  const studentsOnNode = Object.entries(currentPositions)
+    .filter(([, pos]) => pos.nodeId === name)
+    .map(([key]) => key);
+
+  if (studentsOnNode.length) {
+    const avatarRow = document.createElement('div');
+    avatarRow.id = 'panelStudents';
+    avatarRow.className = 'panel-students';
+
+    studentsOnNode.forEach(key => {
+      const fname   = key.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const opt     = document.querySelector(`#studentSelect option[value="${key}"]`);
+      const display = opt ? opt.textContent : key;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'panel-student-avatar';
+      wrap.title = display;
+
+      const img = document.createElement('img');
+      img.src = `${STUDENTS_DIR}${fname}.png`;
+      img.alt = display;
+
+      wrap.appendChild(img);
+      avatarRow.appendChild(wrap);
+    });
+
+    // Insert into the right-side button row, before the close button
+    const btnRow = document.querySelector('.panel-header > div:last-child');
+    btnRow.insertBefore(avatarRow, btnRow.firstChild);
+  }
 
   const folderBtn = document.getElementById('panelFolderBtn');
   if (folderUrl) { folderBtn.href = folderUrl; folderBtn.style.display = 'inline-flex'; }
