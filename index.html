@@ -394,6 +394,7 @@
     width: auto;
     display: block;
   }
+  .hof-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px 16px;
@@ -402,9 +403,7 @@
   }
   .hof-card {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 8px;
   }
   .hof-card img {
     width: 100%;
@@ -413,13 +412,6 @@
     display: block;
   }
   .hof-card img.broken { opacity: 0.15; }
-  .hof-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: #111;
-    text-align: center;
-    letter-spacing: 0.05em;
-  }
 </style>
 </head>
 <body>
@@ -1299,18 +1291,14 @@ function openHallOfFame() {
     const fname = key.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const card  = document.createElement('div');
     card.className = 'hof-card';
+    card.title = display;
 
     const img = document.createElement('img');
     img.src = `${STUDENTS_DIR}${fname}.png`;
     img.alt = display;
     img.onerror = () => img.classList.add('broken');
 
-    const label = document.createElement('div');
-    label.className = 'hof-name';
-    label.textContent = display;
-
     card.appendChild(img);
-    card.appendChild(label);
     grid.appendChild(card);
   });
 
