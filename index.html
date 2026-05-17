@@ -438,6 +438,9 @@
     width: auto;
     display: block;
   }
+
+  /* ── FIX 1: restored missing .hof-grid selector ── */
+  .hof-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px 16px;
@@ -1093,6 +1096,8 @@ function initProjectSearch() {
 })();
 
 
+// ─── FIX 2: goToStudent now opens the panel for the student's current node ───
+
 function goToStudent(name) {
   if (!name) return;
 
@@ -1114,6 +1119,10 @@ function goToStudent(name) {
   const targetVy = centerY - newH / 2;
   const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
   const startTime = performance.now();
+
+  // Open the panel for the node this student is currently assigned to
+  const nodeEl = svg.getElementById(pos.nodeId);
+  openPanel(pos.nodeId, nodeEl || null);
 
   function animate(now) {
     const t    = Math.min((now - startTime) / 400, 1);
