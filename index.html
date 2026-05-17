@@ -2029,10 +2029,10 @@ document.addEventListener('keydown', e => {
 <div id="chatBubble">
   <div id="chatPanel">
     <div id="chatPanelHeader">
-      <img id="chatBotAvatar" src="robot-teacher.png" alt="Lärarassistent"
+      <img id="chatBotAvatar" src="robot-teacher.png" alt="AI-Jim"
            onerror="this.style.background='rgba(255,255,255,0.15)';this.removeAttribute('src')">
       <div class="chat-header-text">
-        <div class="chat-header-name">Lärarassistenten</div>
+        <div class="chat-header-name">AI-Jim</div>
         <div class="chat-header-sub">Fråga mig vad som helst ✦</div>
       </div>
       <button id="chatCloseBtn" onclick="toggleChat()">×</button>
@@ -2043,7 +2043,7 @@ document.addEventListener('keydown', e => {
         <img class="chat-msg-avatar" src="robot-teacher.png" alt=""
              onerror="this.style.background='#ddd';this.removeAttribute('src')">
         <div class="chat-msg-bubble">
-          Hej! 👋 Jag är din lärarassistent. Vad kan jag hjälpa dig med idag?
+          Hej! 👋 Jag är AI-Jim. Vad kan jag hjälpa dig med?
         </div>
       </div>
     </div>
@@ -2074,18 +2074,6 @@ document.addEventListener('keydown', e => {
 
   // ── Your Cloudflare Worker URL ─────────────────────────────────────────────
   const WORKER_URL = 'https://aged-math-1ef5.jimbernstrom.workers.dev';
-
-  const SYSTEM_PROMPT = `Du är en hjälpsam lärarassistent på LäroPlanen, en kreativ medieutbildningsplattform.
-Din uppgift är att hjälpa elever (16–20 år) med enkla frågor om sina projekt och uppgifter.
-
-Regler:
-- Svara ALLTID på svenska.
-- Använd enkelt, uppmuntrande och professionellt språk.
-- Var pedagogisk — vägleda eleven att tänka själv, ge inte alltid direkta svar.
-- Om eleven frågar om ett specifikt projekt, utgå från projektbeskrivningen nedan om den finns.
-- Om du verkligen inte vet svaret, be eleven kontakta sin riktiga lärare, som heter Bob.
-- Håll svaren kortfattade och tydliga.
-- Du har bred kunskap om kreativa program som Photoshop, Premiere Pro, After Effects, Blender, Audition, m.m. — använd den kunskapen när det är relevant.`;
 
   let chatOpen    = false;
   let chatHistory = [];
@@ -2196,7 +2184,7 @@ Regler:
       const response = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatHistory, system: SYSTEM_PROMPT + ctx })
+        body: JSON.stringify({ messages: chatHistory, context: ctx })
       });
 
       if (!response.ok) throw new Error(`Worker error ${response.status}`);
@@ -2212,7 +2200,7 @@ Regler:
 
     } catch(err) {
       hideTyping();
-      appendMessage('bot', 'Något gick fel. Försök igen eller fråga Bob direkt!');
+      appendMessage('bot', 'Något gick fel. Försök igen eller fråga Jim direkt!');
       console.error('Chat error:', err);
     }
 
