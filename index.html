@@ -2083,10 +2083,22 @@ document.addEventListener('keydown', e => {
 
   // ── Your Cloudflare Worker URL ─────────────────────────────────────────────
   const WORKER_URL = 'https://aged-math-1ef5.jimbernstrom.workers.dev';
+  const MAX_HISTORY = 10; // max messages kept (5 exchanges)
 
   let chatOpen    = false;
   let chatHistory = [];
   let chatBusy    = false;
+
+  function resetChat() {
+    chatHistory = [];
+    const msgs = document.getElementById('chatMessages');
+    msgs.innerHTML = `
+      <div class="chat-msg bot">
+        <img class="chat-msg-avatar" src="robot-teacher.png" alt=""
+             onerror="this.style.background='#ddd';this.removeAttribute('src')">
+        <div class="chat-msg-bubble">Hej! 👋 Jag är AI-Jim. Vad kan jag hjälpa dig med?</div>
+      </div>`;
+  }
 
   window.toggleChat = function() {
     chatOpen = !chatOpen;
@@ -2095,6 +2107,9 @@ document.addEventListener('keydown', e => {
     if (chatOpen) {
       setTimeout(() => document.getElementById('chatInput').focus(), 220);
       scrollToBottom();
+    } else {
+      // Clear history and reset UI when minimised
+      resetChat();
     }
   };
 
@@ -2187,6 +2202,8 @@ document.addEventListener('keydown', e => {
     }
 
     chatHistory.push({ role: 'user', content: text });
+    // Keep only the most recent MAX_HISTORY messages to control API cost
+    if (chatHistory.length > MAX_HISTORY) chatHistory = chatHistory.slice(-MAX_HISTORY);
     showTyping();
 
     try {
