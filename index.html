@@ -463,7 +463,8 @@
 <body>
 
 <header>
-  <h1>LÄROPLANEN</h1>
+ <h1>LÄROPLANEN</h1>
+<span id="loggedInName" style="font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:0.08em;"></span>
 
   <button class="help-btn" onclick="toggleHelpPopup()">HJÄLP!</button>
 
@@ -1739,9 +1740,19 @@ let helpMyToken = localStorage.getItem('help-token') || null;
 })();
 
 function toggleHelpPopup() {
+  // Auto-fill name from login
+  const name = window.loggedInStudentName || sessionStorage.getItem('auth_name') || '';
+  if (name) {
+    document.getElementById('helpNameInput').value = name;
+    document.getElementById('helpNameInput').readOnly = true;
+    document.getElementById('helpNameInput').style.background = '#f0f0f0';
+    document.getElementById('helpNameInput').style.color = '#888';
+  }
   helpPopupOpen = !helpPopupOpen;
   document.getElementById('helpPopup').classList.toggle('visible', helpPopupOpen);
-  if (helpPopupOpen) { document.getElementById('helpNameInput').focus(); document.getElementById('helpAlready').textContent = ''; }
+  if (helpPopupOpen) {
+    document.getElementById('helpAlready').textContent = '';
+  }
 }
 
 async function submitHelpRequest() {
@@ -2399,8 +2410,9 @@ document.addEventListener('keydown', e => {
       });
       const data = await res.json();
       if (data.valid) {
-        dismissOverlay();
-      } else {
+       const storedName = sessionStorage.getItem('auth_name');
+       dismissOverlay(data.name || storedName);
+     } else {
         sessionStorage.removeItem('auth_token');
       }
     } catch(e) {
@@ -2479,7 +2491,7 @@ document.addEventListener('keydown', e => {
         }
 
         sessionStorage.setItem('auth_token', regData.token);
-        dismissOverlay();
+        dismissOverlay(regData.name);
 
       } else {
         // Login
@@ -2495,7 +2507,7 @@ document.addEventListener('keydown', e => {
         }
 
         sessionStorage.setItem('auth_token', data.token);
-        dismissOverlay();
+        dismissOverlay(data.name);
       }
 
     } catch(e) {
@@ -2510,11 +2522,21 @@ document.addEventListener('keydown', e => {
     document.getElementById('loginError').textContent = msg;
   }
 
-  function dismissOverlay() {
-    const overlay = document.getElementById('loginOverlay');
-    overlay.classList.add('hidden');
-    setTimeout(() => overlay.remove(), 400);
+function dismissOverlay(name) {
+  // Store name for use across the app
+  if (name) {
+    sessionStorage.setItem('auth_name', name);
+    window.loggedInStudentName = name;
   }
+
+  // Show name in header
+  const nameEl = document.getElementById('loggedInName');
+  if (nameEl && name) nameEl.textContent = name.toUpperCase();
+
+  const overlay = document.getElementById('loginOverlay');
+  overlay.classList.add('hidden');
+  setTimeout(() => overlay.remove(), 400);
+}
 
   // Focus email field on load
   setTimeout(() => document.getElementById('loginEmail').focus(), 100);
