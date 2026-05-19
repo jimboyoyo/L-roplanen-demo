@@ -2240,7 +2240,8 @@ document.addEventListener('keydown', e => {
 })();
 </script>
 
-<!-- ─── ADOBE SSO LOGIN GATE ──────────────────────────────────────────────── -->
+ 
+<!-- ─── LOGIN GATE ──────────────────────────────────────────────────────────── -->
 <style>
   #loginOverlay {
     position: fixed;
@@ -2251,88 +2252,262 @@ document.addEventListener('keydown', e => {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap: 24px;
+    gap: 0;
     transition: opacity 0.4s ease;
   }
   #loginOverlay.hidden {
     opacity: 0;
     pointer-events: none;
   }
-  #loginOverlay h2 {
+
+  .login-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .login-logo {
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #aaa;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .login-title {
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .login-subtitle {
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-size: 12px;
+    color: #aaa;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .login-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-size: 14px;
+    color: #111;
+    background: #f7f7f9;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+  }
+  .login-input:focus { border-color: #0a0a1a; background: #fff; }
+  .login-input::placeholder { color: #bbb; }
+
+  .login-btn {
+    width: 100%;
+    padding: 11px;
+    background: #0a0a1a;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
     font-family: 'Century Gothic', CenturyGothic, sans-serif;
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.6);
-    text-transform: uppercase;
-  }
-  #adobeLoginBtn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #fa0f00;
-    border: none;
-    border-radius: 4px;
-    padding: 12px 24px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'Segoe UI', sans-serif;
-    color: #fff;
+    letter-spacing: 0.06em;
     cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: background 0.15s;
   }
-  #adobeLoginBtn:hover {
-    background: #d40d00;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  }
-  #loginError {
-    font-size: 12px;
-    color: rgba(255,100,100,0.8);
+  .login-btn:hover { background: #2e2e4e; }
+  .login-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .login-error {
     font-family: 'Century Gothic', CenturyGothic, sans-serif;
-    display: none;
+    font-size: 12px;
+    color: #e74c3c;
+    text-align: center;
+    min-height: 16px;
   }
+
+  .login-switch {
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-size: 12px;
+    color: #aaa;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .login-switch:hover { color: #333; }
 </style>
 
 <div id="loginOverlay">
-  <h2>Läroplanen</h2>
-  <button id="adobeLoginBtn" onclick="adobeLogin()">
-    <svg width="20" height="20" viewBox="0 0 240 234" xmlns="http://www.w3.org/2000/svg">
-      <path d="M42.5 0h155C221 0 240 19 240 42.5v149c0 23.5-19 42.5-42.5 42.5h-155C19 234 0 215 0 191.5v-149C0 19 19 0 42.5 0z" fill="#fa0f00"/>
-      <path d="M97 73L61 160h24l8-20h38l8 20h24L127 73H97zm-1 49l13-33 13 33H96z" fill="#fff"/>
-    </svg>
-    Logga in med Adobe
-  </button>
-  <div id="loginError">Inloggningen misslyckades. Försök igen.</div>
+  <div class="login-box">
+    <div class="login-logo">Läroplanen</div>
+    <div class="login-title" id="loginTitle">Logga in</div>
+    <div class="login-subtitle" id="loginSubtitle">Använd din skolmejl</div>
+
+    <input class="login-input" type="email" id="loginEmail"
+      placeholder="namn@edu.orebro.se"
+      onkeydown="loginKeydown(event)" />
+
+    <input class="login-input" type="password" id="loginPassword"
+      placeholder="Lösenord"
+      onkeydown="loginKeydown(event)" />
+
+    <input class="login-input" type="password" id="loginPassword2"
+      placeholder="Bekräfta lösenord"
+      style="display:none"
+      onkeydown="loginKeydown(event)" />
+
+    <div class="login-error" id="loginError"></div>
+
+    <button class="login-btn" id="loginBtn" onclick="loginSubmit()">Logga in</button>
+    <div class="login-switch" id="loginSwitch" onclick="toggleLoginMode()">
+      Första gången? Skapa lösenord
+    </div>
+  </div>
 </div>
 
 <script>
 (function() {
-  const CLIENT_ID    = 'e55c1b9bae8548c49c77eb235352c5ff';
-  const REDIRECT_URI = 'https://jimboyoyo.github.io/L-roplanen-demo/';
-  const AUTH_URL     = 'https://ims-na1.adobelogin.com/ims/authorize/v2';
-  const TOKEN_URL    = 'https://ims-na1.adobelogin.com/ims/token/v3';
-  const SCOPES       = 'openid';
+  const WORKER_URL  = 'https://aged-math-1ef5.jimbernstrom.workers.dev';
+  let isRegister    = false;
+  let busy          = false;
 
-  // ── PKCE helpers ───────────────────────────────────────────────────────────
-  function generateRandom(length) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-    return Array.from(crypto.getRandomValues(new Uint8Array(length)))
-      .map(b => chars[b % chars.length]).join('');
+  // ── Check for existing session ─────────────────────────────────────────────
+  const savedToken = sessionStorage.getItem('auth_token');
+  if (savedToken) {
+    verifyToken(savedToken);
   }
 
-  async function generateCodeChallenge(verifier) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(verifier);
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode(...new Uint8Array(digest)))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  async function verifyToken(token) {
+    try {
+      const res  = await fetch(`${WORKER_URL}/auth/verify`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ token })
+      });
+      const data = await res.json();
+      if (data.valid) {
+        dismissOverlay();
+      } else {
+        sessionStorage.removeItem('auth_token');
+      }
+    } catch(e) {
+      sessionStorage.removeItem('auth_token');
+    }
   }
 
-  function showError(msg) {
-    const el = document.getElementById('loginError');
-    el.textContent = msg;
-    el.style.display = 'block';
+  window.toggleLoginMode = function() {
+    isRegister = !isRegister;
+    document.getElementById('loginTitle').textContent =
+      isRegister ? 'Skapa lösenord' : 'Logga in';
+    document.getElementById('loginSubtitle').textContent =
+      isRegister ? 'Välj ett lösenord (minst 6 tecken)' : 'Använd din skolmejl';
+    document.getElementById('loginPassword2').style.display =
+      isRegister ? 'block' : 'none';
+    document.getElementById('loginBtn').textContent =
+      isRegister ? 'Skapa konto' : 'Logga in';
+    document.getElementById('loginSwitch').textContent =
+      isRegister ? 'Har du redan ett lösenord? Logga in' : 'Första gången? Skapa lösenord';
+    setError('');
+  };
+
+  window.loginKeydown = function(e) {
+    if (e.key === 'Enter') loginSubmit();
+  };
+
+  window.loginSubmit = async function() {
+    if (busy) return;
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const password2 = document.getElementById('loginPassword2').value;
+
+    if (!email || !password) { setError('Fyll i alla fält.'); return; }
+    if (!email.endsWith('@edu.orebro.se')) {
+      setError('Använd din skolmejl (@edu.orebro.se).');
+      return;
+    }
+
+    if (isRegister) {
+      if (password.length < 6) { setError('Lösenordet måste vara minst 6 tecken.'); return; }
+      if (password !== password2) { setError('Lösenorden matchar inte.'); return; }
+    }
+
+    busy = true;
+    document.getElementById('loginBtn').disabled = true;
+    setError('');
+
+    try {
+      if (isRegister) {
+        // First check if email exists in sheet and has no password yet
+        const checkRes  = await fetch(`${WORKER_URL}/auth/check`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email })
+        });
+        const checkData = await checkRes.json();
+
+        if (checkData.error === 'not_found') {
+          setError('Din mejl finns inte i systemet. Kontakta Jim.'); return;
+        }
+        if (checkData.hasPassword) {
+          setError('Du har redan ett lösenord. Logga in istället.');
+          toggleLoginMode(); return;
+        }
+
+        // Register
+        const regRes  = await fetch(`${WORKER_URL}/auth/register`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email, password })
+        });
+        const regData = await regRes.json();
+
+        if (!regRes.ok) {
+          setError('Något gick fel. Försök igen.'); return;
+        }
+
+        sessionStorage.setItem('auth_token', regData.token);
+        dismissOverlay();
+
+      } else {
+        // Login
+        const res  = await fetch(`${WORKER_URL}/auth/login`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          setError('Fel mejl eller lösenord.'); return;
+        }
+
+        sessionStorage.setItem('auth_token', data.token);
+        dismissOverlay();
+      }
+
+    } catch(e) {
+      setError('Kunde inte ansluta. Försök igen.');
+    } finally {
+      busy = false;
+      document.getElementById('loginBtn').disabled = false;
+    }
+  };
+
+  function setError(msg) {
+    document.getElementById('loginError').textContent = msg;
   }
 
   function dismissOverlay() {
@@ -2341,101 +2516,8 @@ document.addEventListener('keydown', e => {
     setTimeout(() => overlay.remove(), 400);
   }
 
-  // ── On page load: check URL for code or error from Adobe redirect ──────────
-  const params = new URLSearchParams(window.location.search);
-  const code   = params.get('code');
-  const error  = params.get('error');
-
-  if (code || error) {
-    // Always clean the URL immediately
-    window.history.replaceState({}, '', window.location.pathname);
-  }
-
-  if (error) {
-    // Adobe returned an error — wipe stale state and show message
-    sessionStorage.removeItem('adobe_pkce_verifier');
-    sessionStorage.removeItem('adobe_oauth_state');
-    showError('Inloggningen misslyckades (' + error + '). Försök igen.');
-
-  } else if (code) {
-    // Adobe returned a code — exchange it for a token
-    exchangeCodeForToken(code);
-
-  } else {
-    // No redirect params — check for existing valid session
-    const token = sessionStorage.getItem('adobe_access_token');
-    if (token) {
-      dismissOverlay();
-    }
-    // Otherwise just show the overlay and wait for button click
-  }
-
-  // ── Button click: kick off PKCE login flow ─────────────────────────────────
-  window.adobeLogin = async function() {
-    // Clear any leftover state from previous attempts
-    sessionStorage.removeItem('adobe_pkce_verifier');
-    sessionStorage.removeItem('adobe_oauth_state');
-
-    const verifier  = generateRandom(64);
-    const challenge = await generateCodeChallenge(verifier);
-    const state     = generateRandom(16);
-
-    sessionStorage.setItem('adobe_pkce_verifier', verifier);
-    sessionStorage.setItem('adobe_oauth_state', state);
-
-    const url = `${AUTH_URL}?client_id=${CLIENT_ID}`
-      + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
-      + `&scope=${SCOPES}`
-      + `&response_type=code`
-      + `&state=${state}`
-      + `&code_challenge=${challenge}`
-      + `&code_challenge_method=S256`;
-
-    window.location.href = url;
-  };
-
-  // ── Exchange auth code for access token ────────────────────────────────────
-  async function exchangeCodeForToken(code) {
-    const verifier = sessionStorage.getItem('adobe_pkce_verifier');
-
-    if (!verifier) {
-      showError('Sessionsfel — försök logga in igen.');
-      return;
-    }
-
-    try {
-      const body = new URLSearchParams({
-        grant_type:    'authorization_code',
-        client_id:     CLIENT_ID,
-        redirect_uri:  REDIRECT_URI,
-        code,
-        code_verifier: verifier,
-      });
-
-      const res  = await fetch(TOKEN_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error_description || data.error || res.status);
-      }
-
-      // Success — store token and let the user in
-      sessionStorage.setItem('adobe_access_token', data.access_token);
-      sessionStorage.removeItem('adobe_pkce_verifier');
-      sessionStorage.removeItem('adobe_oauth_state');
-      window.adobeAccount = data;
-      dismissOverlay();
-
-    } catch(e) {
-      console.error('Adobe token exchange error:', e);
-      showError('Inloggningen misslyckades: ' + e.message);
-    }
-  }
+  // Focus email field on load
+  setTimeout(() => document.getElementById('loginEmail').focus(), 100);
 
 })();
 </script>
