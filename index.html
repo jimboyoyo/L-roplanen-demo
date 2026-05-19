@@ -2239,75 +2239,8 @@ document.addEventListener('keydown', e => {
 
 })();
 </script>
-You have the Client ID! Now let me write the code. Replace the entire Microsoft login block I gave you earlier (everything between `<!-- ─── MICROSOFT SSO LOGIN GATE ───` and its closing `</script>`) with this:
 
-```html
-<!-- ─── ADOBE SSO LOGIN GATE ──────────────────────────────────────────────── -->
-<style>
-  #loginOverlay {
-    position: fixed;
-    inset: 0;
-    background: #0a0a1a;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 24px;
-    transition: opacity 0.4s ease;
-  }
-  #loginOverlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-  #loginOverlay h2 {
-    font-family: 'Century Gothic', CenturyGothic, sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.6);
-    text-transform: uppercase;
-  }
-  #adobeLoginBtn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #fa0f00;
-    border: none;
-    border-radius: 4px;
-    padding: 12px 24px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'Segoe UI', sans-serif;
-    color: #fff;
-    cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  }
-  #adobeLoginBtn:hover {
-    background: #d40d00;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  }
-  #loginError {
-    font-size: 12px;
-    color: rgba(255,100,100,0.8);
-    font-family: 'Century Gothic', CenturyGothic, sans-serif;
-    display: none;
-  }
-</style>
-
-<div id="loginOverlay">
-  <h2>Läroplanen</h2>
-  <button id="adobeLoginBtn" onclick="adobeLogin()">
-    <svg width="20" height="20" viewBox="0 0 240 234" xmlns="http://www.w3.org/2000/svg">
-      <path d="M42.5 0h155C221 0 240 19 240 42.5v149c0 23.5-19 42.5-42.5 42.5h-155C19 234 0 215 0 191.5v-149C0 19 19 0 42.5 0z" fill="#fa0f00"/>
-      <path d="M97 73L61 160h24l8-20h38l8 20h24L127 73H97zm-1 49l13-33 13 33H96z" fill="#fff"/>
-    </svg>
-    Logga in med Adobe
-  </button>
-  <div id="loginError">Inloggningen misslyckades. Försök igen.</div>
-</div>
-
+// --- ADOBE ID LOGIN SCRIPT ---
 <script>
 (function() {
   const CLIENT_ID    = 'e55c1b9bae8548c49c77eb235352c5ff';
@@ -2316,43 +2249,72 @@ You have the Client ID! Now let me write the code. Replace the entire Microsoft 
   const TOKEN_URL    = 'https://ims-na1.adobelogin.com/ims/token/v3';
   const SCOPES       = 'openid,profile,email,AdobeID';
 
-  // ── Check if we're returning from Adobe with an auth code ──────────────────
+  // ── PKCE helpers ───────────────────────────────────────────────────────────
+  function generateRandom(length) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    return Array.from(crypto.getRandomValues(new Uint8Array(length)))
+      .map(b => chars[b % chars.length]).join('');
+  }
+
+  async function generateCodeChallenge(verifier) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  // ── Check if returning from Adobe ──────────────────────────────────────────
   const params = new URLSearchParams(window.location.search);
   const code   = params.get('code');
   const error  = params.get('error');
 
   if (error) {
-    document.getElementById('loginError').style.display = 'block';
+    showError('Inloggningen misslyckades. Försök igen.');
   } else if (code) {
-    // Clean the URL so the code doesn't linger
     window.history.replaceState({}, '', window.location.pathname);
     exchangeCodeForToken(code);
   } else {
-    // Check for an existing session
-    const token = sessionStorage.getItem('adobe_access_token');
-    if (token) {
+    if (sessionStorage.getItem('adobe_access_token')) {
       dismissOverlay();
     }
-    // Otherwise overlay stays visible
   }
 
-  window.adobeLogin = function() {
-    const state = Math.random().toString(36).slice(2);
+  // ── Login: generate PKCE and redirect to Adobe ─────────────────────────────
+  window.adobeLogin = async function() {
+    const verifier   = generateRandom(64);
+    const challenge  = await generateCodeChallenge(verifier);
+    const state      = generateRandom(16);
+
+    sessionStorage.setItem('adobe_pkce_verifier', verifier);
     sessionStorage.setItem('adobe_oauth_state', state);
-    const url = `${AUTH_URL}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPES}&response_type=code&state=${state}`;
+
+    const url = `${AUTH_URL}?client_id=${CLIENT_ID}`
+      + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
+      + `&scope=${SCOPES}`
+      + `&response_type=code`
+      + `&state=${state}`
+      + `&code_challenge=${challenge}`
+      + `&code_challenge_method=S256`;
+
     window.location.href = url;
   };
 
+  // ── Exchange code for token using stored PKCE verifier ─────────────────────
   async function exchangeCodeForToken(code) {
+    const verifier = sessionStorage.getItem('adobe_pkce_verifier');
+    if (!verifier) {
+      showError('Sessionsfel — försök logga in igen.');
+      return;
+    }
+
     try {
-      // Adobe SPA flow uses PKCE — but since we didn't generate a
-      // code_verifier on the way out, we use the implicit fallback:
-      // request the token directly via the IMS token endpoint.
       const body = new URLSearchParams({
-        grant_type:   'authorization_code',
-        client_id:    CLIENT_ID,
-        redirect_uri: REDIRECT_URI,
+        grant_type:    'authorization_code',
+        client_id:     CLIENT_ID,
+        redirect_uri:  REDIRECT_URI,
         code,
+        code_verifier: verifier,
       });
 
       const res = await fetch(TOKEN_URL, {
@@ -2361,8 +2323,8 @@ You have the Client ID! Now let me write the code. Replace the entire Microsoft 
         body,
       });
 
-      if (!res.ok) throw new Error(`Token exchange failed: ${res.status}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error_description || res.status);
 
       sessionStorage.setItem('adobe_access_token', data.access_token);
       window.adobeAccount = data;
@@ -2370,9 +2332,7 @@ You have the Client ID! Now let me write the code. Replace the entire Microsoft 
 
     } catch(e) {
       console.error('Adobe token exchange error:', e);
-      document.getElementById('loginError').style.display = 'block';
-      document.getElementById('loginError').textContent =
-        'Inloggningen misslyckades. Försök igen.';
+      showError('Inloggningen misslyckades: ' + e.message);
     }
   }
 
@@ -2381,11 +2341,14 @@ You have the Client ID! Now let me write the code. Replace the entire Microsoft 
     overlay.classList.add('hidden');
     setTimeout(() => overlay.remove(), 400);
   }
+
+  function showError(msg) {
+    const el = document.getElementById('loginError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
 })();
 </script>
-```
-
-Give it a try — students should see a red "Logga in med Adobe" button, get redirected to Adobe's login page, and land back on the map once signed in. Let me know what happens!
  
  
 </body>
