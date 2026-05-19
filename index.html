@@ -2240,14 +2240,79 @@ document.addEventListener('keydown', e => {
 })();
 </script>
 
-// --- ADOBE ID LOGIN SCRIPT ---
+<!-- ─── ADOBE SSO LOGIN GATE ──────────────────────────────────────────────── -->
+<style>
+  #loginOverlay {
+    position: fixed;
+    inset: 0;
+    background: #0a0a1a;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 24px;
+    transition: opacity 0.4s ease;
+  }
+  #loginOverlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #loginOverlay h2 {
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+  }
+  #adobeLoginBtn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fa0f00;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Segoe UI', sans-serif;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  #adobeLoginBtn:hover {
+    background: #d40d00;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  #loginError {
+    font-size: 12px;
+    color: rgba(255,100,100,0.8);
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    display: none;
+  }
+</style>
+
+<div id="loginOverlay">
+  <h2>Läroplanen</h2>
+  <button id="adobeLoginBtn" onclick="adobeLogin()">
+    <svg width="20" height="20" viewBox="0 0 240 234" xmlns="http://www.w3.org/2000/svg">
+      <path d="M42.5 0h155C221 0 240 19 240 42.5v149c0 23.5-19 42.5-42.5 42.5h-155C19 234 0 215 0 191.5v-149C0 19 19 0 42.5 0z" fill="#fa0f00"/>
+      <path d="M97 73L61 160h24l8-20h38l8 20h24L127 73H97zm-1 49l13-33 13 33H96z" fill="#fff"/>
+    </svg>
+    Logga in med Adobe
+  </button>
+  <div id="loginError">Inloggningen misslyckades. Försök igen.</div>
+</div>
+
 <script>
 (function() {
   const CLIENT_ID    = 'e55c1b9bae8548c49c77eb235352c5ff';
   const REDIRECT_URI = 'https://jimboyoyo.github.io/L-roplanen-demo/';
   const AUTH_URL     = 'https://ims-na1.adobelogin.com/ims/authorize/v2';
   const TOKEN_URL    = 'https://ims-na1.adobelogin.com/ims/token/v3';
-  const SCOPES       = 'openid,profile,email,AdobeID';
+  const SCOPES       = 'openid,profile,email';
 
   // ── PKCE helpers ───────────────────────────────────────────────────────────
   function generateRandom(length) {
@@ -2264,27 +2329,56 @@ document.addEventListener('keydown', e => {
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
-  // ── Check if returning from Adobe ──────────────────────────────────────────
+  function showError(msg) {
+    const el = document.getElementById('loginError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function dismissOverlay() {
+    const overlay = document.getElementById('loginOverlay');
+    overlay.classList.add('hidden');
+    setTimeout(() => overlay.remove(), 400);
+  }
+
+  // ── On page load: check URL for code or error from Adobe redirect ──────────
   const params = new URLSearchParams(window.location.search);
   const code   = params.get('code');
   const error  = params.get('error');
 
-  if (error) {
-    showError('Inloggningen misslyckades. Försök igen.');
-  } else if (code) {
+  if (code || error) {
+    // Always clean the URL immediately
     window.history.replaceState({}, '', window.location.pathname);
-    exchangeCodeForToken(code);
-  } else {
-    if (sessionStorage.getItem('adobe_access_token')) {
-      dismissOverlay();
-    }
   }
 
-  // ── Login: generate PKCE and redirect to Adobe ─────────────────────────────
+  if (error) {
+    // Adobe returned an error — wipe stale state and show message
+    sessionStorage.removeItem('adobe_pkce_verifier');
+    sessionStorage.removeItem('adobe_oauth_state');
+    showError('Inloggningen misslyckades (' + error + '). Försök igen.');
+
+  } else if (code) {
+    // Adobe returned a code — exchange it for a token
+    exchangeCodeForToken(code);
+
+  } else {
+    // No redirect params — check for existing valid session
+    const token = sessionStorage.getItem('adobe_access_token');
+    if (token) {
+      dismissOverlay();
+    }
+    // Otherwise just show the overlay and wait for button click
+  }
+
+  // ── Button click: kick off PKCE login flow ─────────────────────────────────
   window.adobeLogin = async function() {
-    const verifier   = generateRandom(64);
-    const challenge  = await generateCodeChallenge(verifier);
-    const state      = generateRandom(16);
+    // Clear any leftover state from previous attempts
+    sessionStorage.removeItem('adobe_pkce_verifier');
+    sessionStorage.removeItem('adobe_oauth_state');
+
+    const verifier  = generateRandom(64);
+    const challenge = await generateCodeChallenge(verifier);
+    const state     = generateRandom(16);
 
     sessionStorage.setItem('adobe_pkce_verifier', verifier);
     sessionStorage.setItem('adobe_oauth_state', state);
@@ -2300,9 +2394,10 @@ document.addEventListener('keydown', e => {
     window.location.href = url;
   };
 
-  // ── Exchange code for token using stored PKCE verifier ─────────────────────
+  // ── Exchange auth code for access token ────────────────────────────────────
   async function exchangeCodeForToken(code) {
     const verifier = sessionStorage.getItem('adobe_pkce_verifier');
+
     if (!verifier) {
       showError('Sessionsfel — försök logga in igen.');
       return;
@@ -2317,16 +2412,22 @@ document.addEventListener('keydown', e => {
         code_verifier: verifier,
       });
 
-      const res = await fetch(TOKEN_URL, {
+      const res  = await fetch(TOKEN_URL, {
         method:  'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error_description || res.status);
 
+      if (!res.ok) {
+        throw new Error(data.error_description || data.error || res.status);
+      }
+
+      // Success — store token and let the user in
       sessionStorage.setItem('adobe_access_token', data.access_token);
+      sessionStorage.removeItem('adobe_pkce_verifier');
+      sessionStorage.removeItem('adobe_oauth_state');
       window.adobeAccount = data;
       dismissOverlay();
 
@@ -2336,17 +2437,6 @@ document.addEventListener('keydown', e => {
     }
   }
 
-  function dismissOverlay() {
-    const overlay = document.getElementById('loginOverlay');
-    overlay.classList.add('hidden');
-    setTimeout(() => overlay.remove(), 400);
-  }
-
-  function showError(msg) {
-    const el = document.getElementById('loginError');
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
 })();
 </script>
  
