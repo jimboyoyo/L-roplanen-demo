@@ -575,6 +575,56 @@ function initStudentDropdown(names) {
   });
 }
 
+function nameToKey(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
+ let firebaseSheetRows = [];
+
+function listenToFirebase(svg, sheetRows) {
+  firebaseSheetRows = sheetRows;
+  // Poll Firebase every 10 seconds for changes
+  setInterval(async () => {
+    try {
+      const fbRes  = await fetch('https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students.json');
+      const fbData = await fbRes.json() || {};
+
+      const newAssignments = sheetRows
+        .map(row => {
+          const key         = nameToKey(row.name);
+          const studentData = fbData[key] || {};
+          return studentData.currentNode
+            ? { name: row.name, nodeId: studentData.currentNode }
+            : null;
+        })
+        .filter(Boolean);
+
+      const newTargets = computeTargetPositions(svg, newAssignments);
+
+      // Animate any changes
+      Object.entries(newTargets).forEach(([name, target]) => {
+        const old = currentPositions[name];
+        if (!old || Math.abs(old.cx - target.cx) > 1 || Math.abs(old.cy - target.cy) > 1) {
+          const nodeCenter = getNodeCenter(svg, target.nodeId);
+          glideStudent(svg, name, old?.cx ?? target.cx, old?.cy ?? target.cy, target, nodeCenter);
+          currentPositions[name] = target;
+        }
+      });
+
+      // Handle removals
+      Object.keys(currentPositions).forEach(name => {
+        if (!newTargets[name]) {
+          fadeOutStudent(svg, name);
+          delete currentPositions[name];
+        }
+      });
+
+    } catch(e) {
+      console.warn('Firebase poll failed:', e.message);
+    }
+  }, 10_000);
+}
+ 
 
 // ─── CSV PARSER ───────────────────────────────────────────────────────────────
 
@@ -724,9 +774,14 @@ function placeStudentIcons(svg, assignments) {
       g.appendChild(img);
 
       g.addEventListener('click', e => {
-        e.stopPropagation();
-        openPanel(nodeId, svg.getElementById(nodeId));
-      });
+         e.stopPropagation();
+         const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
+         if (isTeacherUser) {
+           openStudentPanel(name);
+         } else {
+           openPanel(nodeId, svg.getElementById(nodeId));
+         }
+       });
 
       layer.appendChild(g);
     });
@@ -786,18 +841,35 @@ async function loadStudentPositions(svg) {
   try {
     const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
     if (!res.ok) throw new Error(`Sheet fetch failed: ${res.status}`);
-    const csv         = await res.text();
-    const assignments = parseCSV(csv);
+    const csv = await res.text();
+    const sheetRows = parseCSV(csv);
 
-    // Populate dropdown from sheet — only students actually in the sheet
-    const names = assignments.map(a => a.name);
+    // Populate dropdown from sheet
+    const names = sheetRows.map(a => a.name);
     initStudentDropdown(names);
+
+    // Load current assignments from Firebase
+    const fbRes = await fetch('https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students.json');
+    const fbData = await fbRes.json() || {};
+
+    // Build assignments from Firebase currentNode
+    const assignments = sheetRows
+      .map(row => {
+        const key = nameToKey(row.name);
+        const studentData = fbData[key] || {};
+        return studentData.currentNode
+          ? { name: row.name, nodeId: studentData.currentNode }
+          : null;
+      })
+      .filter(Boolean);
 
     placeStudentIcons(svg, assignments);
     currentPositions = computeTargetPositions(svg, assignments);
-    console.log(`Loaded ${assignments.length} student assignments`);
 
-    setInterval(() => pollSheet(svg), POLL_INTERVAL);
+    // Listen for realtime Firebase changes
+    listenToFirebase(svg, sheetRows);
+
+    console.log(`Loaded ${assignments.length} student assignments from Firebase`);
   } catch(e) {
     console.warn('Could not load student positions:', e.message);
   }
@@ -944,10 +1016,15 @@ function glideStudent(svg, name, fromCX, fromCY, target, nodeCenter) {
   const newG = g.cloneNode(true);
   g.replaceWith(newG);
   const freshImg = newG.querySelector('image');
-  newG.addEventListener('click', e => {
-    e.stopPropagation();
+newG.addEventListener('click', e => {
+  e.stopPropagation();
+  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
+  if (isTeacherUser) {
+    openStudentPanel(name);
+  } else {
     openPanel(target.nodeId, svg.getElementById(target.nodeId));
-  });
+  }
+});
 
   const startTime = performance.now();
 
@@ -1222,27 +1299,25 @@ async function openPanel(name, element, folderUrl = '') {
   document.getElementById('panel').classList.remove('closed');
 
   if (element) {
-    const rect = element.getBoundingClientRect();
-    const screenX = rect.left + rect.width / 2;
-    if (screenX > window.innerWidth * 0.4) {
-      try {
-        const bbox = element.getBBox();
-        const centerX = bbox.x + bbox.width / 2;
-        const centerY = bbox.y + bbox.height / 2;
+    try {
+      const bbox    = element.getBBox();
+      const centerX = bbox.x + bbox.width / 2;
+      const centerY = bbox.y + bbox.height / 2;
+      const rect    = element.getBoundingClientRect();
+      if (rect.left + rect.width / 2 > window.innerWidth * 0.4) {
         vx = centerX - vw * 0.15;
         vy = centerY - vh * 0.2;
         const svg = getSvg();
         svg.style.transition = 'all 0.4s ease-out';
         applyViewBox(svg);
         setTimeout(() => { svg.style.transition = ''; }, 400);
-      } catch(e) { console.error("Centering failed", e); }
-    }
+      }
+    } catch(e) {}
   }
 
   document.getElementById('panelTitle').textContent = name;
   document.getElementById('panelSubtitle').textContent = '';
 
-  // Show mini avatars of students currently on this node
   const existingAvatars = document.getElementById('panelStudents');
   if (existingAvatars) existingAvatars.remove();
 
@@ -1254,25 +1329,19 @@ async function openPanel(name, element, folderUrl = '') {
     const avatarRow = document.createElement('div');
     avatarRow.id = 'panelStudents';
     avatarRow.className = 'panel-students';
-
     studentsOnNode.forEach(key => {
       const fname   = key.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const opt     = document.querySelector(`#studentSelect option[value="${key}"]`);
       const display = opt ? opt.textContent : key;
-
-      const wrap = document.createElement('div');
+      const wrap    = document.createElement('div');
       wrap.className = 'panel-student-avatar';
       wrap.title = display;
-
       const img = document.createElement('img');
       img.src = `${STUDENTS_DIR}${fname}.png`;
       img.alt = display;
-
       wrap.appendChild(img);
       avatarRow.appendChild(wrap);
     });
-
-    // Insert into the right-side button row, before the close button
     const btnRow = document.querySelector('.panel-header > div:last-child');
     btnRow.insertBefore(avatarRow, btnRow.firstChild);
   }
@@ -1311,6 +1380,145 @@ async function openPanel(name, element, folderUrl = '') {
   }
 }
 
+async function assignStudent(studentKey, studentName) {
+  const nodeId = document.getElementById('assignNodeSelect')?.value;
+  if (!nodeId) return;
+
+  const token = sessionStorage.getItem('auth_token');
+  try {
+    const res = await fetch('https://aged-math-1ef5.jimbernstrom.workers.dev/student/assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, studentKey, nodeId })
+    });
+    if (!res.ok) throw new Error('Failed');
+    // Refresh the panel
+    openStudentPanel(studentName);
+  } catch(e) {
+    alert('Kunde inte tilldela uppgift. Försök igen.');
+  }
+}
+
+async function completeStudent(studentKey, studentName) {
+  if (!confirm(`Markera ${studentName}s nuvarande uppgift som klar?`)) return;
+
+  const token = sessionStorage.getItem('auth_token');
+  try {
+    const res = await fetch('https://aged-math-1ef5.jimbernstrom.workers.dev/student/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, studentKey })
+    });
+    if (!res.ok) throw new Error('Failed');
+    openStudentPanel(studentName);
+  } catch(e) {
+    alert('Något gick fel. Försök igen.');
+  }
+}
+ 
+async function openStudentPanel(studentName) {
+  const panel = document.getElementById('panel');
+  panel.classList.remove('closed');
+
+  document.getElementById('panelTitle').textContent = studentName;
+  document.getElementById('panelSubtitle').textContent = 'Elev';
+  document.getElementById('panelFolderBtn').style.display = 'none';
+  document.getElementById('printBtn').style.display = 'none';
+  const existingAvatars = document.getElementById('panelStudents');
+  if (existingAvatars) existingAvatars.remove();
+
+  const body = document.getElementById('panelBody');
+  body.innerHTML = `<div class="empty-state"><div class="empty-icon">⋯</div>Laddar...</div>`;
+  body.style.padding = '20px';
+  body.style.overflow = '';
+  body.style.background = '';
+
+  const key      = nameToKey(studentName);
+  const token    = sessionStorage.getItem('auth_token');
+  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
+
+  // Fetch student data from Firebase
+  let studentData = {};
+  try {
+    const res   = await fetch(`https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students/${key}.json`);
+    studentData = await res.json() || {};
+  } catch(e) {}
+
+  const currentNode     = studentData.currentNode || null;
+  const finishedProjects = studentData.finished?.projects || [];
+  const finishedRoles    = studentData.finished?.roles    || [];
+
+  // Build all project/role node IDs from the map
+  const svg       = getSvg();
+  const allNodes  = [];
+  if (svg) {
+    svg.querySelectorAll('[id]').forEach(el => {
+      const id = el.getAttribute('id');
+      if (id && (id.startsWith('project-') || id.startsWith('role-'))) {
+        allNodes.push(id);
+      }
+    });
+  }
+
+  function nodeLabel(id) {
+    return id.replace(/^(project-|role-)/, '').replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  let html = '';
+
+  // ── Current assignment ──────────────────────────────────────────────────
+  html += `<div class="section-label">Aktuell uppgift</div>`;
+  html += `<div style="font-size:15px;font-weight:700;color:#111;margin-bottom:12px;">
+    ${currentNode ? nodeLabel(currentNode) : '<span style="color:#bbb;font-weight:400;">Ingen uppgift tilldelad</span>'}
+  </div>`;
+
+  // ── Teacher controls ────────────────────────────────────────────────────
+  if (isTeacherUser) {
+    // Assign dropdown
+    html += `<div class="section-label">Tilldela uppgift</div>`;
+    html += `<select id="assignNodeSelect" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;margin-bottom:8px;">
+      <option value="">— Välj nod —</option>
+      ${allNodes.map(id => `<option value="${id}" ${id === currentNode ? 'selected' : ''}>${nodeLabel(id)}</option>`).join('')}
+    </select>`;
+    html += `<button onclick="assignStudent('${key}', '${studentName}')"
+      style="width:100%;padding:9px;background:#0a0a1a;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;">
+      Tilldela
+    </button>`;
+
+    // Klar button — only if they have a current node
+    if (currentNode) {
+      html += `<button onclick="completeStudent('${key}', '${studentName}')"
+        style="width:100%;padding:9px;background:#2ecc71;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:20px;">
+        ✓ Klar!
+      </button>`;
+    }
+  }
+
+  // ── Finished lists ──────────────────────────────────────────────────────
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
+
+  html += `<div>
+    <div class="section-label">Avklarade projekt</div>
+    ${finishedProjects.length
+      ? finishedProjects.map(id => `<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #eee;color:#333;">${nodeLabel(id)}</div>`).join('')
+      : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
+    }
+  </div>`;
+
+  html += `<div>
+    <div class="section-label">Upplåsta roller</div>
+    ${finishedRoles.length
+      ? finishedRoles.map(id => `<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #eee;color:#333;">${nodeLabel(id)}</div>`).join('')
+      : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
+    }
+  </div>`;
+
+  html += `</div>`;
+
+  body.innerHTML = html;
+}
+ 
 function closePanel() {
   document.getElementById('panel').classList.add('closed');
 }
@@ -2412,7 +2620,7 @@ document.addEventListener('keydown', e => {
       const data = await res.json();
       if (data.valid) {
        const storedName = sessionStorage.getItem('auth_name');
-       dismissOverlay(data.name || storedName);
+       dismissOverlay(data.name || storedName, data.email);
      } else {
         sessionStorage.removeItem('auth_token');
       }
@@ -2492,7 +2700,7 @@ document.addEventListener('keydown', e => {
         }
 
         sessionStorage.setItem('auth_token', regData.token);
-        dismissOverlay(regData.name);
+        dismissOverlay(regData.name, email);
 
       } else {
         // Login
@@ -2508,7 +2716,7 @@ document.addEventListener('keydown', e => {
         }
 
         sessionStorage.setItem('auth_token', data.token);
-        dismissOverlay(data.name);
+        dismissOverlay(data.name, email);
       }
 
     } catch(e) {
@@ -2528,6 +2736,10 @@ function dismissOverlay(name) {
   if (name) {
     sessionStorage.setItem('auth_name', name);
     window.loggedInStudentName = name;
+  }
+ 
+  if (email) {
+    window.loggedInEmail = email;
   }
 
   // Show name in header
