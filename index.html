@@ -465,7 +465,10 @@
 <header>
  <h1>LÄROPLANEN</h1>
 <span id="loggedInName" style="font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:0.08em;"></span>
-
+<h1>LÄROPLANEN</h1>
+<span id="loggedInName" style="font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:0.08em;"></span>
+<button onclick="logout()" style="background:none; border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:rgba(255,255,255,0.3); font-family:inherit; font-size:10px; letter-spacing:0.08em; padding:4px 10px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='rgba(255,255,255,0.7)'; this.style.borderColor='rgba(255,255,255,0.3)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'; this.style.borderColor='rgba(255,255,255,0.15)'">LOGGA UT</button>
+ 
   <button class="help-btn" onclick="toggleHelpPopup()">HJÄLP!</button>
 
   <div class="student-select">
@@ -2542,6 +2545,13 @@ function dismissOverlay(name) {
   setTimeout(() => document.getElementById('loginEmail').focus(), 100);
 
 })();
+
+function logout() {
+  sessionStorage.removeItem('auth_token');
+  sessionStorage.removeItem('auth_name');
+  window.location.reload();
+}
+ 
 </script>
  
  
