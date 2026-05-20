@@ -2446,7 +2446,7 @@ document.addEventListener('keydown', e => {
     const password2 = document.getElementById('loginPassword2').value;
 
     if (!email || !password) { setError('Fyll i alla fält.'); return; }
-    if (!email.endsWith('orebro.se')) {
+    if (!email.endsWith('@orebro.se') && !email.endsWith('@edu.orebro.se')) {
       setError('Använd din skolmejl (@edu.orebro.se).');
       return;
     }
