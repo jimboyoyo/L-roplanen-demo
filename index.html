@@ -1180,28 +1180,26 @@ function initProjectSearch() {
 function goToStudent(name) {
   if (!name) return;
 
-  const pos = currentPositions[name.trim().toLowerCase()];
-  if (!pos) {
-    console.warn(`No position found for student "${name}" — not assigned on map yet`);
-    return;
+  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
+
+  // Always open the student panel if teacher
+  if (isTeacherUser) {
+    openStudentPanel(name);
   }
+
+  // If student is on the map, also zoom to them
+  const pos = currentPositions[name.trim().toLowerCase()];
+  if (!pos) return;
 
   const svg = getSvg();
   if (!svg) return;
 
-  const centerX = pos.cx;
-  const centerY = pos.cy;
-
   const newW = origW * 0.10;
   const newH = newW * (origH / origW);
-  const targetVx = centerX - newW / 2;
-  const targetVy = centerY - newH / 2;
+  const targetVx = pos.cx - newW / 2;
+  const targetVy = pos.cy - newH / 2;
   const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
   const startTime = performance.now();
-
-  // Open the panel for the node this student is currently assigned to
-  const nodeEl = svg.getElementById(pos.nodeId);
-  openPanel(pos.nodeId, nodeEl || null);
 
   function animate(now) {
     const t    = Math.min((now - startTime) / 400, 1);
