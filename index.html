@@ -1463,7 +1463,18 @@ async function openStudentPanel(studentName) {
       .replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  let html = '';
+  const avatarFname = nameToKey(studentName).replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+let html = `
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #eee;">
+    <img src="${STUDENTS_DIR}${avatarFname}.png" alt="${studentName}"
+      style="height:80px;width:auto;display:block;"
+      onerror="this.style.opacity='0.15'">
+    <div>
+      <div style="font-size:18px;font-weight:700;color:#111;">${studentName}</div>
+      <div style="font-size:12px;color:#aaa;margin-top:3px;">${currentNode ? nodeLabel(currentNode) : 'Ingen uppgift tilldelad'}</div>
+    </div>
+  </div>
+`;
 
   // ── Current assignment ──────────────────────────────────────────────────
   html += `<div class="section-label">Aktuell uppgift</div>`;
