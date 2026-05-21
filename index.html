@@ -1320,23 +1320,43 @@ function nodeToPath(name) {
   return null;
 }
 
+// ── PATCHED openPanel ─────────────────────────────────────────────────────────
+// Replace the existing openPanel function in index.html with this version.
+//
+// Uses the same pan/zoom math as goToStudent so that clicking any node
+// (project, role, or student icon) centres it in the visible map area
+// at the same position: 10% from the left of the map area, 20% from the top.
+
 async function openPanel(name, element, folderUrl = '') {
   document.getElementById('panel').classList.remove('closed');
 
   if (element) {
     try {
       const bbox    = element.getBBox();
-      const centerX = bbox.x + bbox.width / 2;
+      const centerX = bbox.x + bbox.width  / 2;
       const centerY = bbox.y + bbox.height / 2;
-      const rect    = element.getBoundingClientRect();
-      if (rect.left + rect.width / 2 > window.innerWidth * 0.4) {
-        vx = centerX - vw * 0.15;
-        vy = centerY - vh * 0.2;
-        const svg = getSvg();
-        svg.style.transition = 'all 0.4s ease-out';
+
+      const newW = origW * 0.10;
+      const newH = newW * (origH / origW);
+
+      const targetVx = centerX - newW * 0.10;
+      const targetVy = centerY - newH * 0.20;
+
+      const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+      const startTime = performance.now();
+
+      const svg = getSvg();
+      function animate(now) {
+        const t    = Math.min((now - startTime) / 400, 1);
+        const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+        vx = startVx + (targetVx - startVx) * ease;
+        vy = startVy + (targetVy - startVy) * ease;
+        vw = startVw + (newW - startVw) * ease;
+        vh = startVh + (newH - startVh) * ease;
         applyViewBox(svg);
-        setTimeout(() => { svg.style.transition = ''; }, 400);
+        if (t < 1) requestAnimationFrame(animate);
       }
+      requestAnimationFrame(animate);
     } catch(e) {}
   }
 
