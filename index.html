@@ -1181,7 +1181,20 @@ function initProjectSearch() {
 })();
 
 
-// ─── FIX 2: goToStudent now opens the panel for the student's current node ───
+// ── PATCHED goToStudent ────────────────────────────────────────────────────────
+// Replace the existing goToStudent function in index.html with this version.
+//
+// Goal: after zooming, the student's avatar sits at the midpoint of the visible
+// map area (left 40% of the window) horizontally, and 25% down from the top.
+//
+// The visible map width is (window.innerWidth * 0.40).
+// Its horizontal midpoint on screen is at window.innerWidth * 0.20.
+// The vertical target is window.innerHeight * 0.25.
+//
+// We want the SVG viewBox to be positioned so that the avatar's SVG coordinate
+// lands at those screen fractions. Working in viewBox space:
+//   targetVx = pos.cx  - (newW * 0.20 / 0.40)   i.e. avatar is 50% across the map area
+//   targetVy = pos.cy  - (newH * 0.25)
 
 function goToStudent(name) {
   if (!name) return;
@@ -1193,17 +1206,25 @@ function goToStudent(name) {
     openStudentPanel(name);
   }
 
-  // If student is on the map, also zoom to them
+  // If student is on the map, zoom to them
   const pos = currentPositions[name.trim().toLowerCase()];
   if (!pos) return;
 
   const svg = getSvg();
   if (!svg) return;
 
+  // Zoom level: show ~10% of the full map width
   const newW = origW * 0.10;
   const newH = newW * (origH / origW);
-  const targetVx = pos.cx - newW / 2;
-  const targetVy = pos.cy - newH / 2;
+
+  // The panel occupies 60% of the window, leaving 40% for the map.
+  // We want the avatar at the horizontal midpoint of that 40% strip,
+  // which is 20% from the left edge — i.e. 50% of the map-area width.
+  // In viewBox units: offset = newW * 0.50
+  // Vertically: 25% from top → offset = newH * 0.25
+  const targetVx = pos.cx - newW * 0.50;
+  const targetVy = pos.cy - newH * 0.25;
+
   const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
   const startTime = performance.now();
 
