@@ -2731,7 +2731,7 @@ document.addEventListener('keydown', e => {
     document.getElementById('loginError').textContent = msg;
   }
 
-function dismissOverlay(name) {
+function dismissOverlay(name, email) {
   // Store name for use across the app
   if (name) {
     sessionStorage.setItem('auth_name', name);
