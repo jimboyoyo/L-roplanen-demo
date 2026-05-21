@@ -1475,14 +1475,37 @@ async function openStudentPanel(studentName) {
   if (isTeacherUser) {
     // Assign dropdown
     html += `<div class="section-label">Tilldela uppgift</div>`;
-    html += `<select id="assignNodeSelect" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;margin-bottom:8px;">
-      <option value="">— Välj nod —</option>
-      ${allNodes.map(id => `<option value="${id}" ${id === currentNode ? 'selected' : ''}>${nodeLabel(id)}</option>`).join('')}
-    </select>`;
-    html += `<button onclick="assignStudent('${key}', '${studentName}')"
-      style="width:100%;padding:9px;background:#0a0a1a;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;">
-      Tilldela
-    </button>`;
+  html += `
+  <div style="position:relative;margin-bottom:8px;">
+    <input
+      id="assignNodeInput"
+      type="text"
+      placeholder="Sök projekt eller roll…"
+      autocomplete="off"
+      value="${currentNode ? nodeLabel(currentNode) : ''}"
+      style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;outline:none;box-sizing:border-box;"
+      oninput="filterAssignNodes(this.value)"
+      onfocus="filterAssignNodes(this.value)"
+    />
+    <div id="assignNodeDropdown" style="
+      display:none;
+      position:absolute;
+      top:calc(100% + 4px);
+      left:0; right:0;
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:8px;
+      box-shadow:0 4px 16px rgba(0,0,0,0.12);
+      z-index:100;
+      max-height:200px;
+      overflow-y:auto;
+    "></div>
+  </div>
+  <input type="hidden" id="assignNodeSelect" value="${currentNode || ''}" />
+  <button onclick="assignStudent('${key}', '${studentName}')"
+    style="width:100%;padding:9px;background:#0a0a1a;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;">
+    Tilldela
+  </button>`;
 
     // Klar button — only if they have a current node
     if (currentNode) {
@@ -1515,6 +1538,67 @@ async function openStudentPanel(studentName) {
   html += `</div>`;
 
   body.innerHTML = html;
+}
+
+function filterAssignNodes(query) {
+  const dropdown = document.getElementById('assignNodeDropdown');
+  const input    = document.getElementById('assignNodeInput');
+  const hidden   = document.getElementById('assignNodeSelect');
+  if (!dropdown) return;
+
+  const svg      = getSvg();
+  const allNodes = [];
+  if (svg) {
+    svg.querySelectorAll('[id]').forEach(el => {
+      const id = el.getAttribute('id');
+      if (id && (id.startsWith('project-') || id.startsWith('role-'))) {
+        allNodes.push(id);
+      }
+    });
+  }
+
+  function nodeLabel(id) {
+    return id.replace(/^(project-|role-)/, '').replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  const q     = query.trim().toLowerCase();
+  const hits  = allNodes.filter(id => !q || nodeLabel(id).toLowerCase().includes(q));
+
+  if (!hits.length) {
+    dropdown.innerHTML = `<div style="padding:9px 12px;font-size:12px;color:#bbb;font-family:inherit;">Inga träffar</div>`;
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  dropdown.innerHTML = hits.map(id => `
+    <div
+      style="padding:9px 12px;font-size:13px;color:#111;cursor:pointer;font-family:inherit;border-bottom:1px solid #f0f0f0;"
+      onmousedown="selectAssignNode('${id}', '${nodeLabel(id)}')"
+      onmouseover="this.style.background='#f7f7f9'"
+      onmouseout="this.style.background='#fff'"
+    >${nodeLabel(id)}</div>
+  `).join('');
+  dropdown.style.display = 'block';
+
+  // Close when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', function closeDropdown(e) {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+        document.removeEventListener('click', closeDropdown);
+      }
+    });
+  }, 0);
+}
+
+function selectAssignNode(id, label) {
+  const input  = document.getElementById('assignNodeInput');
+  const hidden = document.getElementById('assignNodeSelect');
+  const dropdown = document.getElementById('assignNodeDropdown');
+  if (input)  input.value  = label;
+  if (hidden) hidden.value = id;
+  if (dropdown) dropdown.style.display = 'none';
 }
  
 function closePanel() {
