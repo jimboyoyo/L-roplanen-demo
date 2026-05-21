@@ -583,7 +583,6 @@ function nameToKey(name) {
 
 function listenToFirebase(svg, sheetRows) {
   firebaseSheetRows = sheetRows;
-  // Poll Firebase every 10 seconds for changes
   setInterval(async () => {
     try {
       const fbRes  = await fetch('https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students.json');
@@ -601,21 +600,28 @@ function listenToFirebase(svg, sheetRows) {
 
       const newTargets = computeTargetPositions(svg, newAssignments);
 
-      // Animate any changes
-      Object.entries(newTargets).forEach(([name, target]) => {
-        const old = currentPositions[name];
-        if (!old || Math.abs(old.cx - target.cx) > 1 || Math.abs(old.cy - target.cy) > 1) {
-          const nodeCenter = getNodeCenter(svg, target.nodeId);
-          glideStudent(svg, name, old?.cx ?? target.cx, old?.cy ?? target.cy, target, nodeCenter);
-          currentPositions[name] = target;
-        }
-      });
-
-      // Handle removals
+      // Handle removals first
       Object.keys(currentPositions).forEach(name => {
         if (!newTargets[name]) {
           fadeOutStudent(svg, name);
           delete currentPositions[name];
+        }
+      });
+
+      // Animate moves and additions
+      Object.entries(newTargets).forEach(([name, target]) => {
+        const old = currentPositions[name];
+        if (!old || Math.abs(old.cx - target.cx) > 1 || Math.abs(old.cy - target.cy) > 1) {
+          const nodeCenter = getNodeCenter(svg, target.nodeId);
+          // Remove any existing icon for this student before gliding
+          const layer = svg.getElementById('student-layer');
+          if (layer) {
+            layer.querySelector(`.student-icon-group[data-student="${name}"]`)?.remove();
+            const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            layer.querySelector(`[data-connector="connector-${fname}"]`)?.remove();
+          }
+          glideStudent(svg, name, old?.cx ?? target.cx, old?.cy ?? target.cy, target, nodeCenter);
+          currentPositions[name] = target;
         }
       });
 
