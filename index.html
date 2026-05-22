@@ -3132,6 +3132,7 @@ function _applyNodeHighlight(svg, groupEl, nodeId) {
 
   overlay.setAttribute('fill', 'none');
   overlay.setAttribute('stroke', HIGHLIGHT_COLOR);
+  overlay.setAttribute('stroke-alignment', 'outer');
   overlay.setAttribute('stroke-width', HIGHLIGHT_WIDTH);
   overlay.setAttribute('paint-order', 'stroke fill'); // stroke behind fill
   overlay.setAttribute('pointer-events', 'none');
