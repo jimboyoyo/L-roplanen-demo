@@ -787,9 +787,10 @@ function placeStudentIcons(svg, assignments) {
          } else {
            openPanel(nodeId, svg.getElementById(nodeId));
          }
+            highlightStudentProgress(name);
        });
       
-     highlightStudentProgress(name);
+
      layer.appendChild(g);
     });
   });
@@ -1031,9 +1032,10 @@ newG.addEventListener('click', e => {
   } else {
     openPanel(target.nodeId, svg.getElementById(target.nodeId));
   }
+  highlightStudentProgress(name);
 });
  
- highlightStudentProgress(name);
+
   const startTime = performance.now();
 
   // Where the connector line starts from — the node centre
@@ -2934,10 +2936,10 @@ function logout() {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const HIGHLIGHT_COLOR     = '#ffffff';
-const HIGHLIGHT_WIDTH     = 10;        // stroke-width in SVG units
+const HIGHLIGHT_WIDTH     = 30;        // stroke-width in SVG units
 const HIGHLIGHT_CONNECTOR = '#ffffff'; // colour for connector lines
-const HIGHLIGHT_CONN_WIDTH = 6;        // connector stroke-width
-const SNAP_THRESHOLD      = 80;        // max SVG units from endpoint to node centre
+const HIGHLIGHT_CONN_WIDTH = 10;        // connector stroke-width
+const SNAP_THRESHOLD      = 100;        // max SVG units from endpoint to node centre
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
