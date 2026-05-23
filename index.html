@@ -585,6 +585,13 @@ function listenToFirebase(svg, sheetRows) {
   firebaseSheetRows = sheetRows;
   setInterval(async () => {
     try {
+
+             const layer = svg.getElementById('student-layer');
+        const allIcons = layer?.querySelectorAll('.student-icon-group');
+        if (allIcons?.length) {
+          console.log('[icons] Before poll:', Array.from(allIcons).map(el => el.getAttribute('data-student')));
+        }
+             
       const fbRes  = await fetch('https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students.json');
       const fbData = await fbRes.json() || {};
 
@@ -613,7 +620,11 @@ function listenToFirebase(svg, sheetRows) {
         const old = currentPositions[name];
         if (!old || Math.abs(old.cx - target.cx) > 1 || Math.abs(old.cy - target.cy) > 1) {
           const nodeCenter = getNodeCenter(svg, target.nodeId);
-          
+
+          console.log('[icons] About to glide:', name, '— duplicates?', 
+            layer?.querySelectorAll(`.student-icon-group[data-student="${name}"]`).length
+          );
+                   
           glideStudent(svg, name, old?.cx ?? target.cx, old?.cy ?? target.cy, target, nodeCenter);
           currentPositions[name] = target;
         }
