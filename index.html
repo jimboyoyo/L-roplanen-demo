@@ -3026,6 +3026,20 @@ async function highlightStudentProgress(studentName) {
   }
 
   const finishedSet = new Set([...finished.projects, ...finished.roles]);
+
+     // Expand finished roles to include all map instances
+     const svg = getSvg();
+     if (svg) {
+       svg.querySelectorAll('[id^="role-"]').forEach(el => {
+         const id = el.getAttribute('id');
+         // Strip trailing -2, -3 etc to get the base role id
+         const base = id.replace(/-\d+$/, '');
+         if (finishedSet.has(base)) {
+           finishedSet.add(id);
+         }
+       });
+     }
+ 
   if (!finishedSet.size) return;
 
   const svg = getSvg();
