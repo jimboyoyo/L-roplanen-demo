@@ -1467,41 +1467,21 @@ async function completeStudent(studentKey, studentName) {
 // type is either 'projects' or 'roles'.
 
 async function removeFinished(studentKey, studentName, type, nodeId) {
- console.log('[removeFinished] called with:', studentKey, studentName, type, nodeId);
- 
   const token = sessionStorage.getItem('auth_token');
   try {
-    // Fetch current finished data
-    const res  = await fetch(
-      `https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students/${studentKey}/finished/${type}.json`
-    );
-
-    const data = await res.json();
-   console.log('[removeFinished] fetched data:', data);
-    // Firebase stores arrays as objects { "0": "id1", "1": "id2" } or as a real array
-    const current = Array.isArray(data) ? data : Object.values(data || {});
-    const updated = current.filter(id => id !== nodeId);
-
-    // Write back
-    await fetch(
-      `https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students/${studentKey}/finished/${type}.json`,
-      {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(updated)
-      }
-    );
-
-    // Refresh the panel
-   console.log('[removeFinished] writing back:', updated);
+    const res = await fetch('https://aged-math-1ef5.jimbernstrom.workers.dev/student/remove-finished', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ token, studentKey, type, nodeId })
+    });
+    if (!res.ok) throw new Error(`Worker error ${res.status}`);
     openStudentPanel(studentName);
-
   } catch(e) {
     alert('Kunde inte ta bort. Försök igen.');
     console.error('[removeFinished]', e);
   }
 }
-
+ 
  
 async function openStudentPanel(studentName) {
   const panel = document.getElementById('panel');
