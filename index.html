@@ -1516,8 +1516,7 @@ async function openStudentPanel(studentName) {
   body.style.overflow = '';
   body.style.background = '';
 
-  const key      = nameToKey(studentName);
-  const token    = sessionStorage.getItem('auth_token');
+  const key           = nameToKey(studentName);
   const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
 
   // Fetch student data from Firebase
@@ -1527,21 +1526,9 @@ async function openStudentPanel(studentName) {
     studentData = await res.json() || {};
   } catch(e) {}
 
-  const currentNode     = studentData.currentNode || null;
+  const currentNode      = studentData.currentNode || null;
   const finishedProjects = studentData.finished?.projects || [];
   const finishedRoles    = studentData.finished?.roles    || [];
-
-  // Build all project/role node IDs from the map
-  const svg       = getSvg();
-  const allNodes  = [];
-  if (svg) {
-    svg.querySelectorAll('[id]').forEach(el => {
-      const id = el.getAttribute('id');
-      if (id && (id.startsWith('project-') || id.startsWith('role-'))) {
-        allNodes.push(id);
-      }
-    });
-  }
 
   function nodeLabel(id) {
     return id.replace(/^(project-|role-)/, '').replace(/-/g, ' ')
@@ -1549,61 +1536,61 @@ async function openStudentPanel(studentName) {
   }
 
   const avatarFname = nameToKey(studentName).replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-let html = `
-  <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #eee;">
-    <img src="${STUDENTS_DIR}${avatarFname}.png" alt="${studentName}"
-      style="height:80px;width:auto;display:block;"
-      onerror="this.style.opacity='0.15'">
-    <div>
-      <div style="font-size:18px;font-weight:700;color:#111;">${studentName}</div>
-      <div style="font-size:12px;color:#aaa;margin-top:3px;">${currentNode ? nodeLabel(currentNode) : 'Ingen uppgift tilldelad'}</div>
-    </div>
-  </div>
-`;
 
-  // ── Current assignment ──────────────────────────────────────────────────
+  // ── Avatar + name header ─────────────────────────────────────────────────
+  let html = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #eee;">
+      <img src="${STUDENTS_DIR}${avatarFname}.png" alt="${studentName}"
+        style="height:80px;width:auto;display:block;"
+        onerror="this.style.opacity='0.15'">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#111;">${studentName}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:3px;">${currentNode ? nodeLabel(currentNode) : 'Ingen uppgift tilldelad'}</div>
+      </div>
+    </div>
+  `;
+
+  // ── Current assignment ───────────────────────────────────────────────────
   html += `<div class="section-label">Aktuell uppgift</div>`;
   html += `<div style="font-size:15px;font-weight:700;color:#111;margin-bottom:12px;">
     ${currentNode ? nodeLabel(currentNode) : '<span style="color:#bbb;font-weight:400;">Ingen uppgift tilldelad</span>'}
   </div>`;
 
-  // ── Teacher controls ────────────────────────────────────────────────────
+  // ── Teacher controls ─────────────────────────────────────────────────────
   if (isTeacherUser) {
-    // Assign dropdown
     html += `<div class="section-label">Tilldela uppgift</div>`;
-  html += `
-  <div style="position:relative;margin-bottom:8px;">
-    <input
-      id="assignNodeInput"
-      type="text"
-      placeholder="Sök projekt eller roll…"
-      autocomplete="off"
-      value="${currentNode ? nodeLabel(currentNode) : ''}"
-      style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;outline:none;box-sizing:border-box;"
-      oninput="filterAssignNodes(this.value)"
-      onfocus="filterAssignNodes(this.value)"
-    />
-    <div id="assignNodeDropdown" style="
-      display:none;
-      position:absolute;
-      top:calc(100% + 4px);
-      left:0; right:0;
-      background:#fff;
-      border:1px solid #ddd;
-      border-radius:8px;
-      box-shadow:0 4px 16px rgba(0,0,0,0.12);
-      z-index:100;
-      max-height:200px;
-      overflow-y:auto;
-    "></div>
-  </div>
-  <input type="hidden" id="assignNodeSelect" value="${currentNode || ''}" />
-  <button onclick="assignStudent('${key}', '${studentName}')"
-    style="width:100%;padding:9px;background:#0a0a1a;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;">
-    Tilldela
-  </button>`;
+    html += `
+      <div style="position:relative;margin-bottom:8px;">
+        <input
+          id="assignNodeInput"
+          type="text"
+          placeholder="Sök projekt eller roll…"
+          autocomplete="off"
+          value="${currentNode ? nodeLabel(currentNode) : ''}"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;outline:none;box-sizing:border-box;"
+          oninput="filterAssignNodes(this.value)"
+          onfocus="filterAssignNodes(this.value)"
+        />
+        <div id="assignNodeDropdown" style="
+          display:none;
+          position:absolute;
+          top:calc(100% + 4px);
+          left:0; right:0;
+          background:#fff;
+          border:1px solid #ddd;
+          border-radius:8px;
+          box-shadow:0 4px 16px rgba(0,0,0,0.12);
+          z-index:100;
+          max-height:200px;
+          overflow-y:auto;
+        "></div>
+      </div>
+      <input type="hidden" id="assignNodeSelect" value="${currentNode || ''}" />
+      <button onclick="assignStudent('${key}', '${studentName}')"
+        style="width:100%;padding:9px;background:#0a0a1a;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;">
+        Tilldela
+      </button>`;
 
-    // Klar button — only if they have a current node
     if (currentNode) {
       html += `<button onclick="completeStudent('${key}', '${studentName}')"
         style="width:100%;padding:9px;background:#2ecc71;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:20px;">
@@ -1612,69 +1599,54 @@ let html = `
     }
   }
 
- 
+  // ── Finished lists ───────────────────────────────────────────────────────
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
 
-// ─── REPLACE the finished lists section inside openStudentPanel ───────────────
-// Find this block in openStudentPanel (the grid with two columns):
-//
-//   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
-//   html += `<div>
-//     <div class="section-label">Avklarade projekt</div>
-//     ...
-//   </div>`;
-//   html += `<div>
-//     <div class="section-label">Upplåsta roller</div>
-//     ...
-//   </div>`;
-//   html += `</div>`;
-//
-// And replace it with this:
+  html += `<div>
+    <div class="section-label">Avklarade projekt</div>
+    ${finishedProjects.length
+      ? finishedProjects.map(id => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
+            <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
+            ${isTeacherUser ? `<button
+              onclick="removeFinished('${key}', '${studentName}', 'projects', '${id}')"
+              style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
+              onmouseover="this.style.color='#e74c3c'"
+              onmouseout="this.style.color='#ccc'"
+              title="Ta bort">×</button>` : ''}
+          </div>`).join('')
+      : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
+    }
+  </div>`;
 
-html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
+  html += `<div>
+    <div class="section-label">Upplåsta roller</div>
+    ${finishedRoles.length
+      ? finishedRoles.map(id => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
+            <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
+            ${isTeacherUser ? `<button
+              onclick="removeFinished('${key}', '${studentName}', 'roles', '${id}')"
+              style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
+              onmouseover="this.style.color='#e74c3c'"
+              onmouseout="this.style.color='#ccc'"
+              title="Ta bort">×</button>` : ''}
+          </div>`).join('')
+      : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
+    }
+  </div>`;
 
-html += `<div>
-  <div class="section-label">Avklarade projekt</div>
-  ${finishedProjects.length
-    ? finishedProjects.map(id => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
-          <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
-          <button
-            onclick="removeFinished('${key}', '${studentName}', 'projects', '${id}')"
-            style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
-            onmouseover="this.style.color='#e74c3c'"
-            onmouseout="this.style.color='#ccc'"
-            title="Ta bort">×</button>
-        </div>`)
-      .join('')
-    : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
-  }
-</div>`;
+  html += `</div>`;
 
-html += `<div>
-  <div class="section-label">Upplåsta roller</div>
-  ${finishedRoles.length
-    ? finishedRoles.map(id => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
-          <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
-          <button
-            onclick="removeFinished('${key}', '${studentName}', 'roles', '${id}')"
-            style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
-            onmouseover="this.style.color='#e74c3c'"
-            onmouseout="this.style.color='#ccc'"
-            title="Ta bort">×</button>
-        </div>`)
-      .join('')
-    : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
-  }
-</div>`;
+  body.innerHTML = html;
+}
 
-html += `</div>`;
 
- 
+// ─── HELPER FUNCTIONS (top-level, called from inline onclick handlers) ────────
+
 function filterAssignNodes(query) {
   const dropdown = document.getElementById('assignNodeDropdown');
   const input    = document.getElementById('assignNodeInput');
-  const hidden   = document.getElementById('assignNodeSelect');
   if (!dropdown) return;
 
   const svg      = getSvg();
@@ -1693,8 +1665,8 @@ function filterAssignNodes(query) {
       .replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  const q     = query.trim().toLowerCase();
-  const hits  = allNodes.filter(id => !q || nodeLabel(id).toLowerCase().includes(q));
+  const q    = query.trim().toLowerCase();
+  const hits = allNodes.filter(id => !q || nodeLabel(id).toLowerCase().includes(q));
 
   if (!hits.length) {
     dropdown.innerHTML = `<div style="padding:9px 12px;font-size:12px;color:#bbb;font-family:inherit;">Inga träffar</div>`;
@@ -1724,16 +1696,16 @@ function filterAssignNodes(query) {
 }
 
 function selectAssignNode(id, label) {
-  const input  = document.getElementById('assignNodeInput');
-  const hidden = document.getElementById('assignNodeSelect');
+  const input    = document.getElementById('assignNodeInput');
+  const hidden   = document.getElementById('assignNodeSelect');
   const dropdown = document.getElementById('assignNodeDropdown');
-  if (input)  input.value  = label;
-  if (hidden) hidden.value = id;
+  if (input)    input.value    = label;
+  if (hidden)   hidden.value   = id;
   if (dropdown) dropdown.style.display = 'none';
 }
- 
+
 function closePanel() {
-   clearProgressHighlights();
+  clearProgressHighlights();
   document.getElementById('panel').classList.add('closed');
 }
 
@@ -1751,9 +1723,8 @@ function openHallOfFame() {
   body.style.overflow = '';
   body.style.background = '';
 
-  // Gather names from the dropdown (populated from sheet)
   const select = document.getElementById('studentSelect');
-  const names = Array.from(select.options)
+  const names  = Array.from(select.options)
     .filter(o => o.value)
     .map(o => ({ display: o.textContent, key: o.value }));
 
@@ -1800,7 +1771,6 @@ function openClassOverview() {
   body.style.overflow = '';
   body.style.background = '';
 
-  // Group students by nodeId
   const byNode = {};
   Object.entries(currentPositions).forEach(([key, pos]) => {
     if (!byNode[pos.nodeId]) byNode[pos.nodeId] = [];
@@ -1812,8 +1782,8 @@ function openClassOverview() {
     return;
   }
 
-  // Get folder URLs from SVG anchor elements
   const svg = getSvg();
+
   function getFolderUrl(nodeId) {
     if (!svg) return '';
     const el = svg.getElementById(nodeId);
@@ -1826,7 +1796,6 @@ function openClassOverview() {
     return '';
   }
 
-  // Pretty-print node ID as a title
   function nodeLabel(nodeId) {
     return nodeId
       .replace(/^(project-|role-)/, '')
@@ -1834,20 +1803,18 @@ function openClassOverview() {
       .replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  // Sort nodes alphabetically by label
   const sortedNodes = Object.keys(byNode).sort((a, b) => nodeLabel(a).localeCompare(nodeLabel(b)));
 
   const list = document.createElement('div');
   list.className = 'overview-list';
 
   sortedNodes.forEach(nodeId => {
-    const students = byNode[nodeId];
+    const students  = byNode[nodeId];
     const folderUrl = getFolderUrl(nodeId);
 
     const row = document.createElement('div');
     row.className = 'overview-row';
 
-    // Left side: name (opens panel) + folder icon
     const left = document.createElement('div');
     left.style.cssText = 'display:flex; align-items:center; gap:6px; flex:1; min-width:0;';
 
@@ -1871,16 +1838,15 @@ function openClassOverview() {
 
     row.appendChild(left);
 
-    // Right side: student avatars
     const avatars = document.createElement('div');
     avatars.className = 'overview-avatars';
     students.forEach(key => {
       const fname = key.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const opt   = document.querySelector(`#studentSelect option[value="${key}"]`);
       const img   = document.createElement('img');
-      img.src     = `${STUDENTS_DIR}${fname}.png`;
-      img.alt     = opt ? opt.textContent : key;
-      img.title   = opt ? opt.textContent : key;
+      img.src   = `${STUDENTS_DIR}${fname}.png`;
+      img.alt   = opt ? opt.textContent : key;
+      img.title = opt ? opt.textContent : key;
       avatars.appendChild(img);
     });
     row.appendChild(avatars);
