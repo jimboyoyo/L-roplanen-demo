@@ -1261,8 +1261,9 @@ async function loadMap() {
   document.getElementById('mapCanvas').appendChild(svg);
   initViewBox(svg);
   initMapInteractions(svg);
-  initProjectSearch();
   buildEdgeMap(svg);
+  initProjectSearch();
+  
 
   svg.style.opacity = '0';
   svg.style.transition = 'opacity 1s ease';
@@ -2909,70 +2910,58 @@ function logout() {
 }
 
 
-// ─── STUDENT PROGRESS HIGHLIGHT MODULE ───────────────────────────────────────
+// ─── STUDENT PROGRESS HIGHLIGHT MODULE (v2 — feDropShadow outline) ───────────
 //
-// HOW TO INTEGRATE:
+// HOW TO INTEGRATE — three lines added to existing code:
 //
-// 1. In loadMap(), after `initProjectSearch();` add:
+// 1. In loadMap(), after `initProjectSearch();`:
 //      buildEdgeMap(svg);
 //
-// 2. In the student avatar click handler (both placeStudentIcons AND glideStudent),
-//    replace the existing click handler body with:
-//      e.stopPropagation();
-//      const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
-//      if (isTeacherUser) {
-//        openStudentPanel(name);
-//      } else {
-//        openPanel(nodeId, svg.getElementById(nodeId));
-//      }
-//      highlightStudentProgress(name);   // <-- ADD THIS LINE
+// 2. In both avatar click handlers (placeStudentIcons AND glideStudent),
+//    at the end of the click callback body:
+//      highlightStudentProgress(name);
 //
-// 3. In closePanel(), add at the top:
+// 3. At the top of closePanel():
 //      clearProgressHighlights();
 //
-// That's it. Everything else lives here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Tuneable constants ────────────────────────────────────────────────────────
 
-const HIGHLIGHT_COLOR     = '#676767';
-const HIGHLIGHT_WIDTH     = 30;        // stroke-width in SVG units
-const HIGHLIGHT_CONNECTOR = '#ffffff'; // colour for connector lines
-const HIGHLIGHT_CONN_WIDTH = 10;        // connector stroke-width
-const SNAP_THRESHOLD      = 100;        // max SVG units from endpoint to node centre
+const HIGHLIGHT_FILTER_ID  = 'progress-outline-filter';
+const HIGHLIGHT_COLOR      = '#ffffff';   // outline colour for nodes
+const HIGHLIGHT_SPREAD     = 8;           // px — how thick the outside outline is
+const HIGHLIGHT_CONN_COLOR = '#ffffff';   // colour for matched connector lines
+const HIGHLIGHT_CONN_WIDTH = 8;           // stroke-width for connector lines
+const SNAP_THRESHOLD       = 250;         // SVG units — endpoint→node snap distance
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
-// Built once at load time. Each entry: { el, from: nodeId, to: nodeId }
-let EDGE_MAP = [];
-
-// Active overrides so we can undo them. Each entry:
-//   { el, attr: 'stroke'|'stroke-width'|..., originalValue }
-// For nodes we store a ref to the injected <rect>/<circle> overlay element instead.
-let ACTIVE_HIGHLIGHTS = [];
+let EDGE_MAP          = [];  // { el, from: nodeId, to: nodeId }
+let ACTIVE_HIGHLIGHTS = [];  // array of () => void  undo functions
 
 
 // ── 1. buildEdgeMap(svg) ──────────────────────────────────────────────────────
-// Call once after the SVG is loaded and initProjectSearch() has run.
+// Call once after the SVG loads and initProjectSearch() has run.
 
 function buildEdgeMap(svg) {
   EDGE_MAP = [];
 
-  // Build a lookup of every known node centre once
+  _injectFilter(svg);
+
   const nodeCentres = _collectNodeCentres(svg);
   if (!nodeCentres.length) {
     console.warn('[highlight] No node centres found – skipping edge map build');
     return;
   }
 
-  // Collect every <line> and <polyline> that is NOT a descendant of a
-  // project- or role- group (those are decorative shapes inside the node itself)
+  // All <line> and <polyline> elements NOT inside a project-/role- group
   const candidates = Array.from(svg.querySelectorAll('line, polyline')).filter(el => {
-    let parent = el.parentElement;
-    while (parent && parent !== svg) {
-      const id = parent.getAttribute('id') || '';
+    let p = el.parentElement;
+    while (p && p !== svg) {
+      const id = p.getAttribute('id') || '';
       if (id.startsWith('project-') || id.startsWith('role-')) return false;
-      parent = parent.parentElement;
+      p = p.parentElement;
     }
     return true;
   });
@@ -2981,27 +2970,25 @@ function buildEdgeMap(svg) {
   candidates.forEach(el => {
     const endpoints = _getEndpoints(el);
     if (!endpoints) return;
-
     const fromNode = _snapToNode(endpoints.x1, endpoints.y1, nodeCentres);
     const toNode   = _snapToNode(endpoints.x2, endpoints.y2, nodeCentres);
-
     if (fromNode && toNode && fromNode !== toNode) {
       EDGE_MAP.push({ el, from: fromNode, to: toNode });
       matched++;
     }
   });
 
-  console.log(`[highlight] Edge map built: ${matched} edges from ${candidates.length} connector candidates`);
+  console.log(`[highlight] Edge map: ${matched} edges matched from ${candidates.length} candidates`);
 }
 
 
 // ── 2. highlightStudentProgress(studentName) ──────────────────────────────────
-// Fetches the student's finished data from Firebase then applies highlights.
+// Fetches finished nodes from Firebase then applies highlights.
 
 async function highlightStudentProgress(studentName) {
   clearProgressHighlights();
 
-  const key = nameToKey(studentName); // reuse existing helper
+  const key = nameToKey(studentName);
   let finished = { projects: [], roles: [] };
 
   try {
@@ -3012,24 +2999,24 @@ async function highlightStudentProgress(studentName) {
     finished.projects = data.finished?.projects || [];
     finished.roles    = data.finished?.roles    || [];
   } catch(e) {
-    console.warn('[highlight] Could not fetch student data:', e.message);
+    console.warn('[highlight] Firebase fetch failed:', e.message);
     return;
   }
 
   const finishedSet = new Set([...finished.projects, ...finished.roles]);
   if (!finishedSet.size) return;
 
-  const svg = getSvg(); // reuse existing helper
+  const svg = getSvg();
   if (!svg) return;
 
-  // ── Highlight nodes ────────────────────────────────────────────────────────
+  // Highlight nodes
   finishedSet.forEach(nodeId => {
     const el = svg.getElementById(nodeId);
     if (!el) return;
-    _applyNodeHighlight(svg, el, nodeId);
+    _applyNodeHighlight(el);
   });
 
-  // ── Highlight edges where both endpoints are in the finished set ───────────
+  // Highlight edges where both endpoints are finished
   EDGE_MAP.forEach(({ el, from, to }) => {
     if (finishedSet.has(from) && finishedSet.has(to)) {
       _applyEdgeHighlight(el);
@@ -3039,7 +3026,7 @@ async function highlightStudentProgress(studentName) {
 
 
 // ── 3. clearProgressHighlights() ─────────────────────────────────────────────
-// Call from closePanel() to clean up.
+// Call at the top of closePanel().
 
 function clearProgressHighlights() {
   ACTIVE_HIGHLIGHTS.forEach(undo => undo());
@@ -3049,19 +3036,116 @@ function clearProgressHighlights() {
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-// Returns array of { nodeId, x, y } for every project- and role- element.
+// Injects the reusable feDropShadow filter into the SVG's <defs> once.
+function _injectFilter(svg) {
+  if (svg.getElementById(HIGHLIGHT_FILTER_ID)) return; // already injected
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+
+  // Parse colour into r,g,b for flood-color
+  const hex = HIGHLIGHT_COLOR.replace('#', '');
+  const r   = parseInt(hex.slice(0,2), 16);
+  const g   = parseInt(hex.slice(2,4), 16);
+  const b   = parseInt(hex.slice(4,6), 16);
+
+  // We need to expand the filter region so the outline isn't clipped
+  // x/y/width/height are fractions of the bounding box
+  const filter = document.createElementNS(svgNS, 'filter');
+  filter.setAttribute('id', HIGHLIGHT_FILTER_ID);
+  filter.setAttribute('x', '-20%');
+  filter.setAttribute('y', '-20%');
+  filter.setAttribute('width', '140%');
+  filter.setAttribute('height', '140%');
+  filter.setAttribute('color-interpolation-filters', 'sRGB');
+
+  // Step 1: dilate the alpha channel outward → creates the outline shape
+  const dilate = document.createElementNS(svgNS, 'feMorphology');
+  dilate.setAttribute('in', 'SourceAlpha');
+  dilate.setAttribute('operator', 'dilate');
+  dilate.setAttribute('radius', HIGHLIGHT_SPREAD);
+  dilate.setAttribute('result', 'dilated');
+
+  // Step 2: flood with the highlight colour
+  const flood = document.createElementNS(svgNS, 'feFlood');
+  flood.setAttribute('flood-color', `rgb(${r},${g},${b})`);
+  flood.setAttribute('flood-opacity', '1');
+  flood.setAttribute('result', 'colour');
+
+  // Step 3: mask the flood to the dilated shape
+  const composite1 = document.createElementNS(svgNS, 'feComposite');
+  composite1.setAttribute('in', 'colour');
+  composite1.setAttribute('in2', 'dilated');
+  composite1.setAttribute('operator', 'in');
+  composite1.setAttribute('result', 'outline');
+
+  // Step 4: knock out the original shape so only the outside ring remains
+  const composite2 = document.createElementNS(svgNS, 'feComposite');
+  composite2.setAttribute('in', 'outline');
+  composite2.setAttribute('in2', 'SourceAlpha');
+  composite2.setAttribute('operator', 'out');
+  composite2.setAttribute('result', 'outerOutline');
+
+  // Step 5: paint the outer outline behind the original graphic
+  const merge = document.createElementNS(svgNS, 'feMerge');
+  const mergeNode1 = document.createElementNS(svgNS, 'feMergeNode');
+  mergeNode1.setAttribute('in', 'outerOutline');
+  const mergeNode2 = document.createElementNS(svgNS, 'feMergeNode');
+  mergeNode2.setAttribute('in', 'SourceGraphic');
+  merge.appendChild(mergeNode1);
+  merge.appendChild(mergeNode2);
+
+  filter.appendChild(dilate);
+  filter.appendChild(flood);
+  filter.appendChild(composite1);
+  filter.appendChild(composite2);
+  filter.appendChild(merge);
+
+  const defs = svg.querySelector('defs') || svg.insertBefore(
+    document.createElementNS(svgNS, 'defs'), svg.firstChild
+  );
+  defs.appendChild(filter);
+}
+
+// Applies the filter to a node group element.
+function _applyNodeHighlight(el) {
+  const prev = el.getAttribute('filter') || '';
+  el.setAttribute('filter', `url(#${HIGHLIGHT_FILTER_ID})`);
+  ACTIVE_HIGHLIGHTS.push(() => {
+    if (prev) el.setAttribute('filter', prev);
+    else el.removeAttribute('filter');
+  });
+}
+
+// Overrides a connector line's stroke inline.
+function _applyEdgeHighlight(el) {
+  const prev = {
+    stroke:      el.style.stroke,
+    strokeWidth: el.style.strokeWidth,
+    opacity:     el.style.opacity,
+  };
+  el.style.stroke      = HIGHLIGHT_CONN_COLOR;
+  el.style.strokeWidth = HIGHLIGHT_CONN_WIDTH + 'px';
+  el.style.opacity     = '1';
+  ACTIVE_HIGHLIGHTS.push(() => {
+    el.style.stroke      = prev.stroke;
+    el.style.strokeWidth = prev.strokeWidth;
+    el.style.opacity     = prev.opacity;
+  });
+}
+
+// Collects all node centres: { nodeId, x, y }
 function _collectNodeCentres(svg) {
   const centres = [];
   svg.querySelectorAll('[id]').forEach(el => {
     const id = el.getAttribute('id');
     if (!id || (!id.startsWith('project-') && !id.startsWith('role-'))) return;
-    const c = getNodeCenter(svg, id); // reuse existing helper
+    const c = getNodeCenter(svg, id);
     if (c) centres.push({ nodeId: id, x: c.x, y: c.y });
   });
   return centres;
 }
 
-// Extracts { x1, y1, x2, y2 } endpoints from a <line> or <polyline>.
+// Extracts first and last point from a <line> or <polyline>.
 function _getEndpoints(el) {
   if (el.tagName === 'line') {
     return {
@@ -3071,25 +3155,16 @@ function _getEndpoints(el) {
       y2: parseFloat(el.getAttribute('y2') || 0),
     };
   }
-
   if (el.tagName === 'polyline') {
-    const raw = (el.getAttribute('points') || '').trim();
-    if (!raw) return null;
-    // Points are "x1,y1 x2,y2 ..." or "x1 y1 x2 y2 ..."
-    const nums = raw.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+    const nums = (el.getAttribute('points') || '')
+      .trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
     if (nums.length < 4) return null;
-    return {
-      x1: nums[0],
-      y1: nums[1],
-      x2: nums[nums.length - 2],
-      y2: nums[nums.length - 1],
-    };
+    return { x1: nums[0], y1: nums[1], x2: nums[nums.length-2], y2: nums[nums.length-1] };
   }
-
   return null;
 }
 
-// Finds the nearest node centre within SNAP_THRESHOLD; returns nodeId or null.
+// Snaps a point to the nearest node centre within SNAP_THRESHOLD.
 function _snapToNode(x, y, nodeCentres) {
   let best = null, bestDist = SNAP_THRESHOLD;
   nodeCentres.forEach(({ nodeId, x: nx, y: ny }) => {
@@ -3097,73 +3172,6 @@ function _snapToNode(x, y, nodeCentres) {
     if (d < bestDist) { bestDist = d; best = nodeId; }
   });
   return best;
-}
-
-// Applies a white outline to a node group by injecting a highlight shape
-// on top of the group's primary shape (rect or circle).
-function _applyNodeHighlight(svg, groupEl, nodeId) {
-  const svgNS = 'http://www.w3.org/2000/svg';
-
-  // Find the first meaningful shape child
-  const shape = groupEl.querySelector('rect, circle, ellipse, path');
-  if (!shape) return;
-
-  let overlay;
-
-  if (shape.tagName === 'circle' || shape.tagName === 'ellipse') {
-    overlay = document.createElementNS(svgNS, shape.tagName);
-    ['cx','cy','r','rx','ry'].forEach(attr => {
-      const v = shape.getAttribute(attr);
-      if (v !== null) overlay.setAttribute(attr, v);
-    });
-  } else if (shape.tagName === 'rect') {
-    overlay = document.createElementNS(svgNS, 'rect');
-    ['x','y','width','height','rx','ry'].forEach(attr => {
-      const v = shape.getAttribute(attr);
-      if (v !== null) overlay.setAttribute(attr, v);
-    });
-  } else {
-    // path — clone and reuse the d attribute
-    overlay = document.createElementNS(svgNS, 'path');
-    overlay.setAttribute('d', shape.getAttribute('d') || '');
-    const t = shape.getAttribute('transform');
-    if (t) overlay.setAttribute('transform', t);
-  }
-
-  overlay.setAttribute('fill', 'none');
-  overlay.setAttribute('stroke', HIGHLIGHT_COLOR);
-  overlay.setAttribute('stroke-alignment', 'outer');
-  overlay.setAttribute('stroke-width', HIGHLIGHT_WIDTH);
-  overlay.setAttribute('paint-order', 'stroke fill'); // stroke behind fill
-  overlay.setAttribute('pointer-events', 'none');
-  overlay.classList.add('progress-highlight-node');
-
-  // Insert as last child of the group so it renders on top
-  groupEl.appendChild(overlay);
-
-  // Register undo
-  ACTIVE_HIGHLIGHTS.push(() => overlay.remove());
-}
-
-// Applies a highlight stroke to a connector line/polyline by temporarily
-// overriding its stroke attributes with inline styles (so CSS classes still work
-// after we clear).
-function _applyEdgeHighlight(el) {
-  const prev = {
-    stroke:      el.style.stroke,
-    strokeWidth: el.style.strokeWidth,
-    opacity:     el.style.opacity,
-  };
-
-  el.style.stroke      = HIGHLIGHT_CONNECTOR;
-  el.style.strokeWidth = HIGHLIGHT_CONN_WIDTH + 'px';
-  el.style.opacity     = '1';
-
-  ACTIVE_HIGHLIGHTS.push(() => {
-    el.style.stroke      = prev.stroke;
-    el.style.strokeWidth = prev.strokeWidth;
-    el.style.opacity     = prev.opacity;
-  });
 }
  
 </script>
