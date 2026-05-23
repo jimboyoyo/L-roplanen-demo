@@ -1475,8 +1475,9 @@ async function removeFinished(studentKey, studentName, type, nodeId) {
     const res  = await fetch(
       `https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app/students/${studentKey}/finished/${type}.json`
     );
-    const data = await res.json();
 
+    const data = await res.json();
+   console.log('[removeFinished] fetched data:', data);
     // Firebase stores arrays as objects { "0": "id1", "1": "id2" } or as a real array
     const current = Array.isArray(data) ? data : Object.values(data || {});
     const updated = current.filter(id => id !== nodeId);
@@ -1492,6 +1493,7 @@ async function removeFinished(studentKey, studentName, type, nodeId) {
     );
 
     // Refresh the panel
+   console.log('[removeFinished] writing back:', updated);
     openStudentPanel(studentName);
 
   } catch(e) {
