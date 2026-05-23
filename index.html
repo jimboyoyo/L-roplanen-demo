@@ -790,7 +790,8 @@ function placeStudentIcons(svg, assignments) {
          }
             highlightStudentProgress(name);
        });
-      
+      g.addEventListener('mouseenter', () => highlightStudentProgress(name));
+      g.addEventListener('mouseleave', () => clearProgressHighlights());
 
      layer.appendChild(g);
     });
@@ -1016,7 +1017,11 @@ function glideStudent(svg, name, fromCX, fromCY, target, nodeCenter) {
     }
     highlightStudentProgress(name);
   });
+ 
+ g.addEventListener('mouseenter', () => highlightStudentProgress(name));
+ g.addEventListener('mouseleave', () => clearProgressHighlights());
 
+ 
   // Create fresh connector line, inserted before icons so it renders behind
   const lineId = `connector-${fname}`;
   const line = document.createElementNS(svgNS, 'line');
