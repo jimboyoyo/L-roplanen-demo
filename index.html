@@ -977,7 +977,6 @@ function fadeOutStudent(svg, name) {
   activeAnimations[name] = requestAnimationFrame(fade);
 }
 
-// Smoothly glide a student's icon AND their connector line from old position to new
 function glideStudent(svg, name, fromCX, fromCY, target, nodeCenter) {
   if (activeAnimations[name]) cancelAnimationFrame(activeAnimations[name]);
 
@@ -985,62 +984,55 @@ function glideStudent(svg, name, fromCX, fromCY, target, nodeCenter) {
   if (!layer) return;
   const svgNS = 'http://www.w3.org/2000/svg';
 
-  // Find or create icon group
-  let g = layer.querySelector(`.student-icon-group[data-student="${name}"]`);
-  if (!g) {
-    g = document.createElementNS(svgNS, 'g');
-    g.setAttribute('class', 'student-icon-group');
-    g.setAttribute('data-student', name);
-    g.style.cursor = 'pointer';
-    const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    const img = document.createElementNS(svgNS, 'image');
-    img.setAttribute('href', `${STUDENTS_DIR}${fname}.png`);
-    img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    g.appendChild(img);
-    layer.appendChild(g);
-  }
+  // Hard remove ALL existing icons and connectors for this student
+  const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  layer.querySelectorAll(`[data-student="${name}"]`).forEach(el => el.remove());
+  layer.querySelectorAll(`[data-connector="connector-${fname}"]`).forEach(el => el.remove());
 
-  // Find or create this student's connector line
-  const lineId = `connector-${name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
-  let line = layer.querySelector(`[data-connector="${lineId}"]`);
-  if (!line) {
-    line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('class', 'student-connector');
-    line.setAttribute('data-connector', lineId);
-    line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
-    line.setAttribute('stroke-width', '1.5');
-    line.setAttribute('stroke-dasharray', '4 3');
-    // Keep lines behind icons
-    const firstIcon = layer.querySelector('.student-icon-group');
-    firstIcon ? layer.insertBefore(line, firstIcon) : layer.appendChild(line);
-  }
-
+  // Create fresh icon group
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'student-icon-group');
+  g.setAttribute('data-student', name);
   g.setAttribute('data-node', target.nodeId);
-  const img      = g.querySelector('image');
+  g.style.cursor = 'pointer';
+
+  const img = document.createElementNS(svgNS, 'image');
+  img.setAttribute('href', `${STUDENTS_DIR}${fname}.png`);
+  img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  g.appendChild(img);
+
+  g.addEventListener('click', e => {
+    e.stopPropagation();
+    const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
+    if (isTeacherUser) {
+      openStudentPanel(name);
+    } else {
+      openPanel(target.nodeId, svg.getElementById(target.nodeId));
+    }
+    highlightStudentProgress(name);
+  });
+
+  // Create fresh connector line, inserted before icons so it renders behind
+  const lineId = `connector-${fname}`;
+  const line = document.createElementNS(svgNS, 'line');
+  line.setAttribute('class', 'student-connector');
+  line.setAttribute('data-connector', lineId);
+  line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+  line.setAttribute('stroke-width', '1.5');
+  line.setAttribute('stroke-dasharray', '4 3');
+
+  const firstIcon = layer.querySelector('.student-icon-group');
+  firstIcon ? layer.insertBefore(line, firstIcon) : layer.appendChild(line);
+  layer.appendChild(g);
+
   const iconSize = target.iconSize;
-  const r        = iconSize / 2;
+  const r = iconSize / 2;
 
-  // Re-bind click with new nodeId
-  const newG = g.cloneNode(true);
-  g.replaceWith(newG);
-  const freshImg = newG.querySelector('image');
-newG.addEventListener('click', e => {
-  e.stopPropagation();
-  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
-  if (isTeacherUser) {
-    openStudentPanel(name);
-  } else {
-    openPanel(target.nodeId, svg.getElementById(target.nodeId));
-  }
-  highlightStudentProgress(name);
-});
- 
-
-  const startTime = performance.now();
-
-  // Where the connector line starts from — the node centre
+  // Where the connector line originates from — the node centre
   const lineSrcX = nodeCenter?.x ?? target.cx;
   const lineSrcY = nodeCenter?.y ?? target.cy;
+
+  const startTime = performance.now();
 
   function step(now) {
     const elapsed = now - startTime;
@@ -1050,13 +1042,11 @@ newG.addEventListener('click', e => {
     const cx = fromCX + (target.cx - fromCX) * ease;
     const cy = fromCY + (target.cy - fromCY) * ease;
 
-    // Move icon
-    freshImg.setAttribute('x', cx - r);
-    freshImg.setAttribute('y', cy - r);
-    freshImg.setAttribute('width',  iconSize);
-    freshImg.setAttribute('height', iconSize);
+    img.setAttribute('x', cx - r);
+    img.setAttribute('y', cy - r);
+    img.setAttribute('width',  iconSize);
+    img.setAttribute('height', iconSize);
 
-    // Move connector endpoint in lockstep
     line.setAttribute('x1', lineSrcX);
     line.setAttribute('y1', lineSrcY);
     line.setAttribute('x2', cx);
