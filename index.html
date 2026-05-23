@@ -3033,7 +3033,7 @@ async function highlightStudentProgress(studentName) {
        svg.querySelectorAll('[id^="role-"]').forEach(el => {
          const id = el.getAttribute('id');
          // Strip trailing -2, -3 etc to get the base role id
-         const base = id.replace(/-\d+$/, '');
+         const base = id.replace(/(-\d+)-\d+$/, '$1');
          if (finishedSet.has(base)) {
            finishedSet.add(id);
          }
