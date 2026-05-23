@@ -613,13 +613,7 @@ function listenToFirebase(svg, sheetRows) {
         const old = currentPositions[name];
         if (!old || Math.abs(old.cx - target.cx) > 1 || Math.abs(old.cy - target.cy) > 1) {
           const nodeCenter = getNodeCenter(svg, target.nodeId);
-          // Remove any existing icon for this student before gliding
-          const layer = svg.getElementById('student-layer');
-          if (layer) {
-            layer.querySelector(`.student-icon-group[data-student="${name}"]`)?.remove();
-            const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            layer.querySelector(`[data-connector="connector-${fname}"]`)?.remove();
-          }
+          
           glideStudent(svg, name, old?.cx ?? target.cx, old?.cy ?? target.cy, target, nodeCenter);
           currentPositions[name] = target;
         }
