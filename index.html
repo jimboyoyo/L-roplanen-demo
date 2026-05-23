@@ -1467,6 +1467,8 @@ async function completeStudent(studentKey, studentName) {
 // type is either 'projects' or 'roles'.
 
 async function removeFinished(studentKey, studentName, type, nodeId) {
+ console.log('[removeFinished] called with:', studentKey, studentName, type, nodeId);
+ 
   const token = sessionStorage.getItem('auth_token');
   try {
     // Fetch current finished data
