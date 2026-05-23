@@ -616,20 +616,16 @@ function listenToFirebase(svg, sheetRows) {
       });
 
       // Animate moves and additions
-      Object.entries(newTargets).forEach(([name, target]) => {
-        const old = currentPositions[name];
-        if (!old || Math.abs(old.cx - target.cx) > 1 || Math.abs(old.cy - target.cy) > 1) {
-          const nodeCenter = getNodeCenter(svg, target.nodeId);
-
-          console.log('[icons] About to glide:', name, '— duplicates?', 
-            layer?.querySelectorAll(`.student-icon-group[data-student="${name}"]`).length
-          );
-                   
-          glideStudent(svg, name, old?.cx ?? target.cx, old?.cy ?? target.cy, target, nodeCenter);
-          currentPositions[name] = target;
-        }
-      });
-
+         Object.entries(newTargets).forEach(([nameKey, target]) => {
+           const originalName = sheetRows.find(r => nameToKey(r.name) === nameKey)?.name ?? nameKey;
+           const old = currentPositions[nameKey];
+           if (!old || Math.abs(old.cx - target.cx) > 1 || Math.abs(old.cy - target.cy) > 1) {
+             const nodeCenter = getNodeCenter(svg, target.nodeId);
+             glideStudent(svg, originalName, old?.cx ?? target.cx, old?.cy ?? target.cy, target, nodeCenter);
+             currentPositions[nameKey] = target;
+           }
+         });
+     
     } catch(e) {
       console.warn('Firebase poll failed:', e.message);
     }
@@ -993,7 +989,11 @@ function glideStudent(svg, name, fromCX, fromCY, target, nodeCenter) {
   const fname = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   layer.querySelectorAll(`[data-student="${name}"]`).forEach(el => el.remove());
   layer.querySelectorAll(`[data-connector="connector-${fname}"]`).forEach(el => el.remove());
-
+  layer.querySelectorAll('.student-icon-group').forEach(el => {
+    if (el.getAttribute('data-student')?.toLowerCase() === name.toLowerCase()) el.remove();
+  });
+   
+ 
   // Create fresh icon group
   const g = document.createElementNS(svgNS, 'g');
   g.setAttribute('class', 'student-icon-group');
