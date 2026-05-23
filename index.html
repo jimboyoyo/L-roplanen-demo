@@ -1498,62 +1498,6 @@ async function removeFinished(studentKey, studentName, type, nodeId) {
   }
 }
 
-
-// ─── REPLACE the finished lists section inside openStudentPanel ───────────────
-// Find this block in openStudentPanel (the grid with two columns):
-//
-//   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
-//   html += `<div>
-//     <div class="section-label">Avklarade projekt</div>
-//     ...
-//   </div>`;
-//   html += `<div>
-//     <div class="section-label">Upplåsta roller</div>
-//     ...
-//   </div>`;
-//   html += `</div>`;
-//
-// And replace it with this:
-
-html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
-
-html += `<div>
-  <div class="section-label">Avklarade projekt</div>
-  ${finishedProjects.length
-    ? finishedProjects.map(id => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
-          <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
-          <button
-            onclick="removeFinished('${key}', '${studentName}', 'projects', '${id}')"
-            style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
-            onmouseover="this.style.color='#e74c3c'"
-            onmouseout="this.style.color='#ccc'"
-            title="Ta bort">×</button>
-        </div>`)
-      .join('')
-    : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
-  }
-</div>`;
-
-html += `<div>
-  <div class="section-label">Upplåsta roller</div>
-  ${finishedRoles.length
-    ? finishedRoles.map(id => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
-          <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
-          <button
-            onclick="removeFinished('${key}', '${studentName}', 'roles', '${id}')"
-            style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
-            onmouseover="this.style.color='#e74c3c'"
-            onmouseout="this.style.color='#ccc'"
-            title="Ta bort">×</button>
-        </div>`)
-      .join('')
-    : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
-  }
-</div>`;
-
-html += `</div>`;
  
 async function openStudentPanel(studentName) {
   const panel = document.getElementById('panel');
@@ -1668,46 +1612,65 @@ let html = `
     }
   }
 
-// ── Finished lists ──────────────────────────────────────────────────────
-  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
+ 
 
-  html += `<div>
-    <div class="section-label">Avklarade projekt</div>
-    ${finishedProjects.length
-      ? finishedProjects.map(id => `
+// ─── REPLACE the finished lists section inside openStudentPanel ───────────────
+// Find this block in openStudentPanel (the grid with two columns):
+//
+//   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
+//   html += `<div>
+//     <div class="section-label">Avklarade projekt</div>
+//     ...
+//   </div>`;
+//   html += `<div>
+//     <div class="section-label">Upplåsta roller</div>
+//     ...
+//   </div>`;
+//   html += `</div>`;
+//
+// And replace it with this:
+
+html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">`;
+
+html += `<div>
+  <div class="section-label">Avklarade projekt</div>
+  ${finishedProjects.length
+    ? finishedProjects.map(id => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
           <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
-          ${isTeacherUser ? `<button
+          <button
             onclick="removeFinished('${key}', '${studentName}', 'projects', '${id}')"
             style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
             onmouseover="this.style.color='#e74c3c'"
             onmouseout="this.style.color='#ccc'"
-            title="Ta bort">×</button>` : ''}
-        </div>`).join('')
-      : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
-    }
-  </div>`;
+            title="Ta bort">×</button>
+        </div>`)
+      .join('')
+    : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
+  }
+</div>`;
 
-  html += `<div>
-    <div class="section-label">Upplåsta roller</div>
-    ${finishedRoles.length
-      ? finishedRoles.map(id => `
+html += `<div>
+  <div class="section-label">Upplåsta roller</div>
+  ${finishedRoles.length
+    ? finishedRoles.map(id => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
           <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
-          ${isTeacherUser ? `<button
+          <button
             onclick="removeFinished('${key}', '${studentName}', 'roles', '${id}')"
             style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
             onmouseover="this.style.color='#e74c3c'"
             onmouseout="this.style.color='#ccc'"
-            title="Ta bort">×</button>` : ''}
-        </div>`).join('')
-      : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
-    }
-  </div>`;
+            title="Ta bort">×</button>
+        </div>`)
+      .join('')
+    : '<div style="font-size:12px;color:#bbb;">Inga ännu</div>'
+  }
+</div>`;
 
-  html += `</div>`;
-  body.innerHTML = html;
-}
+html += `</div>`;
+
+ 
 function filterAssignNodes(query) {
   const dropdown = document.getElementById('assignNodeDropdown');
   const input    = document.getElementById('assignNodeInput');
