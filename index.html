@@ -554,7 +554,7 @@
  
 <script>
 (function() {
-  const QUOTES_CSV = 'YOUR_PUBLISHED_CSV_URL_HERE';
+  const QUOTES_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8t6cBm7poXfXN9FBkzxf_paP7j_6_eggDs_pkuwqtFRHESoxk7kUcrn6hG9VaD0PaJla4KGLfIJbO/pubhtml?gid=15987891&single=true';
 
   fetch(QUOTES_CSV)
     .then(r => r.text())
@@ -2770,11 +2770,12 @@ document.addEventListener('keydown', e => {
   .login-switch:hover { color: #333; }
 </style>
 
+ 
 <div id="loginOverlay">
   <div class="login-box">
     <div class="login-logo">Läroplanen</div>
 
-       <div id="loginQuote"></div>
+    <div id="loginQuote"></div>
    
     <div class="login-title" id="loginTitle">Logga in</div>
     <div class="login-subtitle" id="loginSubtitle">Använd din skolmejl</div>
