@@ -551,7 +551,24 @@
     </div>
   </div>
 </div>
+ 
+<script>
+(function() {
+  const QUOTES_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8t6cBm7poXfXN9FBkzxf_paP7j_6_eggDs_pkuwqtFRHESoxk7kUcrn6hG9VaD0PaJla4KGLfIJbO/pub?gid=15987891&single=true&output=csv';
 
+  fetch(QUOTES_CSV)
+    .then(r => r.text())
+    .then(csv => {
+      const quotes = csv.trim().split('\n')
+        .map(line => line.trim().replace(/^"|"$/g, ''))
+        .filter(Boolean);
+      if (!quotes.length) return;
+      const el = document.getElementById('loginQuote');
+      if (el) el.textContent = `"${quotes[Math.floor(Math.random() * quotes.length)]}"`;
+    })
+    .catch(() => {}); // fail silently — no quote shown if fetch fails
+})();
+</script>
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
@@ -2742,6 +2759,18 @@ document.addEventListener('keydown', e => {
 <div id="loginOverlay">
   <div class="login-box">
     <div class="login-logo">Läroplanen</div>
+
+       <div id="loginQuote" style="
+         font-family: 'Century Gothic', CenturyGothic, sans-serif;
+         font-size: 11px;
+         color: #bbb;
+         text-align: center;
+         font-style: italic;
+         padding: 0 8px;
+         line-height: 1.5;
+         margin-bottom: 4px;
+       "></div>
+   
     <div class="login-title" id="loginTitle">Logga in</div>
     <div class="login-subtitle" id="loginSubtitle">Använd din skolmejl</div>
 
