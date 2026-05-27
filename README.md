@@ -56,7 +56,7 @@ All kod videbokad med Claude.
 
 ## Licens
 
-© 2026 [Ditt namn]. Källkoden och innehållet får användas fritt av offentligt finansierade skolor och enskilda lärare för icke-kommersiella utbildningssyften. Kommersiellt bruk — inklusive användning av friskolor och vinstdrivande verksamheter — är förbjudet utan skriftligt tillstånd. Se [LICENSE](LICENSE) för fullständig text.
+© 2026 Jim Bernström. Källkoden och innehållet får användas fritt av offentligt finansierade skolor och enskilda lärare för icke-kommersiella utbildningssyften. Kommersiellt bruk — inklusive användning av friskolor och vinstdrivande verksamheter — är förbjudet utan skriftligt tillstånd. Se [LICENSE](LICENSE) för fullständig text.
 
 
 
