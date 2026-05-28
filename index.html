@@ -2191,10 +2191,12 @@ function renderHelpQueue(queue) {
   list.classList.add('visible');
   items.innerHTML = queue.map((entry, i) => {
     const isMine = entry.token === helpMyToken;
+    const canDelete = isMine || (window.loggedInEmail && window.loggedInEmail.endsWith('@orebro.se'));
     return `<div class="help-queue-item">
       <span class="help-queue-num">${i+1}</span>
       <span class="help-queue-name">${entry.name}</span>
-      <button class="help-queue-delete ${isMine ? '' : 'locked'}" onclick="deleteHelpEntry('${entry.token}')" title="Ta bort">×</button>
+      <button class="help-queue-delete ${canDelete ? '' : 'locked'}" onclick="deleteHelpEntry('${entry.token}')" title="Ta bort">×</button>
+      
     </div>`;
   }).join('');
 }
