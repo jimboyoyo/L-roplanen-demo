@@ -100,6 +100,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   <div id="toolbar">
     <button id="corner-btn" onclick="toggleCornerMode()">📍 Markera hörn</button>
     <button id="gen-btn" onclick="generateGrid()" disabled class="primary">Generera</button>
+    <button id="regen-btn" onclick="regenerateGrid()" disabled style="background:#e67e22; color:white; border-color:#ca6f1e;">🔄 Generera om</button>
     <button id="gps-btn" onclick="toggleGPS()" class="purple">📡 GPS</button>
     <button onclick="clearAll()" style="color:#c0392b;">Börja om</button>
     <span id="corner-count"></span>
@@ -359,9 +360,25 @@ function generateGrid() {
   });
 
   document.getElementById('gen-btn').disabled = true;
+  document.getElementById('regen-btn').disabled = false;
   updateCounts();
   const patternNames = { square:'kvadrat', brick:'tegel', hex:'hexagon', triangle:'triangel', even:'jämnt fördelat' };
-  setStatus(gridPoints.length + ' punkter (' + patternNames[pattern] + ', ' + ekCount + ' ek / ' + lindCount + ' lind). Tryck punkt för att markera planterad.');
+  let spacingInfo = '';
+  if (pattern === 'even') {
+    // Calculate actual spacing used
+    const mLat = 111320;
+    const lats = cornerLatLngs.map(p => p.lat), lngs = cornerLatLngs.map(p => p.lng);
+    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const mLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+    let area = 0;
+    for (let i = 0, j = cornerLatLngs.length - 1; i < cornerLatLngs.length; j = i++) {
+      area += (cornerLatLngs[i].lng + cornerLatLngs[j].lng) * (cornerLatLngs[i].lat - cornerLatLngs[j].lat);
+    }
+    const areaM2 = Math.abs(area) * 0.5 * mLat * mLng;
+    const actualSpacing = Math.sqrt(areaM2 / total / (Math.sqrt(3) / 2));
+    spacingInfo = ', ~' + actualSpacing.toFixed(1) + ' m avstånd';
+  }
+  setStatus(gridPoints.length + ' punkter (' + patternNames[pattern] + spacingInfo + ', ' + ekCount + ' ek / ' + lindCount + ' lind). Tryck punkt för att markera planterad.');
 }
 
 // --- Mark planted ---
@@ -455,6 +472,15 @@ function highlightNearest(latlng) {
   }
 }
 
+// --- Regenerate (keep boundary, clear only grid) ---
+function regenerateGrid() {
+  gridPoints.forEach(p => map.removeLayer(p.marker));
+  gridPoints = []; nearestIdx = -1;
+  updateCounts();
+  setNearest('');
+  generateGrid();
+}
+
 // --- Clear ---
 function clearAll() {
   if (gridPoints.length > 0 && !confirm('Börja om från början? All data raderas.')) return;
@@ -468,6 +494,7 @@ function clearAll() {
   document.getElementById('gps-btn').textContent = '📡 GPS';
   document.getElementById('gps-btn').className = 'purple';
   document.getElementById('gen-btn').disabled = true;
+  document.getElementById('regen-btn').disabled = true;
   document.getElementById('corner-count').textContent = '';
   updateCounts();
   setStatus('Ange inställningar, klicka "Markera hörn" och välj 4 hörn på kartan.');
