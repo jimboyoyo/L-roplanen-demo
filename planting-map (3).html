@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Trädplantering</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+#topbar {
+  display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+  background: white; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+#topbar h2 { font-size: 15px; font-weight: 600; color: #111; flex: 1; }
+.stat { font-size: 12px; color: #666; white-space: nowrap; }
+.stat b { color: #111; }
+
+#toolbar {
+  display: flex; gap: 7px; padding: 8px 14px; background: white;
+  border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; align-items: center;
+}
+button {
+  padding: 6px 12px; font-size: 13px; border-radius: 8px;
+  border: 1px solid #ccc; background: white; color: #111;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+button.primary { background: #1D9E75; color: white; border-color: #1D9E75; }
+button.active-red { background: #e74c3c; color: white; border-color: #c0392b; }
+button.purple { background: #534AB7; color: white; border-color: #3C3489; }
+button.active-purple { background: #3C3489; color: white; border-color: #2a2460; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+#config-panel {
+  display: flex; gap: 10px; padding: 8px 14px; background: #fafafa;
+  border-bottom: 1px solid #e0e0e0; align-items: center; flex-wrap: wrap;
+}
+#config-panel label { font-size: 13px; color: #444; display: flex; align-items: center; gap: 5px; }
+#config-panel input[type=number] {
+  width: 58px; padding: 4px 7px; font-size: 13px; border: 1px solid #ccc;
+  border-radius: 6px; font-family: inherit;
+}
+#config-panel select {
+  padding: 5px 8px; font-size: 13px; border: 1px solid #ccc;
+  border-radius: 6px; font-family: inherit; background: white; color: #111;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+#spacing-wrap { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #444; }
+
+#map { flex: 1; z-index: 0; }
+
+#bottombar {
+  padding: 9px 14px; background: white; border-top: 1px solid #e0e0e0;
+  font-size: 13px; min-height: 42px; box-shadow: 0 -1px 4px rgba(0,0,0,0.06);
+}
+#status { color: #555; margin-bottom: 2px; }
+#nearest-info { color: #111; font-weight: 600; font-size: 14px; }
+
+.legend {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  padding: 5px 14px; background: #fafafa; border-bottom: 1px solid #eee;
+  font-size: 12px; color: #555;
+}
+.leg { display: flex; align-items: center; gap: 5px; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+#corner-count { margin-left: auto; color: #888; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h2>🌳 Trädplantering</h2>
+    <span class="stat">Klar: <b id="count-done">0</b></span>
+    <span class="stat">Kvar: <b id="count-left">0</b></span>
+    <span class="stat">Ek: <b id="count-ek">0</b></span>
+    <span class="stat">Lind: <b id="count-lind">0</b></span>
+  </div>
+
+  <div id="config-panel">
+    <label><span class="dot" style="background:#378ADD"></span>Ek: <input type="number" id="input-ek" value="250" min="0"></label>
+    <label><span class="dot" style="background:#D85A30"></span>Lind: <input type="number" id="input-lind" value="250" min="0"></label>
+    <label>Mönster:
+      <select id="pattern-select" onchange="onPatternChange()">
+        <option value="square">Kvadrat</option>
+        <option value="brick" selected>Tegel (förskjutet)</option>
+        <option value="hex">Hexagon (bikaka)</option>
+        <option value="triangle">Triangel</option>
+        <option value="even">Jämnt fördelat</option>
+      </select>
+    </label>
+    <div id="spacing-wrap">
+      Avstånd: <input type="number" id="input-spacing" value="1.6" min="0.5" max="20" step="0.1" style="width:52px"> m
+    </div>
+  </div>
+
+  <div id="toolbar">
+    <button id="corner-btn" onclick="toggleCornerMode()">📍 Markera hörn</button>
+    <button id="gen-btn" onclick="generateGrid()" disabled class="primary">Generera</button>
+    <button id="gps-btn" onclick="toggleGPS()" class="purple">📡 GPS</button>
+    <button onclick="clearAll()" style="color:#c0392b;">Börja om</button>
+    <span id="corner-count"></span>
+  </div>
+
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:#378ADD"></span>Ek</span>
+    <span class="leg"><span class="leg-dot" style="background:#D85A30"></span>Lind</span>
+    <span class="leg"><span class="leg-dot" style="background:#3B6D11"></span>Planterad</span>
+    <span class="leg"><span class="leg-dot" style="background:gold; border:1px solid #aaa"></span>Närmast</span>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="bottombar">
+    <div id="status">Ange inställningar, klicka "Markera hörn" och välj 4 hörn på kartan.</div>
+    <div id="nearest-info"></div>
+  </div>
+</div>
+
+<script>
+const map = L.map('map', { zoomControl: true }).setView([59.22, 17.95], 16);
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 22, maxNativeZoom: 19, attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>'
+});
+const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 22, maxNativeZoom: 19, attribution: 'Imagery © Esri'
+});
+osmLayer.addTo(map);
+L.control.layers({ "Karta": osmLayer, "Satellit": satLayer }).addTo(map);
+
+let cornerMarkers = [], cornerLatLngs = [], gridPoints = [];
+let areaPolygon = null, placingCorners = false;
+let gpsMarker = null, gpsAccCircle = null, gpsWatch = null;
+let gpsActive = false, nearestIdx = -1;
+
+function setStatus(m) { document.getElementById('status').textContent = m; }
+function setNearest(m) { document.getElementById('nearest-info').textContent = m; }
+
+function onPatternChange() {
+  const p = document.getElementById('pattern-select').value;
+  document.getElementById('spacing-wrap').style.display = (p === 'even') ? 'none' : 'flex';
+}
+onPatternChange();
+
+// --- Corner placement ---
+function toggleCornerMode() {
+  placingCorners = !placingCorners;
+  const btn = document.getElementById('corner-btn');
+  if (placingCorners) {
+    btn.textContent = '✕ Avbryt'; btn.classList.add('active-red');
+    setStatus('Klicka 4 hörn på kartan...');
+  } else {
+    btn.textContent = '📍 Markera hörn'; btn.classList.remove('active-red');
+    setStatus(cornerLatLngs.length + ' hörn markerade');
+  }
+}
+
+map.on('click', function(e) {
+  if (!placingCorners || cornerLatLngs.length >= 4) return;
+  cornerLatLngs.push(e.latlng);
+  const n = cornerLatLngs.length;
+  const m = L.circleMarker(e.latlng, {
+    radius: 9, color: '#1D9E75', fillColor: '#1D9E75', fillOpacity: 1, weight: 2
+  }).bindTooltip('Hörn ' + n, { permanent: true, direction: 'top' }).addTo(map);
+  cornerMarkers.push(m);
+  document.getElementById('corner-count').textContent = n + '/4 hörn';
+
+  if (n === 4) {
+    placingCorners = false;
+    document.getElementById('corner-btn').textContent = '📍 Markera hörn';
+    document.getElementById('corner-btn').classList.remove('active-red');
+    if (areaPolygon) map.removeLayer(areaPolygon);
+    areaPolygon = L.polygon(cornerLatLngs, {
+      color: '#1D9E75', fillColor: '#1D9E75', fillOpacity: 0.1, weight: 2, dashArray: '6,4'
+    }).addTo(map);
+    map.fitBounds(areaPolygon.getBounds(), { padding: [30, 30] });
+    document.getElementById('gen-btn').disabled = false;
+    setStatus('4 hörn klara! Klicka "Generera".');
+  } else {
+    setStatus(n + ' av 4 hörn markerade...');
+  }
+});
+
+// --- Point in polygon ---
+function pointInPolygon(pt, poly) {
+  let inside = false;
+  const x = pt.lat, y = pt.lng;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].lat, yi = poly[i].lng, xj = poly[j].lat, yj = poly[j].lng;
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+
+// --- Grid generators ---
+// All return array of {lat, lng} candidate points inside polygon, up to maxPts
+function meterDeltas(centerLat, spacing) {
+  const mLat = 111320;
+  const mLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+  return { dLat: spacing / mLat, dLng: spacing / mLng };
+}
+
+function genSquare(poly, spacing, maxPts) {
+  const lats = poly.map(p => p.lat), lngs = poly.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const { dLat, dLng } = meterDeltas((minLat + maxLat) / 2, spacing);
+  const pts = [];
+  for (let lat = minLat; lat <= maxLat + dLat * 0.5; lat += dLat) {
+    for (let lng = minLng; lng <= maxLng + dLng * 0.5; lng += dLng) {
+      const p = L.latLng(lat, lng);
+      if (pointInPolygon(p, poly)) { pts.push(p); if (pts.length >= maxPts) return pts; }
+    }
+  }
+  return pts;
+}
+
+function genBrick(poly, spacing, maxPts) {
+  const lats = poly.map(p => p.lat), lngs = poly.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const { dLat, dLng } = meterDeltas((minLat + maxLat) / 2, spacing);
+  const pts = [];
+  let row = 0;
+  for (let lat = minLat; lat <= maxLat + dLat * 0.5; lat += dLat) {
+    const offset = (row % 2 === 0) ? 0 : dLng * 0.5;
+    for (let lng = minLng + offset; lng <= maxLng + dLng * 0.5; lng += dLng) {
+      const p = L.latLng(lat, lng);
+      if (pointInPolygon(p, poly)) { pts.push(p); if (pts.length >= maxPts) return pts; }
+    }
+    row++;
+  }
+  return pts;
+}
+
+function genHex(poly, spacing, maxPts) {
+  // Hexagonal close-packing: row spacing = spacing * sqrt(3)/2, col offset every other row
+  const lats = poly.map(p => p.lat), lngs = poly.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const centerLat = (minLat + maxLat) / 2;
+  const mLat = 111320;
+  const mLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+  const dLat = (spacing * Math.sqrt(3) / 2) / mLat;
+  const dLng = spacing / mLng;
+  const pts = [];
+  let row = 0;
+  for (let lat = minLat; lat <= maxLat + dLat * 0.5; lat += dLat) {
+    const offset = (row % 2 === 0) ? 0 : dLng * 0.5;
+    for (let lng = minLng + offset; lng <= maxLng + dLng * 0.5; lng += dLng) {
+      const p = L.latLng(lat, lng);
+      if (pointInPolygon(p, poly)) { pts.push(p); if (pts.length >= maxPts) return pts; }
+    }
+    row++;
+  }
+  return pts;
+}
+
+function genTriangle(poly, spacing, maxPts) {
+  // Equilateral triangle grid: alternating rows offset by 1/3
+  const lats = poly.map(p => p.lat), lngs = poly.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const centerLat = (minLat + maxLat) / 2;
+  const mLat = 111320;
+  const mLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+  const dLat = (spacing * Math.sqrt(3) / 2) / mLat;
+  const dLng = spacing / mLng;
+  const pts = [];
+  let row = 0;
+  for (let lat = minLat; lat <= maxLat + dLat * 0.5; lat += dLat) {
+    const offset = (row % 3 === 0) ? 0 : (row % 3 === 1) ? dLng / 3 : dLng * 2 / 3;
+    for (let lng = minLng + offset; lng <= maxLng + dLng * 0.5; lng += dLng) {
+      const p = L.latLng(lat, lng);
+      if (pointInPolygon(p, poly)) { pts.push(p); if (pts.length >= maxPts) return pts; }
+    }
+    row++;
+  }
+  return pts;
+}
+
+function genEven(poly, total) {
+  // Poisson-disc-like: place points as evenly as possible across the area
+  // Approach: estimate spacing from area, then use hex grid with that spacing
+  const lats = poly.map(p => p.lat), lngs = poly.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const centerLat = (minLat + maxLat) / 2;
+  const mLat = 111320;
+  const mLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+  const heightM = (maxLat - minLat) * mLat;
+  const widthM = (maxLng - minLng) * mLng;
+
+  // Compute polygon area via shoelace
+  let area = 0;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    area += (poly[i].lng + poly[j].lng) * (poly[i].lat - poly[j].lat);
+  }
+  const areaM2 = Math.abs(area) * 0.5 * mLat * mLng;
+
+  // For hex packing, area per point = spacing^2 * sqrt(3)/2
+  // spacing = sqrt(areaM2 / total / (sqrt(3)/2))
+  const spacing = Math.sqrt(areaM2 / total / (Math.sqrt(3) / 2));
+
+  // Generate hex grid with this spacing and take exactly 'total' points
+  const candidates = genHex(poly, spacing, total * 3);
+  // Shuffle for even feel, then take total
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  return candidates.slice(0, total);
+}
+
+// --- Main generate ---
+function generateGrid() {
+  gridPoints.forEach(p => map.removeLayer(p.marker));
+  gridPoints = []; nearestIdx = -1;
+
+  const totalEk   = parseInt(document.getElementById('input-ek').value)    || 0;
+  const totalLind = parseInt(document.getElementById('input-lind').value)   || 0;
+  const spacing   = parseFloat(document.getElementById('input-spacing').value) || 1.6;
+  const pattern   = document.getElementById('pattern-select').value;
+  const total     = totalEk + totalLind;
+
+  let candidates = [];
+  if      (pattern === 'square')   candidates = genSquare(cornerLatLngs, spacing, total);
+  else if (pattern === 'brick')    candidates = genBrick(cornerLatLngs, spacing, total);
+  else if (pattern === 'hex')      candidates = genHex(cornerLatLngs, spacing, total);
+  else if (pattern === 'triangle') candidates = genTriangle(cornerLatLngs, spacing, total);
+  else if (pattern === 'even')     candidates = genEven(cornerLatLngs, total);
+
+  // Trim to exact counts
+  const pts = candidates.slice(0, total);
+  let ekCount = 0, lindCount = 0;
+
+  pts.forEach((latlng, idx) => {
+    let species;
+    if (ekCount < totalEk && lindCount < totalLind) {
+      species = (idx % 2 === 0) ? 'ek' : 'lind';
+    } else if (ekCount < totalEk) {
+      species = 'ek';
+    } else {
+      species = 'lind';
+    }
+    if (species === 'ek') ekCount++; else lindCount++;
+
+    const color = species === 'ek' ? '#378ADD' : '#D85A30';
+    const i = gridPoints.length;
+    const m = L.circleMarker(latlng, {
+      radius: 7, color, fillColor: color, fillOpacity: 0.85, weight: 1.5
+    }).addTo(map);
+    m.on('click', () => markPlanted(i));
+    m.bindTooltip((species === 'ek' ? 'Ek' : 'Lind') + ' #' + (i + 1));
+    gridPoints.push({ latlng, species, planted: false, marker: m });
+  });
+
+  document.getElementById('gen-btn').disabled = true;
+  updateCounts();
+  const patternNames = { square:'kvadrat', brick:'tegel', hex:'hexagon', triangle:'triangel', even:'jämnt fördelat' };
+  setStatus(gridPoints.length + ' punkter (' + patternNames[pattern] + ', ' + ekCount + ' ek / ' + lindCount + ' lind). Tryck punkt för att markera planterad.');
+}
+
+// --- Mark planted ---
+function markPlanted(i) {
+  const pt = gridPoints[i];
+  pt.planted = !pt.planted;
+  updateMarkerStyle(i, i === nearestIdx && !pt.planted);
+  updateCounts();
+  if (gpsActive && gpsMarker) highlightNearest(gpsMarker.getLatLng());
+}
+
+function updateMarkerStyle(i, isNearest) {
+  const pt = gridPoints[i];
+  if (pt.planted) {
+    pt.marker.setStyle({ color: '#3B6D11', fillColor: '#3B6D11', radius: 5, fillOpacity: 0.7, weight: 1.5 });
+  } else if (isNearest) {
+    pt.marker.setStyle({ color: '#c8a800', fillColor: 'gold', radius: 11, fillOpacity: 1, weight: 2.5 });
+  } else {
+    const color = pt.species === 'ek' ? '#378ADD' : '#D85A30';
+    pt.marker.setStyle({ color, fillColor: color, radius: 7, fillOpacity: 0.85, weight: 1.5 });
+  }
+}
+
+function updateCounts() {
+  const done  = gridPoints.filter(p => p.planted).length;
+  const left  = gridPoints.length - done;
+  const ek    = gridPoints.filter(p => p.planted && p.species === 'ek').length;
+  const lind  = gridPoints.filter(p => p.planted && p.species === 'lind').length;
+  document.getElementById('count-done').textContent = done;
+  document.getElementById('count-left').textContent = left;
+  document.getElementById('count-ek').textContent   = ek;
+  document.getElementById('count-lind').textContent = lind;
+}
+
+// --- GPS ---
+function toggleGPS() {
+  const btn = document.getElementById('gps-btn');
+  if (gpsActive) {
+    if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+    gpsActive = false;
+    btn.textContent = '📡 GPS'; btn.className = 'purple';
+    if (gpsMarker)    { map.removeLayer(gpsMarker);    gpsMarker    = null; }
+    if (gpsAccCircle) { map.removeLayer(gpsAccCircle); gpsAccCircle = null; }
+    setNearest(''); setStatus('GPS stoppad.');
+  } else {
+    if (!navigator.geolocation) { setStatus('GPS stöds inte i denna webbläsare.'); return; }
+    gpsActive = true;
+    btn.textContent = '⏹ Stoppa GPS'; btn.className = 'active-purple';
+    setStatus('Söker GPS-position...');
+    gpsWatch = navigator.geolocation.watchPosition(onGPS, onGPSError, {
+      enableHighAccuracy: true, maximumAge: 3000, timeout: 15000
+    });
+  }
+}
+
+function onGPS(pos) {
+  const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+  const acc = Math.round(pos.coords.accuracy);
+  if (!gpsMarker) {
+    gpsMarker = L.circleMarker(latlng, {
+      radius: 10, color: '#534AB7', fillColor: '#7F77DD', fillOpacity: 0.9, weight: 2
+    }).bindTooltip('Du är här').addTo(map);
+    gpsAccCircle = L.circle(latlng, {
+      radius: acc, color: '#534AB7', fillColor: '#7F77DD', fillOpacity: 0.1, weight: 1
+    }).addTo(map);
+  } else {
+    gpsMarker.setLatLng(latlng);
+    gpsAccCircle.setLatLng(latlng); gpsAccCircle.setRadius(acc);
+  }
+  setStatus('GPS aktiv — noggrannhet ±' + acc + ' m');
+  highlightNearest(latlng);
+}
+
+function onGPSError(err) { setStatus('GPS-fel: ' + err.message); }
+
+function highlightNearest(latlng) {
+  if (gridPoints.length === 0) return;
+  if (nearestIdx !== -1 && gridPoints[nearestIdx] && !gridPoints[nearestIdx].planted)
+    updateMarkerStyle(nearestIdx, false);
+  let minDist = Infinity, minIdx = -1;
+  gridPoints.forEach((pt, i) => {
+    if (pt.planted) return;
+    const d = latlng.distanceTo(pt.latlng);
+    if (d < minDist) { minDist = d; minIdx = i; }
+  });
+  if (minIdx !== -1) {
+    nearestIdx = minIdx;
+    updateMarkerStyle(minIdx, true);
+    const pt = gridPoints[minIdx];
+    setNearest('→ Närmast: ' + (pt.species === 'ek' ? 'Ek' : 'Lind') + ' #' + (minIdx + 1) + ' — ' + Math.round(minDist) + ' m');
+  }
+}
+
+// --- Clear ---
+function clearAll() {
+  if (gridPoints.length > 0 && !confirm('Börja om från början? All data raderas.')) return;
+  cornerMarkers.forEach(m => map.removeLayer(m)); cornerMarkers = []; cornerLatLngs = [];
+  gridPoints.forEach(p => map.removeLayer(p.marker)); gridPoints = []; nearestIdx = -1;
+  if (areaPolygon)  { map.removeLayer(areaPolygon);  areaPolygon  = null; }
+  if (gpsMarker)    { map.removeLayer(gpsMarker);    gpsMarker    = null; }
+  if (gpsAccCircle) { map.removeLayer(gpsAccCircle); gpsAccCircle = null; }
+  if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+  gpsActive = false;
+  document.getElementById('gps-btn').textContent = '📡 GPS';
+  document.getElementById('gps-btn').className = 'purple';
+  document.getElementById('gen-btn').disabled = true;
+  document.getElementById('corner-count').textContent = '';
+  updateCounts();
+  setStatus('Ange inställningar, klicka "Markera hörn" och välj 4 hörn på kartan.');
+  setNearest('');
+}
+</script>
+</body>
+</html>
