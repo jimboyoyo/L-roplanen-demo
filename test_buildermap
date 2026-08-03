@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radial Map Studio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(circle at center, #12122c 0%, #070714 100%);
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #mapArea {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    cursor: grab;
+  }
+  #mapArea:active { cursor: grabbing; }
+  #mapArea svg { display: block; width: 100%; height: 100%; }
+
+  .plus-btn circle { transition: fill 0.15s, transform 0.15s; }
+  .plus-btn:hover circle { fill: rgba(255,255,255,0.35); transform: scale(1.05); }
+  .plus-btn { cursor: pointer; }
+
+  .node-group { transition: filter 0.2s ease; }
+  .node-group:hover { filter: drop-shadow(0 0 8px rgba(127, 119, 221, 0.4)); }
+
+  .del-btn { cursor: pointer; opacity: 0; transition: opacity 0.2s ease, transform 0.2s; }
+  .node-group:hover .del-btn { opacity: 1; }
+  .del-btn:hover { transform: scale(1.1); }
+
+  .zoom-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+  }
+  .zoom-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(22, 22, 46, 0.8);
+    backdrop-filter: blur(8px);
+    color: rgba(255,255,255,0.85);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .zoom-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); }
+
+  .top-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+  }
+  .action-pill {
+    background: rgba(22, 22, 46, 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .action-pill:hover { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.1); }
+
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 4, 12, 0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: fadeIn 0.2s ease forwards;
+  }
+  #overlay.open { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  #popup {
+    background: #16162e;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    border-radius: 16px;
+    padding: 24px;
+    width: 320px;
+    transform: translateY(10px);
+    animation: slideUp 0.2s ease forwards;
+  }
+
+  @keyframes slideUp {
+    to { transform: translateY(0); }
+  }
+
+  #popup h3 {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 16px;
+  }
+  #popupTitle {
+    width: 100%;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  #popupTitle:focus { border-color: #7f77dd; }
+
+  .type-options {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .type-option {
+    flex: 1;
+    text-align: center;
+    padding: 10px 4px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .type-option:hover { color: #fff; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.03); }
+  .type-option.selected {
+    color: #fff;
+    border-color: #7f77dd;
+    background: rgba(127,119,221,0.18);
+  }
+  .type-option .swatch {
+    width: 20px; height: 20px;
+    margin: 0 auto 6px;
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    background: rgba(0,0,0,0.2);
+    padding: 3px;
+    border-radius: 10px;
+  }
+  .mode-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mode-tab:hover { color: #fff; }
+  .mode-tab.selected {
+    color: #fff;
+    background: rgba(127,119,221,0.25);
+  }
+
+  #connectionTarget {
+    width: 100%;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    margin-bottom: 20px;
+  }
+  #connectionFields .field-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 8px;
+  }
+
+  .popup-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .popup-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s;
+  }
+  #cancelBtn { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+  #cancelBtn:hover { background: rgba(255,255,255,0.15); }
+  #confirmBtn { background: #5a5af0; color: #fff; }
+  #confirmBtn:hover { background: #6a6af5; }
+  #confirmBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div id="mapArea">
+  <svg id="mapSvg" viewBox="-800 -800 1600 1600"></svg>
+  
+  <div class="top-controls">
+    <button class="action-pill" onclick="saveToLocalStorage()">Save Map</button>
+    <button class="action-pill" onclick="clearMap()">Clear</button>
+  </div>
+
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomBy(1.2)">+</button>
+    <button class="zoom-btn" onclick="zoomBy(0.8)">−</button>
+    <button class="zoom-btn" onclick="resetView()" style="font-size:14px;">↺</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="popup">
+    <h3 id="popupHeading">Add to map</h3>
+
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab selected" data-mode="node" onclick="selectMode('node')">New Node</button>
+      <button type="button" class="mode-tab" data-mode="connection" id="connectionTab" onclick="selectMode('connection')">Connection</button>
+    </div>
+
+    <div id="nodeFields">
+      <input type="text" id="popupTitle" placeholder="Enter node name..." autocomplete="off" onkeydown="if(event.key==='Enter' && !confirmBtnDisabled())confirmAdd()">
+      <div class="type-options">
+        <div class="type-option" data-type="project" onclick="selectType('project')">
+          <div class="swatch" style="background:#1d9e75; border-radius:6px;"></div>
+          Project
+        </div>
+        <div class="type-option" data-type="node" onclick="selectType('node')">
+          <div class="swatch" style="background:#e09b2d; border-radius:50%;"></div>
+          Node
+        </div>
+        <div class="type-option" data-type="circle" onclick="selectType('circle')">
+          <div class="swatch" style="border:2px solid #7f77dd; border-radius:50%;"></div>
+          Circle
+        </div>
+      </div>
+      <label id="centerCheckWrap" style="display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:16px; cursor:pointer; line-height: 1.4;">
+        <input type="checkbox" id="newCenterCheck" style="margin-top:2px; cursor:pointer;">
+        <span>New center hub — expands its own local radial burst</span>
+      </label>
+    </div>
+
+    <div id="connectionFields" style="display:none;">
+      <div class="field-label">Connect this node to:</div>
+      <select id="connectionTarget" onchange="updateConfirmState()"></select>
+    </div>
+
+    <div class="popup-actions">
+      <button id="cancelBtn" onclick="closePopup()">Cancel</button>
+      <button id="confirmBtn" onclick="confirmAdd()" disabled>Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let nodes = JSON.parse(localStorage.getItem('radial_nodes')) || {
+  "core": { title: "Root Hub", type: "project", parentId: null, order: 0, isCenter: true }
+};
+let connections = JSON.parse(localStorage.getItem('radial_connections')) || [];
+let orderCounter = Object.keys(nodes).length;
+let pendingParentId = null;
+let selectedType = null;
+let popupMode = 'node';
+
+const RING_SPACING = 150;
+const CENTER_PUSH = 120;
+const svgNS = 'http://www.w3.org/2000/svg';
+let vx = -800, vy = -800, vw = 1600, vh = 1600;
+
+function computeLayout() {
+  const ids = Object.keys(nodes);
+  if (!ids.length) return { pos: {}, depth: {} };
+
+  const children = {};
+  ids.forEach(id => {
+    const p = nodes[id].parentId;
+    if (p !== null) (children[p] ??= []).push(id);
+  });
+  Object.values(children).forEach(list => list.sort((a, b) => nodes[a].order - nodes[b].order));
+
+  const weight = {};
+  function getWeight(id) {
+    if (weight[id] !== undefined) return weight[id];
+    const kids = children[id] || [];
+    return (weight[id] = kids.length ? kids.reduce((s, c) => s + getWeight(c), 0) : 1);
+  }
+  ids.forEach(id => getWeight(id));
+
+  const pos = {};
+  const depth = {};
+
+  const roots = ids.filter(id => nodes[id].parentId === null);
+  roots.forEach(id => {
+    pos[id] = { x: 0, y: 0 };
+    depth[id] = 0;
+    layoutChildren(id, 0, 0, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI, 0);
+  });
+
+  function layoutChildren(parentId, originX, originY, startAngle, endAngle, originDepth) {
+    const kids = children[parentId] || [];
+    if (!kids.length) return;
+    const totalWeight = kids.reduce((s, c) => s + getWeight(c), 0);
+    let cursor = startAngle;
+    kids.forEach(id => {
+      const span = (endAngle - startAngle) * (getWeight(id) / totalWeight);
+      const mid = cursor + span / 2;
+      const localD = originDepth + 1;
+      let r = RING_SPACING * localD;
+      if (nodes[id].isCenter) r += CENTER_PUSH;
+      pos[id] = { x: originX + r * Math.cos(mid), y: originY + r * Math.sin(mid) };
+      depth[id] = localD;
+      if (nodes[id].isCenter) {
+        layoutChildren(id, pos[id].x, pos[id].y, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI, 0);
+      } else {
+        layoutChildren(id, originX, originY, cursor, cursor + span, localD);
+      }
+      cursor += span;
+    });
+  }
+
+  resolveCollisions(pos);
+  return { pos, depth };
+}
+
+const NODE_GAP = 20;
+function resolveCollisions(pos) {
+  const ids = Object.keys(pos);
+  if (ids.length < 2) return;
+
+  const r = {};
+  ids.forEach(id => { r[id] = typeStyle(nodes[id].type).r + NODE_GAP; });
+  const fixed = new Set(ids.filter(id => nodes[id].parentId === null));
+
+  for (let iter = 0; iter < 400; iter++) {
+    let moved = false;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = ids[i], b = ids[j];
+        let dx = pos[b].x - pos[a].x;
+        let dy = pos[b].y - pos[a].y;
+        let dist = Math.hypot(dx, dy);
+        const minDist = r[a] + r[b];
+        if (dist >= minDist) continue;
+        moved = true;
+        if (dist < 0.001) { dx = 1; dy = 0; dist = 1; }
+        const overlap = (minDist - dist) / 2;
+        const ux = dx / dist, uy = dy / dist;
+        if (!fixed.has(a)) { pos[a].x -= ux * overlap; pos[a].y -= uy * overlap; }
+        if (!fixed.has(b)) { pos[b].x += ux * overlap; pos[b].y += uy * overlap; }
+      }
+    }
+    if (!moved) break;
+  }
+}
+
+function typeStyle(type) {
+  if (type === 'project') return { shape: 'rect', fill: '#1d9e75', r: 26 };
+  if (type === 'node')    return { shape: 'circle', fill: '#e09b2d', r: 18 };
+  return { shape: 'ring', fill: 'none', stroke: '#7f77dd', r: 30 };
+}
+
+function render() {
+  const { pos } = computeLayout();
+  const svg = document.getElementById('mapSvg');
+  svg.innerHTML = '';
+  applyViewBox();
+
+  const ids = Object.keys(nodes);
+
+  ids.forEach(id => {
+    const p = nodes[id].parentId;
+    if (p === null || !pos[p] || !pos[id]) return;
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', pos[p].x);
+    line.setAttribute('y1', pos[p].y);
+    line.setAttribute('x2', pos[id].x);
+    line.setAttribute('y2', pos[id].y);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+    line.setAttribute('stroke-width', '1.5');
+    svg.appendChild(line);
+  });
+
+  connections.forEach(([a, b]) => {
+    if (!pos[a] || !pos[b]) return;
+    const g = document.createElementNS(svgNS, 'g');
+    g.style.cursor = 'pointer';
+
+    const visible = document.createElementNS(svgNS, 'line');
+    visible.setAttribute('x1', pos[a].x); visible.setAttribute('y1', pos[a].y);
+    visible.setAttribute('x2', pos[b].x); visible.setAttribute('y2', pos[b].y);
+    visible.setAttribute('stroke', 'rgba(160,150,255,0.55)');
+    visible.setAttribute('stroke-width', '2');
+    visible.setAttribute('stroke-dasharray', '6 4');
+    g.appendChild(visible);
+
+    const hit = document.createElementNS(svgNS, 'line');
+    hit.setAttribute('x1', pos[a].x); hit.setAttribute('y1', pos[a].y);
+    hit.setAttribute('x2', pos[b].x); hit.setAttribute('y2', pos[b].y);
+    hit.setAttribute('stroke', 'transparent');
+    hit.setAttribute('stroke-width', '14');
+    g.appendChild(hit);
+
+    const title = document.createElementNS(svgNS, 'title');
+    title.textContent = 'Click to remove connection';
+    g.appendChild(title);
+
+    g.addEventListener('mouseenter', () => visible.setAttribute('stroke', 'rgba(231,76,60,0.9)'));
+    g.addEventListener('mouseleave', () => visible.setAttribute('stroke', 'rgba(160,150,255,0.55)'));
+    g.addEventListener('click', () => removeConnection(a, b));
+
+    svg.appendChild(g);
+  });
+
+  ids.forEach(id => {
+    if (!pos[id]) return;
+    const { x, y } = pos[id];
+    const node = nodes[id];
+    const style = typeStyle(node.type);
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'node-group');
+
+    let shapeEl;
+    if (style.shape === 'rect') {
+      shapeEl = document.createElementNS(svgNS, 'rect');
+      shapeEl.setAttribute('x', x - style.r);
+      shapeEl.setAttribute('y', y - style.r);
+      shapeEl.setAttribute('width', style.r * 2);
+      shapeEl.setAttribute('height', style.r * 2);
+      shapeEl.setAttribute('rx', 8);
+      shapeEl.setAttribute('fill', style.fill);
+    } else if (style.shape === 'ring') {
+      shapeEl = document.createElementNS(svgNS, 'circle');
+      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y);
+      shapeEl.setAttribute('r', style.r);
+      shapeEl.setAttribute('fill', 'none');
+      shapeEl.setAttribute('stroke', style.stroke);
+      shapeEl.setAttribute('stroke-width', 2.5);
+    } else {
+      shapeEl = document.createElementNS(svgNS, 'circle');
+      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y);
+      shapeEl.setAttribute('r', style.r);
+      shapeEl.setAttribute('fill', style.fill);
+    }
+    g.appendChild(shapeEl);
+
+    if (node.isCenter) {
+      const hubRing = document.createElementNS(svgNS, 'circle');
+      hubRing.setAttribute('cx', x); hubRing.setAttribute('cy', y);
+      hubRing.setAttribute('r', style.r + 8);
+      hubRing.setAttribute('fill', 'none');
+      hubRing.setAttribute('stroke', 'rgba(255,255,255,0.4)');
+      hubRing.setAttribute('stroke-width', '1');
+      hubRing.setAttribute('stroke-dasharray', '3 3');
+      g.insertBefore(hubRing, shapeEl);
+    }
+
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', x);
+    text.setAttribute('y', y + style.r + 16);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '11');
+    text.setAttribute('font-weight', '500');
+    text.setAttribute('fill', 'rgba(255,255,255,0.85)');
+    text.textContent = node.title;
+    g.appendChild(text);
+
+    const plus = makePlus(x + style.r * 0.75, y - style.r * 0.75, () => openPopup(id));
+    g.appendChild(plus);
+
+    const del = document.createElementNS(svgNS, 'g');
+    del.setAttribute('class', 'del-btn');
+    const delX = x - style.r * 0.75, delY = y - style.r * 0.75;
+    const delCircle = document.createElementNS(svgNS, 'circle');
+    delCircle.setAttribute('cx', delX); delCircle.setAttribute('cy', delY);
+    delCircle.setAttribute('r', 10);
+    delCircle.setAttribute('fill', 'rgba(231,76,60,0.9)');
+    del.appendChild(delCircle);
+    const delText = document.createElementNS(svgNS, 'text');
+    delText.setAttribute('x', delX); delText.setAttribute('y', delY + 4);
+    delText.setAttribute('text-anchor', 'middle');
+    delText.setAttribute('font-size', '12');
+    delText.setAttribute('fill', '#fff');
+    delText.textContent = '×';
+    del.appendChild(delText);
+    del.addEventListener('click', e => { e.stopPropagation(); removeNode(id); });
+    g.appendChild(del);
+
+    svg.appendChild(g);
+  });
+
+  if (!ids.length) {
+    svg.appendChild(makePlus(0, 0, () => openPopup(null), 28));
+  }
+}
+
+function makePlus(cx, cy, onClick, radius) {
+  const r = radius || 18;
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'plus-btn');
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', r);
+  circle.setAttribute('fill', 'rgba(255,255,255,0.12)');
+  circle.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+  circle.setAttribute('stroke-width', '1');
+  g.appendChild(circle);
+  const text = document.createElementNS(svgNS, 'text');
+  text.setAttribute('x', cx); text.setAttribute('y', cy + r * 0.35);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', r * 1.1);
+  text.setAttribute('fill', '#fff');
+  text.textContent = '+';
+  g.appendChild(text);
+  g.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+  return g;
+}
+
+function applyViewBox() {
+  document.getElementById('mapSvg').setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
+}
+
+function hasConnection(a, b) {
+  return connections.some(c => (c[0] === a && c[1] === b) || (c[0] === b && c[1] === a));
+}
+
+function addConnection(a, b) {
+  if (!a || !b || a === b || hasConnection(a, b)) return;
+  connections.push([a, b]);
+  render();
+}
+
+function removeConnection(a, b) {
+  connections = connections.filter(c => !((c[0] === a && c[1] === b) || (c[0] === b && c[1] === a)));
+  render();
+}
+
+function slugify(s) {
+  return s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'node';
+}
+
+function removeNode(id) {
+  if (!confirm('Remove "' + nodes[id].title + '" and all connected subnodes?')) return;
+  const toRemove = new Set([id]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    Object.keys(nodes).forEach(nid => {
+      if (!toRemove.has(nid) && toRemove.has(nodes[nid].parentId)) { toRemove.add(nid); grew = true; }
+    });
+  }
+  toRemove.forEach(nid => delete nodes[nid]);
+  connections = connections.filter(([a, b]) => !toRemove.has(a) && !toRemove.has(b));
+  render();
+}
+
+function clearMap() {
+  if (Object.keys(nodes).length && !confirm('Clear entire map?')) return;
+  nodes = {};
+  connections = [];
+  orderCounter = 0;
+  render();
+}
+
+function saveToLocalStorage() {
+  localStorage.setItem('radial_nodes', JSON.stringify(nodes));
+  localStorage.setItem('radial_connections', JSON.stringify(connections));
+  alert('Map saved successfully!');
+}
+
+function openPopup(parentId) {
+  pendingParentId = parentId;
+  selectedType = null;
+  document.getElementById('popupTitle').value = '';
+  document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
+  document.getElementById('newCenterCheck').checked = false;
+
+  const hasExistingNodes = Object.keys(nodes).length > 1 && parentId !== null;
+  document.getElementById('connectionTab').style.display = hasExistingNodes ? 'block' : 'none';
+  populateConnectionTargets(parentId);
+  selectMode('node');
+
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => document.getElementById('popupTitle').focus(), 50);
+}
+
+function populateConnectionTargets(parentId) {
+  const select = document.getElementById('connectionTarget');
+  select.innerHTML = '';
+  Object.keys(nodes).forEach(id => {
+    if (id === parentId || hasConnection(parentId, id)) return;
+    if (nodes[id].parentId === parentId || nodes[parentId]?.parentId === id) return;
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = nodes[id].title;
+    select.appendChild(opt);
+  });
+}
+
+function selectMode(mode) {
+  popupMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(el => el.classList.toggle('selected', el.dataset.mode === mode));
+  document.getElementById('nodeFields').style.display = mode === 'node' ? 'block' : 'none';
+  document.getElementById('connectionFields').style.display = mode === 'connection' ? 'block' : 'none';
+  document.getElementById('popupHeading').textContent = mode === 'node' ? 'Add Node' : 'Connect Nodes';
+  updateConfirmState();
+}
+
+function closePopup() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function selectType(type) {
+  selectedType = type;
+  document.querySelectorAll('.type-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.type === type);
+  });
+  updateConfirmState();
+}
+
+function confirmBtnDisabled() {
+  return document.getElementById('confirmBtn').disabled;
+}
+
+function updateConfirmState() {
+  if (popupMode === 'node') {
+    const title = document.getElementById('popupTitle').value.trim();
+    document.getElementById('confirmBtn').disabled = !(title && selectedType);
+  } else {
+    const target = document.getElementById('connectionTarget').value;
+    document.getElementById('confirmBtn').disabled = !target;
+  }
+}
+
+document.getElementById('popupTitle').addEventListener('input', updateConfirmState);
+
+function confirmAdd() {
+  if (popupMode === 'node') {
+    const title = document.getElementById('popupTitle').value.trim();
+    if (!title || !selectedType) return;
+
+    let id = slugify(title), n = 1;
+    while (nodes[id]) id = slugify(title) + '-' + (++n);
+
+    const isCenter = document.getElementById('newCenterCheck').checked;
+    nodes[id] = { title, type: selectedType, parentId: pendingParentId, order: orderCounter++, isCenter };
+    closePopup();
+    render();
+  } else {
+    const target = document.getElementById('connectionTarget').value;
+    if (!target) return;
+    addConnection(pendingParentId, target);
+    closePopup();
+  }
+}
+
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target.id === 'overlay') closePopup();
+});
+
+function zoomBy(factor) {
+  const newW = Math.min(4000, Math.max(300, vw / factor));
+  const cx = vx + vw / 2, cy = vy + vh / 2;
+  vw = newW; vh = newW;
+  vx = cx - vw / 2; vy = cy - vh / 2;
+  applyViewBox();
+}
+
+function resetView() {
+  vx = -800; vy = -800; vw = 1600; vh = 1600;
+  applyViewBox();
+}
+
+const area = document.getElementById('mapArea');
+let dragging = false, sx, sy, svx, svy;
+area.addEventListener('mousedown', e => {
+  if(e.button !== 0) return;
+  dragging = true; sx = e.clientX; sy = e.clientY; svx = vx; svy = vy;
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const rect = area.getBoundingClientRect();
+  vx = svx - (e.clientX - sx) / rect.width * vw;
+  vy = svy - (e.clientY - sy) / rect.height * vh;
+  applyViewBox();
+});
+window.addEventListener('mouseup', () => dragging = false);
+area.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoomBy(e.deltaY < 0 ? 1.15 : 0.85);
+}, { passive: false });
+
+render();
+</script>
+</body>
+</html>
