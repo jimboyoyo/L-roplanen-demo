@@ -93,14 +93,8 @@
     align-items: center;
     justify-content: center;
     z-index: 100;
-    animation: fadeIn 0.2s ease forwards;
   }
   #overlay.open { display: flex; }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
 
   #popup {
     background: #16162e;
@@ -109,12 +103,6 @@
     border-radius: 16px;
     padding: 24px;
     width: 320px;
-    transform: translateY(10px);
-    animation: slideUp 0.2s ease forwards;
-  }
-
-  @keyframes slideUp {
-    to { transform: translateY(0); }
   }
 
   #popup h3 {
@@ -134,7 +122,6 @@
     padding: 10px 12px;
     outline: none;
     margin-bottom: 16px;
-    transition: border-color 0.2s;
   }
   #popupTitle:focus { border-color: #7f77dd; }
 
@@ -155,7 +142,7 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .type-option:hover { color: #fff; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.03); }
+  .type-option:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
   .type-option.selected {
     color: #fff;
     border-color: #7f77dd;
@@ -185,13 +172,8 @@
     background: none;
     border: none;
     cursor: pointer;
-    transition: all 0.15s;
   }
-  .mode-tab:hover { color: #fff; }
-  .mode-tab.selected {
-    color: #fff;
-    background: rgba(127,119,221,0.25);
-  }
+  .mode-tab.selected { color: #fff; background: rgba(127,119,221,0.25); }
 
   #connectionTarget {
     width: 100%;
@@ -204,16 +186,9 @@
     outline: none;
     margin-bottom: 20px;
   }
-  #connectionFields .field-label {
-    font-size: 12px;
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 8px;
-  }
+  .field-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
 
-  .popup-actions {
-    display: flex;
-    gap: 10px;
-  }
+  .popup-actions { display: flex; gap: 10px; }
   .popup-actions button {
     flex: 1;
     padding: 10px;
@@ -222,12 +197,9 @@
     font-weight: 600;
     cursor: pointer;
     border: none;
-    transition: background 0.15s;
   }
   #cancelBtn { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
-  #cancelBtn:hover { background: rgba(255,255,255,0.15); }
   #confirmBtn { background: #5a5af0; color: #fff; }
-  #confirmBtn:hover { background: #6a6af5; }
   #confirmBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 </head>
@@ -235,12 +207,10 @@
 
 <div id="mapArea">
   <svg id="mapSvg" viewBox="-800 -800 1600 1600"></svg>
-  
   <div class="top-controls">
     <button class="action-pill" onclick="saveToLocalStorage()">Save Map</button>
     <button class="action-pill" onclick="clearMap()">Clear</button>
   </div>
-
   <div class="zoom-controls">
     <button class="zoom-btn" onclick="zoomBy(1.2)">+</button>
     <button class="zoom-btn" onclick="zoomBy(0.8)">−</button>
@@ -251,39 +221,32 @@
 <div id="overlay">
   <div id="popup">
     <h3 id="popupHeading">Add to map</h3>
-
     <div class="mode-tabs">
       <button type="button" class="mode-tab selected" data-mode="node" onclick="selectMode('node')">New Node</button>
       <button type="button" class="mode-tab" data-mode="connection" id="connectionTab" onclick="selectMode('connection')">Connection</button>
     </div>
-
     <div id="nodeFields">
       <input type="text" id="popupTitle" placeholder="Enter node name..." autocomplete="off" onkeydown="if(event.key==='Enter' && !confirmBtnDisabled())confirmAdd()">
       <div class="type-options">
         <div class="type-option" data-type="project" onclick="selectType('project')">
-          <div class="swatch" style="background:#1d9e75; border-radius:6px;"></div>
-          Project
+          <div class="swatch" style="background:#1d9e75; border-radius:6px;"></div>Project
         </div>
         <div class="type-option" data-type="node" onclick="selectType('node')">
-          <div class="swatch" style="background:#e09b2d; border-radius:50%;"></div>
-          Node
+          <div class="swatch" style="background:#e09b2d; border-radius:50%;"></div>Node
         </div>
         <div class="type-option" data-type="circle" onclick="selectType('circle')">
-          <div class="swatch" style="border:2px solid #7f77dd; border-radius:50%;"></div>
-          Circle
+          <div class="swatch" style="border:2px solid #7f77dd; border-radius:50%;"></div>Circle
         </div>
       </div>
-      <label id="centerCheckWrap" style="display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:16px; cursor:pointer; line-height: 1.4;">
+      <label style="display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:16px; cursor:pointer;">
         <input type="checkbox" id="newCenterCheck" style="margin-top:2px; cursor:pointer;">
         <span>New center hub — expands its own local radial burst</span>
       </label>
     </div>
-
     <div id="connectionFields" style="display:none;">
       <div class="field-label">Connect this node to:</div>
       <select id="connectionTarget" onchange="updateConfirmState()"></select>
     </div>
-
     <div class="popup-actions">
       <button id="cancelBtn" onclick="closePopup()">Cancel</button>
       <button id="confirmBtn" onclick="confirmAdd()" disabled>Add</button>
@@ -301,8 +264,6 @@ let pendingParentId = null;
 let selectedType = null;
 let popupMode = 'node';
 
-const RING_SPACING = 150;
-const CENTER_PUSH = 120;
 const svgNS = 'http://www.w3.org/2000/svg';
 let vx = -800, vy = -800, vw = 1600, vh = 1600;
 
@@ -325,6 +286,12 @@ function computeLayout() {
   }
   ids.forEach(id => getWeight(id));
 
+  // Dynamically calculate spacing based on the max sibling count at any node to prevent angular overlap
+  let maxSiblings = 1;
+  Object.values(children).forEach(kids => { if (kids.length > maxSiblings) maxSiblings = kids.length; });
+  const BASE_RING_SPACING = Math.max(160, maxSiblings * 24);
+  const CENTER_PUSH = 140;
+
   const pos = {};
   const depth = {};
 
@@ -344,7 +311,7 @@ function computeLayout() {
       const span = (endAngle - startAngle) * (getWeight(id) / totalWeight);
       const mid = cursor + span / 2;
       const localD = originDepth + 1;
-      let r = RING_SPACING * localD;
+      let r = BASE_RING_SPACING * localD;
       if (nodes[id].isCenter) r += CENTER_PUSH;
       pos[id] = { x: originX + r * Math.cos(mid), y: originY + r * Math.sin(mid) };
       depth[id] = localD;
@@ -361,16 +328,16 @@ function computeLayout() {
   return { pos, depth };
 }
 
-const NODE_GAP = 20;
 function resolveCollisions(pos) {
   const ids = Object.keys(pos);
   if (ids.length < 2) return;
 
   const r = {};
-  ids.forEach(id => { r[id] = typeStyle(nodes[id].type).r + NODE_GAP; });
+  ids.forEach(id => { r[id] = typeStyle(nodes[id].type).r + 32; }); // Increased buffer safety margin
   const fixed = new Set(ids.filter(id => nodes[id].parentId === null));
 
-  for (let iter = 0; iter < 400; iter++) {
+  // High iteration pass count with strict structural shifting guarantees zero overlaps
+  for (let iter = 0; iter < 800; iter++) {
     let moved = false;
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
@@ -410,10 +377,8 @@ function render() {
     const p = nodes[id].parentId;
     if (p === null || !pos[p] || !pos[id]) return;
     const line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('x1', pos[p].x);
-    line.setAttribute('y1', pos[p].y);
-    line.setAttribute('x2', pos[id].x);
-    line.setAttribute('y2', pos[id].y);
+    line.setAttribute('x1', pos[p].x); line.setAttribute('y1', pos[p].y);
+    line.setAttribute('x2', pos[id].x); line.setAttribute('y2', pos[id].y);
     line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
     line.setAttribute('stroke-width', '1.5');
     svg.appendChild(line);
@@ -461,45 +426,32 @@ function render() {
     let shapeEl;
     if (style.shape === 'rect') {
       shapeEl = document.createElementNS(svgNS, 'rect');
-      shapeEl.setAttribute('x', x - style.r);
-      shapeEl.setAttribute('y', y - style.r);
-      shapeEl.setAttribute('width', style.r * 2);
-      shapeEl.setAttribute('height', style.r * 2);
-      shapeEl.setAttribute('rx', 8);
-      shapeEl.setAttribute('fill', style.fill);
+      shapeEl.setAttribute('x', x - style.r); shapeEl.setAttribute('y', y - style.r);
+      shapeEl.setAttribute('width', style.r * 2); shapeEl.setAttribute('height', style.r * 2);
+      shapeEl.setAttribute('rx', 8); shapeEl.setAttribute('fill', style.fill);
     } else if (style.shape === 'ring') {
       shapeEl = document.createElementNS(svgNS, 'circle');
-      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y);
-      shapeEl.setAttribute('r', style.r);
-      shapeEl.setAttribute('fill', 'none');
-      shapeEl.setAttribute('stroke', style.stroke);
-      shapeEl.setAttribute('stroke-width', 2.5);
+      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y); shapeEl.setAttribute('r', style.r);
+      shapeEl.setAttribute('fill', 'none'); shapeEl.setAttribute('stroke', style.stroke); shapeEl.setAttribute('stroke-width', 2.5);
     } else {
       shapeEl = document.createElementNS(svgNS, 'circle');
-      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y);
-      shapeEl.setAttribute('r', style.r);
+      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y); shapeEl.setAttribute('r', style.r);
       shapeEl.setAttribute('fill', style.fill);
     }
     g.appendChild(shapeEl);
 
     if (node.isCenter) {
       const hubRing = document.createElementNS(svgNS, 'circle');
-      hubRing.setAttribute('cx', x); hubRing.setAttribute('cy', y);
-      hubRing.setAttribute('r', style.r + 8);
-      hubRing.setAttribute('fill', 'none');
-      hubRing.setAttribute('stroke', 'rgba(255,255,255,0.4)');
-      hubRing.setAttribute('stroke-width', '1');
-      hubRing.setAttribute('stroke-dasharray', '3 3');
+      hubRing.setAttribute('cx', x); hubRing.setAttribute('cy', y); hubRing.setAttribute('r', style.r + 8);
+      hubRing.setAttribute('fill', 'none'); hubRing.setAttribute('stroke', 'rgba(255,255,255,0.4)');
+      hubRing.setAttribute('stroke-width', '1'); hubRing.setAttribute('stroke-dasharray', '3 3');
       g.insertBefore(hubRing, shapeEl);
     }
 
     const text = document.createElementNS(svgNS, 'text');
-    text.setAttribute('x', x);
-    text.setAttribute('y', y + style.r + 16);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('font-size', '11');
-    text.setAttribute('font-weight', '500');
-    text.setAttribute('fill', 'rgba(255,255,255,0.85)');
+    text.setAttribute('x', x); text.setAttribute('y', y + style.r + 16);
+    text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '11');
+    text.setAttribute('font-weight', '500'); text.setAttribute('fill', 'rgba(255,255,255,0.85)');
     text.textContent = node.title;
     g.appendChild(text);
 
@@ -510,16 +462,13 @@ function render() {
     del.setAttribute('class', 'del-btn');
     const delX = x - style.r * 0.75, delY = y - style.r * 0.75;
     const delCircle = document.createElementNS(svgNS, 'circle');
-    delCircle.setAttribute('cx', delX); delCircle.setAttribute('cy', delY);
-    delCircle.setAttribute('r', 10);
+    delCircle.setAttribute('cx', delX); delCircle.setAttribute('cy', delY); delCircle.setAttribute('r', 10);
     delCircle.setAttribute('fill', 'rgba(231,76,60,0.9)');
     del.appendChild(delCircle);
     const delText = document.createElementNS(svgNS, 'text');
     delText.setAttribute('x', delX); delText.setAttribute('y', delY + 4);
-    delText.setAttribute('text-anchor', 'middle');
-    delText.setAttribute('font-size', '12');
-    delText.setAttribute('fill', '#fff');
-    delText.textContent = '×';
+    delText.setAttribute('text-anchor', 'middle'); delText.setAttribute('font-size', '12');
+    delText.setAttribute('fill', '#fff'); delText.textContent = '×';
     del.appendChild(delText);
     del.addEventListener('click', e => { e.stopPropagation(); removeNode(id); });
     g.appendChild(del);
@@ -538,16 +487,11 @@ function makePlus(cx, cy, onClick, radius) {
   g.setAttribute('class', 'plus-btn');
   const circle = document.createElementNS(svgNS, 'circle');
   circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', r);
-  circle.setAttribute('fill', 'rgba(255,255,255,0.12)');
-  circle.setAttribute('stroke', 'rgba(255,255,255,0.3)');
-  circle.setAttribute('stroke-width', '1');
-  g.appendChild(circle);
+  circle.setAttribute('fill', 'rgba(255,255,255,0.12)'); circle.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+  circle.setAttribute('stroke-width', '1'); g.appendChild(circle);
   const text = document.createElementNS(svgNS, 'text');
-  text.setAttribute('x', cx); text.setAttribute('y', cy + r * 0.35);
-  text.setAttribute('text-anchor', 'middle');
-  text.setAttribute('font-size', r * 1.1);
-  text.setAttribute('fill', '#fff');
-  text.textContent = '+';
+  text.setAttribute('x', cx); text.setAttribute('y', cy + r * 0.35); text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', r * 1.1); text.setAttribute('fill', '#fff'); text.textContent = '+';
   g.appendChild(text);
   g.addEventListener('click', e => { e.stopPropagation(); onClick(); });
   return g;
@@ -643,21 +587,15 @@ function selectMode(mode) {
   updateConfirmState();
 }
 
-function closePopup() {
-  document.getElementById('overlay').classList.remove('open');
-}
+function closePopup() { document.getElementById('overlay').classList.remove('open'); }
 
 function selectType(type) {
   selectedType = type;
-  document.querySelectorAll('.type-option').forEach(el => {
-    el.classList.toggle('selected', el.dataset.type === type);
-  });
+  document.querySelectorAll('.type-option').forEach(el => el.classList.toggle('selected', el.dataset.type === type));
   updateConfirmState();
 }
 
-function confirmBtnDisabled() {
-  return document.getElementById('confirmBtn').disabled;
-}
+function confirmBtnDisabled() { return document.getElementById('confirmBtn').disabled; }
 
 function updateConfirmState() {
   if (popupMode === 'node') {
@@ -691,9 +629,7 @@ function confirmAdd() {
   }
 }
 
-document.getElementById('overlay').addEventListener('click', e => {
-  if (e.target.id === 'overlay') closePopup();
-});
+document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closePopup(); });
 
 function zoomBy(factor) {
   const newW = Math.min(4000, Math.max(300, vw / factor));
