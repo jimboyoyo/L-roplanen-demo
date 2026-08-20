@@ -1,669 +1,1843 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radial Map Studio</title>
+<title>Kartbyggare — LäroPlanen</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: radial-gradient(circle at center, #12122c 0%, #070714 100%);
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    background: #0a0a1a;
     color: #fff;
     height: 100vh;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
-  #mapArea {
+  header {
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .hint {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .canvas-area:active { cursor: grabbing; }
+
+  #canvasSvg {
     width: 100%;
     height: 100%;
-    position: relative;
-    cursor: grab;
+    display: block;
   }
-  #mapArea:active { cursor: grabbing; }
-  #mapArea svg { display: block; width: 100%; height: 100%; }
-
-  .plus-btn circle { transition: fill 0.15s, transform 0.15s; }
-  .plus-btn:hover circle { fill: rgba(255,255,255,0.35); transform: scale(1.05); }
-  .plus-btn { cursor: pointer; }
-
-  .node-group { transition: filter 0.2s ease; }
-  .node-group:hover { filter: drop-shadow(0 0 8px rgba(127, 119, 221, 0.4)); }
-
-  .del-btn { cursor: pointer; opacity: 0; transition: opacity 0.2s ease, transform 0.2s; }
-  .node-group:hover .del-btn { opacity: 1; }
-  .del-btn:hover { transform: scale(1.1); }
 
   .zoom-controls {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
+    bottom: 16px;
+    right: 16px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    z-index: 10;
+    gap: 4px;
+    z-index: 5;
   }
+
   .zoom-btn {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(22, 22, 46, 0.8);
-    backdrop-filter: blur(8px);
-    color: rgba(255,255,255,0.85);
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, border-color 0.2s;
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s;
   }
-  .zoom-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); }
+  .zoom-btn:hover { background: rgba(255,255,255,0.18); }
 
-  .top-controls {
+  .add-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.9);
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s, border-color 0.15s;
+  }
+  .add-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.4); }
+
+  .layer-btn {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.9);
+    font-family: inherit;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .layer-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.4); }
+
+  .layers-panel {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    gap: 10px;
-    z-index: 10;
-  }
-  .action-pill {
-    background: rgba(22, 22, 46, 0.8);
-    backdrop-filter: blur(8px);
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    width: 210px;
+    background: rgba(10,10,26,0.85);
     border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    color: rgba(255,255,255,0.7);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 8px 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .action-pill:hover { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.1); }
-
-  #overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(4, 4, 12, 0.7);
-    backdrop-filter: blur(4px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-  }
-  #overlay.open { display: flex; }
-
-  #popup {
-    background: #16162e;
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    border-radius: 16px;
-    padding: 24px;
-    width: 320px;
-  }
-
-  #popup h3 {
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.45);
-    margin-bottom: 16px;
-  }
-  #popupTitle {
-    width: 100%;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    color: #fff;
-    font-size: 14px;
-    padding: 10px 12px;
-    outline: none;
-    margin-bottom: 16px;
-  }
-  #popupTitle:focus { border-color: #7f77dd; }
-
-  .type-options {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .type-option {
-    flex: 1;
-    text-align: center;
-    padding: 10px 4px;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.6);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .type-option:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
-  .type-option.selected {
-    color: #fff;
-    border-color: #7f77dd;
-    background: rgba(127,119,221,0.18);
-  }
-  .type-option .swatch {
-    width: 20px; height: 20px;
-    margin: 0 auto 6px;
-  }
-
-  .mode-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 16px;
-    background: rgba(0,0,0,0.2);
-    padding: 3px;
     border-radius: 10px;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
   }
-  .mode-tab {
-    flex: 1;
-    text-align: center;
-    padding: 8px 4px;
-    border-radius: 8px;
+  .layers-panel-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.4); text-transform: uppercase;
+    padding: 10px 12px 8px;
+  }
+  .layer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
     font-size: 12px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.5);
+  }
+  .layer-row .layer-name { color: rgba(255,255,255,0.85); }
+  .layer-row .layer-count { color: rgba(255,255,255,0.35); font-size: 10px; }
+  .layer-row .layer-add-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 5px;
+    color: rgba(255,255,255,0.85);
+    font-family: inherit;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .layer-row .layer-add-btn:hover { background: rgba(255,255,255,0.22); }
+  .layers-empty {
+    padding: 4px 12px 10px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+  }
+
+  .layer-ring-guide {
+    fill: none;
+    stroke: rgba(255,255,255,0.15);
+    stroke-width: 1.5;
+    stroke-dasharray: 10 8;
+  }
+
+  .node-group circle.node-outline {
+    fill: rgba(10,10,26,0.65);
+    stroke: #fff;
+    stroke-width: 2.5;
+    cursor: text;
+  }
+
+  .group-label {
+    fill: #fff;
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+  }
+
+  .node-slot { cursor: pointer; }
+  .node-slot circle.slot-outline {
+    fill: rgba(255,255,255,0.04);
+    stroke: rgba(255,255,255,0.35);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .node-slot:hover circle.slot-outline {
+    fill: rgba(255,255,255,0.12);
+    stroke: rgba(255,255,255,0.7);
+  }
+  .node-slot .slot-plus {
+    fill: rgba(255,255,255,0.35);
+    font-size: 22px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    transition: fill 0.15s;
+  }
+  .node-slot:hover .slot-plus { fill: rgba(255,255,255,0.85); }
+
+  .node-slot.is-filled circle.slot-outline {
+    stroke-dasharray: none;
+    stroke-width: 2;
+  }
+  .node-slot.type-project circle.slot-outline { fill: rgba(58,109,240,0.35); stroke: #6f93f5; }
+  .node-slot.type-role circle.slot-outline    { fill: rgba(240,168,58,0.35); stroke: #f3bb63; }
+  .node-slot .slot-icon {
+    font-size: 26px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+
+  .node-slot.is-connecting circle.slot-outline {
+    stroke: #4ee08a;
+    stroke-width: 2.5;
+    stroke-dasharray: 4 3;
+    animation: connectPulse 1s ease-in-out infinite;
+  }
+  @keyframes connectPulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.5; }
+  }
+
+  .connector-line {
+    stroke: rgba(255,255,255,0.4);
+    stroke-width: 2.5;
+  }
+
+  .slot-menu {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    overflow: hidden;
+    z-index: 50;
+    min-width: 160px;
+    transform: translate(-50%, -50%);
+  }
+  .slot-menu.open { display: flex; }
+  .slot-menu button {
     background: none;
     border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    font-family: inherit;
+    font-size: 12px;
+    text-align: left;
+    padding: 10px 14px;
     cursor: pointer;
+    transition: background 0.15s;
   }
-  .mode-tab.selected { color: #fff; background: rgba(127,119,221,0.25); }
+  .slot-menu button:last-child { border-bottom: none; }
+  .slot-menu button:hover { background: rgba(255,255,255,0.1); }
 
-  #connectionTarget {
-    width: 100%;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.15);
+  .label-editor {
+    position: absolute;
+    display: none;
+    z-index: 50;
+    transform: translate(-50%, -50%);
+  }
+  .label-editor.open { display: block; }
+  .label-editor input {
+    background: #fff;
+    border: 2px solid #1a1a2e;
     border-radius: 8px;
-    color: #fff;
-    font-size: 13px;
-    padding: 10px 12px;
+    padding: 9px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111;
     outline: none;
-    margin-bottom: 20px;
+    width: 200px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   }
-  .field-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+  .label-editor input::placeholder { color: #bbb; font-weight: 400; }
 
-  .popup-actions { display: flex; gap: 10px; }
-  .popup-actions button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
+  .project-editor {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 60;
+    width: 230px;
+    transform: translate(-50%, -50%);
   }
-  #cancelBtn { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
-  #confirmBtn { background: #5a5af0; color: #fff; }
-  #confirmBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .project-editor.open { display: flex; }
+  .project-editor .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .project-editor label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.4); text-transform: uppercase;
+  }
+  .project-editor input {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+  }
+  .project-editor input:focus { border-color: #3a6df0; }
+  .project-editor input::placeholder { color: #bbb; }
+  .project-editor .editor-error {
+    font-size: 11px;
+    color: #ff6b6b;
+    min-height: 14px;
+  }
+  .project-editor .editor-submit {
+    background: #3a6df0;
+    border: none;
+    border-radius: 7px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .project-editor .editor-submit:hover { background: #527af5; }
+
+  .project-picker {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 60;
+    width: 240px;
+    max-height: 280px;
+    overflow: hidden;
+    transform: translate(-50%, -50%);
+  }
+  .project-picker.open { display: flex; }
+  .picker-filter {
+    margin: 12px 12px 8px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .picker-list {
+    overflow-y: auto;
+    padding-bottom: 8px;
+  }
+  .picker-item {
+    padding: 9px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: background 0.15s;
+  }
+  .picker-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .picker-item .picker-item-id {
+    display: block;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 2px;
+  }
+  .picker-empty {
+    padding: 16px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+    text-align: center;
+  }
+
+  .delete-confirm {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 60;
+    width: 220px;
+    transform: translate(-50%, -50%);
+  }
+  .delete-confirm.open { display: flex; }
+  .delete-confirm-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.8);
+  }
+  .delete-confirm-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .delete-confirm-actions button {
+    flex: 1;
+    border: none;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 9px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .delete-confirm-cancel {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.85);
+  }
+  .delete-confirm-cancel:hover { background: rgba(255,255,255,0.2); }
+  .delete-confirm-ok {
+    background: #e74c3c;
+    color: #fff;
+  }
+  .delete-confirm-ok:hover { background: #f0665a; }
+
+  .project-card {
+    fill: #3a6df0;
+    stroke: #6f93f5;
+    stroke-width: 2;
+    transition: fill 0.15s;
+  }
+  .node-slot:hover .project-card { fill: #4a7bf7; }
+  .project-card-title {
+    fill: #fff;
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+
+  .order-control { cursor: pointer; }
+  .order-control circle.order-btn-bg {
+    fill: rgba(10,10,26,0.75);
+    stroke: rgba(255,255,255,0.3);
+    stroke-width: 1.5;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .order-control:hover circle.order-btn-bg {
+    fill: rgba(255,255,255,0.18);
+    stroke: rgba(255,255,255,0.65);
+  }
+  .order-control text.order-btn-icon {
+    fill: rgba(255,255,255,0.75);
+    font-size: 18px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    transition: fill 0.15s;
+  }
+  .order-control:hover text.order-btn-icon { fill: #fff; }
+  .order-control.disabled { cursor: default; pointer-events: none; }
+  .order-control.disabled circle.order-btn-bg { fill: rgba(10,10,26,0.75); stroke: rgba(255,255,255,0.12); }
+  .order-control.disabled text.order-btn-icon { fill: rgba(255,255,255,0.25); }
+
+  .delete-btn { cursor: pointer; }
+  .delete-btn circle.delete-btn-bg {
+    fill: rgba(10,10,26,0.9);
+    stroke: rgba(255,255,255,0.4);
+    stroke-width: 1.5;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .delete-btn:hover circle.delete-btn-bg {
+    fill: #e74c3c;
+    stroke: #e74c3c;
+  }
+  .delete-btn text.delete-btn-icon {
+    fill: rgba(255,255,255,0.8);
+    font-size: 14px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    transition: fill 0.15s;
+  }
+  .delete-btn:hover text.delete-btn-icon { fill: #fff; }
+
+  .zoom-readout {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.06em;
+    z-index: 5;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
 
-<div id="mapArea">
-  <svg id="mapSvg" viewBox="-800 -800 1600 1600"></svg>
-  <div class="top-controls">
-    <button class="action-pill" onclick="saveToLocalStorage()">Save Map</button>
-    <button class="action-pill" onclick="clearMap()">Clear</button>
+<header>
+  <h1>KARTBYGGARE</h1>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <button class="add-btn" onclick="createCentralGroup()" title="Skapa central grupp">+</button>
+    <button class="layer-btn" onclick="createLayer()" title="Nytt lager">Nytt lager</button>
+    <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
+    <span class="hint">Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
   </div>
-  <div class="zoom-controls">
-    <button class="zoom-btn" onclick="zoomBy(1.2)">+</button>
-    <button class="zoom-btn" onclick="zoomBy(0.8)">−</button>
-    <button class="zoom-btn" onclick="resetView()" style="font-size:14px;">↺</button>
-  </div>
-</div>
+</header>
 
-<div id="overlay">
-  <div id="popup">
-    <h3 id="popupHeading">Add to map</h3>
-    <div class="mode-tabs">
-      <button type="button" class="mode-tab selected" data-mode="node" onclick="selectMode('node')">New Node</button>
-      <button type="button" class="mode-tab" data-mode="connection" id="connectionTab" onclick="selectMode('connection')">Connection</button>
+<div class="canvas-area" id="canvasArea">
+  <svg id="canvasSvg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+      </pattern>
+      <pattern id="gridMajor" width="100" height="100" patternUnits="userSpaceOnUse">
+        <rect width="100" height="100" fill="url(#grid)"/>
+        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="0.75"/>
+      </pattern>
+    </defs>
+    <rect id="gridBg" fill="url(#gridMajor)" />
+    <g id="world">
+      <g id="guidesLayer"></g>
+      <g id="connectorsLayer"></g>
+      <g id="nodesLayer"></g>
+    </g>
+  </svg>
+
+  <div class="layers-panel" id="layersPanel">
+    <div class="layers-panel-title">Lager</div>
+    <div class="layer-row">
+      <span class="layer-name">Central grupp</span>
+      <span class="layer-count" id="coreStatus">Ej skapad</span>
     </div>
-    <div id="nodeFields">
-      <input type="text" id="popupTitle" placeholder="Enter node name..." autocomplete="off" onkeydown="if(event.key==='Enter' && !confirmBtnDisabled())confirmAdd()">
-      <div class="type-options">
-        <div class="type-option" data-type="project" onclick="selectType('project')">
-          <div class="swatch" style="background:#1d9e75; border-radius:6px;"></div>Project
-        </div>
-        <div class="type-option" data-type="node" onclick="selectType('node')">
-          <div class="swatch" style="background:#e09b2d; border-radius:50%;"></div>Node
-        </div>
-        <div class="type-option" data-type="circle" onclick="selectType('circle')">
-          <div class="swatch" style="border:2px solid #7f77dd; border-radius:50%;"></div>Circle
-        </div>
-      </div>
-      <label style="display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:16px; cursor:pointer;">
-        <input type="checkbox" id="newCenterCheck" style="margin-top:2px; cursor:pointer;">
-        <span>New center hub — expands its own local radial burst</span>
-      </label>
+    <div id="layersList"></div>
+    <div class="layers-empty" id="layersEmpty">Inga lager ännu.</div>
+  </div>
+
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+    <button class="zoom-btn" onclick="zoom(0.8)">−</button>
+    <button class="zoom-btn" onclick="resetView()" title="Återställ vy" style="font-size:12px;">↺</button>
+  </div>
+
+  <div class="zoom-readout" id="zoomReadout">100%</div>
+
+  <div class="slot-menu" id="slotMenu">
+    <button onclick="handleMenuChoice('project')">Lägg till projekt</button>
+    <button onclick="handleMenuChoice('role')">Skapa roll</button>
+    <button onclick="handleMenuChoice('connection')">Skapa koppling</button>
+  </div>
+
+  <div class="label-editor" id="labelEditor">
+    <input type="text" id="labelEditorInput" placeholder="Namn på grupp…" maxlength="60" autocomplete="off" />
+  </div>
+
+  <div class="project-editor" id="projectEditor">
+    <div class="field">
+      <label>Titel</label>
+      <input type="text" id="projectTitleInput" placeholder="Projektnamn…" maxlength="80" autocomplete="off" />
     </div>
-    <div id="connectionFields" style="display:none;">
-      <div class="field-label">Connect this node to:</div>
-      <select id="connectionTarget" onchange="updateConfirmState()"></select>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" id="projectUrlInput" placeholder="https://…" autocomplete="off" />
     </div>
-    <div class="popup-actions">
-      <button id="cancelBtn" onclick="closePopup()">Cancel</button>
-      <button id="confirmBtn" onclick="confirmAdd()" disabled>Add</button>
+    <div class="field">
+      <label>ID</label>
+      <input type="text" id="projectIdInput" placeholder="t.ex. proj-014" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="projectEditorError"></div>
+    <button class="editor-submit" onclick="submitProjectCatalogEditor()">Skapa projekt</button>
+  </div>
+
+  <div class="project-editor role-editor" id="roleEditor">
+    <div class="field">
+      <label>ID</label>
+      <input type="text" id="roleIdInput" placeholder="t.ex. roll-014" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="roleEditorError"></div>
+    <button class="editor-submit" onclick="submitRoleEditor()">Skapa roll</button>
+  </div>
+
+  <div class="project-picker" id="projectPicker">
+    <input type="text" id="projectPickerFilter" class="picker-filter" placeholder="Sök projekt…" autocomplete="off" />
+    <div class="picker-list" id="projectPickerList"></div>
+  </div>
+
+  <div class="delete-confirm" id="deleteConfirm">
+    <div class="delete-confirm-text" id="deleteConfirmText">Ta bort noden? Eventuella kopplingar till den tas också bort.</div>
+    <div class="delete-confirm-actions">
+      <button class="delete-confirm-cancel" onclick="cancelDeleteConfirm()">Avbryt</button>
+      <button class="delete-confirm-ok" onclick="confirmDelete()">Ta bort</button>
     </div>
   </div>
 </div>
 
 <script>
-let nodes = JSON.parse(localStorage.getItem('radial_nodes')) || {
-  "core": { title: "Root Hub", type: "project", parentId: null, order: 0, isCenter: true }
-};
-let connections = JSON.parse(localStorage.getItem('radial_connections')) || [];
-let orderCounter = Object.keys(nodes).length;
-let pendingParentId = null;
-let selectedType = null;
-let popupMode = 'node';
+// ─── VIEWBOX STATE ──────────────────────────────────────────────────────────
+// The world is laid out in a fixed coordinate space (SVG units == grid units,
+// 10 units per small grid cell). vx/vy/vw/vh describe the visible viewBox.
 
-const svgNS = 'http://www.w3.org/2000/svg';
-let vx = -800, vy = -800, vw = 1600, vh = 1600;
+let vx = 0, vy = 0, vw = 2000, vh = 1200;
+const BASE_W = 2000, BASE_H = 1200; // "100% zoom" reference size
+const MIN_VW = 200;                 // most zoomed-in (10x)
+const MAX_VW = 8000;                // most zoomed-out (0.25x)
 
-function computeLayout() {
-  const ids = Object.keys(nodes);
-  if (!ids.length) return { pos: {}, depth: {} };
-
-  const children = {};
-  ids.forEach(id => {
-    const p = nodes[id].parentId;
-    if (p !== null) (children[p] ??= []).push(id);
-  });
-  Object.values(children).forEach(list => list.sort((a, b) => nodes[a].order - nodes[b].order));
-
-  const weight = {};
-  function getWeight(id) {
-    if (weight[id] !== undefined) return weight[id];
-    const kids = children[id] || [];
-    return (weight[id] = kids.length ? kids.reduce((s, c) => s + getWeight(c), 0) : 1);
-  }
-  ids.forEach(id => getWeight(id));
-
-  // Dynamically calculate spacing based on the max sibling count at any node to prevent angular overlap
-  let maxSiblings = 1;
-  Object.values(children).forEach(kids => { if (kids.length > maxSiblings) maxSiblings = kids.length; });
-  const BASE_RING_SPACING = Math.max(160, maxSiblings * 24);
-  const CENTER_PUSH = 140;
-
-  const pos = {};
-  const depth = {};
-
-  const roots = ids.filter(id => nodes[id].parentId === null);
-  roots.forEach(id => {
-    pos[id] = { x: 0, y: 0 };
-    depth[id] = 0;
-    layoutChildren(id, 0, 0, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI, 0);
-  });
-
-  function layoutChildren(parentId, originX, originY, startAngle, endAngle, originDepth) {
-    const kids = children[parentId] || [];
-    if (!kids.length) return;
-    const totalWeight = kids.reduce((s, c) => s + getWeight(c), 0);
-    let cursor = startAngle;
-    kids.forEach(id => {
-      const span = (endAngle - startAngle) * (getWeight(id) / totalWeight);
-      const mid = cursor + span / 2;
-      const localD = originDepth + 1;
-      let r = BASE_RING_SPACING * localD;
-      if (nodes[id].isCenter) r += CENTER_PUSH;
-      pos[id] = { x: originX + r * Math.cos(mid), y: originY + r * Math.sin(mid) };
-      depth[id] = localD;
-      if (nodes[id].isCenter) {
-        layoutChildren(id, pos[id].x, pos[id].y, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI, 0);
-      } else {
-        layoutChildren(id, originX, originY, cursor, cursor + span, localD);
-      }
-      cursor += span;
-    });
-  }
-
-  resolveCollisions(pos);
-  return { pos, depth };
-}
-
-function resolveCollisions(pos) {
-  const ids = Object.keys(pos);
-  if (ids.length < 2) return;
-
-  const r = {};
-  ids.forEach(id => { r[id] = typeStyle(nodes[id].type).r + 32; }); // Increased buffer safety margin
-  const fixed = new Set(ids.filter(id => nodes[id].parentId === null));
-
-  // High iteration pass count with strict structural shifting guarantees zero overlaps
-  for (let iter = 0; iter < 800; iter++) {
-    let moved = false;
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const a = ids[i], b = ids[j];
-        let dx = pos[b].x - pos[a].x;
-        let dy = pos[b].y - pos[a].y;
-        let dist = Math.hypot(dx, dy);
-        const minDist = r[a] + r[b];
-        if (dist >= minDist) continue;
-        moved = true;
-        if (dist < 0.001) { dx = 1; dy = 0; dist = 1; }
-        const overlap = (minDist - dist) / 2;
-        const ux = dx / dist, uy = dy / dist;
-        if (!fixed.has(a)) { pos[a].x -= ux * overlap; pos[a].y -= uy * overlap; }
-        if (!fixed.has(b)) { pos[b].x += ux * overlap; pos[b].y += uy * overlap; }
-      }
-    }
-    if (!moved) break;
-  }
-}
-
-function typeStyle(type) {
-  if (type === 'project') return { shape: 'rect', fill: '#1d9e75', r: 26 };
-  if (type === 'node')    return { shape: 'circle', fill: '#e09b2d', r: 18 };
-  return { shape: 'ring', fill: 'none', stroke: '#7f77dd', r: 30 };
-}
-
-function render() {
-  const { pos } = computeLayout();
-  const svg = document.getElementById('mapSvg');
-  svg.innerHTML = '';
-  applyViewBox();
-
-  const ids = Object.keys(nodes);
-
-  ids.forEach(id => {
-    const p = nodes[id].parentId;
-    if (p === null || !pos[p] || !pos[id]) return;
-    const line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('x1', pos[p].x); line.setAttribute('y1', pos[p].y);
-    line.setAttribute('x2', pos[id].x); line.setAttribute('y2', pos[id].y);
-    line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
-    line.setAttribute('stroke-width', '1.5');
-    svg.appendChild(line);
-  });
-
-  connections.forEach(([a, b]) => {
-    if (!pos[a] || !pos[b]) return;
-    const g = document.createElementNS(svgNS, 'g');
-    g.style.cursor = 'pointer';
-
-    const visible = document.createElementNS(svgNS, 'line');
-    visible.setAttribute('x1', pos[a].x); visible.setAttribute('y1', pos[a].y);
-    visible.setAttribute('x2', pos[b].x); visible.setAttribute('y2', pos[b].y);
-    visible.setAttribute('stroke', 'rgba(160,150,255,0.55)');
-    visible.setAttribute('stroke-width', '2');
-    visible.setAttribute('stroke-dasharray', '6 4');
-    g.appendChild(visible);
-
-    const hit = document.createElementNS(svgNS, 'line');
-    hit.setAttribute('x1', pos[a].x); hit.setAttribute('y1', pos[a].y);
-    hit.setAttribute('x2', pos[b].x); hit.setAttribute('y2', pos[b].y);
-    hit.setAttribute('stroke', 'transparent');
-    hit.setAttribute('stroke-width', '14');
-    g.appendChild(hit);
-
-    const title = document.createElementNS(svgNS, 'title');
-    title.textContent = 'Click to remove connection';
-    g.appendChild(title);
-
-    g.addEventListener('mouseenter', () => visible.setAttribute('stroke', 'rgba(231,76,60,0.9)'));
-    g.addEventListener('mouseleave', () => visible.setAttribute('stroke', 'rgba(160,150,255,0.55)'));
-    g.addEventListener('click', () => removeConnection(a, b));
-
-    svg.appendChild(g);
-  });
-
-  ids.forEach(id => {
-    if (!pos[id]) return;
-    const { x, y } = pos[id];
-    const node = nodes[id];
-    const style = typeStyle(node.type);
-    const g = document.createElementNS(svgNS, 'g');
-    g.setAttribute('class', 'node-group');
-
-    let shapeEl;
-    if (style.shape === 'rect') {
-      shapeEl = document.createElementNS(svgNS, 'rect');
-      shapeEl.setAttribute('x', x - style.r); shapeEl.setAttribute('y', y - style.r);
-      shapeEl.setAttribute('width', style.r * 2); shapeEl.setAttribute('height', style.r * 2);
-      shapeEl.setAttribute('rx', 8); shapeEl.setAttribute('fill', style.fill);
-    } else if (style.shape === 'ring') {
-      shapeEl = document.createElementNS(svgNS, 'circle');
-      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y); shapeEl.setAttribute('r', style.r);
-      shapeEl.setAttribute('fill', 'none'); shapeEl.setAttribute('stroke', style.stroke); shapeEl.setAttribute('stroke-width', 2.5);
-    } else {
-      shapeEl = document.createElementNS(svgNS, 'circle');
-      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y); shapeEl.setAttribute('r', style.r);
-      shapeEl.setAttribute('fill', style.fill);
-    }
-    g.appendChild(shapeEl);
-
-    if (node.isCenter) {
-      const hubRing = document.createElementNS(svgNS, 'circle');
-      hubRing.setAttribute('cx', x); hubRing.setAttribute('cy', y); hubRing.setAttribute('r', style.r + 8);
-      hubRing.setAttribute('fill', 'none'); hubRing.setAttribute('stroke', 'rgba(255,255,255,0.4)');
-      hubRing.setAttribute('stroke-width', '1'); hubRing.setAttribute('stroke-dasharray', '3 3');
-      g.insertBefore(hubRing, shapeEl);
-    }
-
-    const text = document.createElementNS(svgNS, 'text');
-    text.setAttribute('x', x); text.setAttribute('y', y + style.r + 16);
-    text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '11');
-    text.setAttribute('font-weight', '500'); text.setAttribute('fill', 'rgba(255,255,255,0.85)');
-    text.textContent = node.title;
-    g.appendChild(text);
-
-    const plus = makePlus(x + style.r * 0.75, y - style.r * 0.75, () => openPopup(id));
-    g.appendChild(plus);
-
-    const del = document.createElementNS(svgNS, 'g');
-    del.setAttribute('class', 'del-btn');
-    const delX = x - style.r * 0.75, delY = y - style.r * 0.75;
-    const delCircle = document.createElementNS(svgNS, 'circle');
-    delCircle.setAttribute('cx', delX); delCircle.setAttribute('cy', delY); delCircle.setAttribute('r', 10);
-    delCircle.setAttribute('fill', 'rgba(231,76,60,0.9)');
-    del.appendChild(delCircle);
-    const delText = document.createElementNS(svgNS, 'text');
-    delText.setAttribute('x', delX); delText.setAttribute('y', delY + 4);
-    delText.setAttribute('text-anchor', 'middle'); delText.setAttribute('font-size', '12');
-    delText.setAttribute('fill', '#fff'); delText.textContent = '×';
-    del.appendChild(delText);
-    del.addEventListener('click', e => { e.stopPropagation(); removeNode(id); });
-    g.appendChild(del);
-
-    svg.appendChild(g);
-  });
-
-  if (!ids.length) {
-    svg.appendChild(makePlus(0, 0, () => openPopup(null), 28));
-  }
-}
-
-function makePlus(cx, cy, onClick, radius) {
-  const r = radius || 18;
-  const g = document.createElementNS(svgNS, 'g');
-  g.setAttribute('class', 'plus-btn');
-  const circle = document.createElementNS(svgNS, 'circle');
-  circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', r);
-  circle.setAttribute('fill', 'rgba(255,255,255,0.12)'); circle.setAttribute('stroke', 'rgba(255,255,255,0.3)');
-  circle.setAttribute('stroke-width', '1'); g.appendChild(circle);
-  const text = document.createElementNS(svgNS, 'text');
-  text.setAttribute('x', cx); text.setAttribute('y', cy + r * 0.35); text.setAttribute('text-anchor', 'middle');
-  text.setAttribute('font-size', r * 1.1); text.setAttribute('fill', '#fff'); text.textContent = '+';
-  g.appendChild(text);
-  g.addEventListener('click', e => { e.stopPropagation(); onClick(); });
-  return g;
-}
+const svg = document.getElementById('canvasSvg');
+const gridBg = document.getElementById('gridBg');
+const area = document.getElementById('canvasArea');
+const zoomReadout = document.getElementById('zoomReadout');
 
 function applyViewBox() {
-  document.getElementById('mapSvg').setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
-}
-
-function hasConnection(a, b) {
-  return connections.some(c => (c[0] === a && c[1] === b) || (c[0] === b && c[1] === a));
-}
-
-function addConnection(a, b) {
-  if (!a || !b || a === b || hasConnection(a, b)) return;
-  connections.push([a, b]);
-  render();
-}
-
-function removeConnection(a, b) {
-  connections = connections.filter(c => !((c[0] === a && c[1] === b) || (c[0] === b && c[1] === a)));
-  render();
-}
-
-function slugify(s) {
-  return s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'node';
-}
-
-function removeNode(id) {
-  if (!confirm('Remove "' + nodes[id].title + '" and all connected subnodes?')) return;
-  const toRemove = new Set([id]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    Object.keys(nodes).forEach(nid => {
-      if (!toRemove.has(nid) && toRemove.has(nodes[nid].parentId)) { toRemove.add(nid); grew = true; }
-    });
-  }
-  toRemove.forEach(nid => delete nodes[nid]);
-  connections = connections.filter(([a, b]) => !toRemove.has(a) && !toRemove.has(b));
-  render();
-}
-
-function clearMap() {
-  if (Object.keys(nodes).length && !confirm('Clear entire map?')) return;
-  nodes = {};
-  connections = [];
-  orderCounter = 0;
-  render();
-}
-
-function saveToLocalStorage() {
-  localStorage.setItem('radial_nodes', JSON.stringify(nodes));
-  localStorage.setItem('radial_connections', JSON.stringify(connections));
-  alert('Map saved successfully!');
-}
-
-function openPopup(parentId) {
-  pendingParentId = parentId;
-  selectedType = null;
-  document.getElementById('popupTitle').value = '';
-  document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
-  document.getElementById('newCenterCheck').checked = false;
-
-  const hasExistingNodes = Object.keys(nodes).length > 1 && parentId !== null;
-  document.getElementById('connectionTab').style.display = hasExistingNodes ? 'block' : 'none';
-  populateConnectionTargets(parentId);
-  selectMode('node');
-
-  document.getElementById('overlay').classList.add('open');
-  setTimeout(() => document.getElementById('popupTitle').focus(), 50);
-}
-
-function populateConnectionTargets(parentId) {
-  const select = document.getElementById('connectionTarget');
-  select.innerHTML = '';
-  Object.keys(nodes).forEach(id => {
-    if (id === parentId || hasConnection(parentId, id)) return;
-    if (nodes[id].parentId === parentId || nodes[parentId]?.parentId === id) return;
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = nodes[id].title;
-    select.appendChild(opt);
-  });
-}
-
-function selectMode(mode) {
-  popupMode = mode;
-  document.querySelectorAll('.mode-tab').forEach(el => el.classList.toggle('selected', el.dataset.mode === mode));
-  document.getElementById('nodeFields').style.display = mode === 'node' ? 'block' : 'none';
-  document.getElementById('connectionFields').style.display = mode === 'connection' ? 'block' : 'none';
-  document.getElementById('popupHeading').textContent = mode === 'node' ? 'Add Node' : 'Connect Nodes';
-  updateConfirmState();
-}
-
-function closePopup() { document.getElementById('overlay').classList.remove('open'); }
-
-function selectType(type) {
-  selectedType = type;
-  document.querySelectorAll('.type-option').forEach(el => el.classList.toggle('selected', el.dataset.type === type));
-  updateConfirmState();
-}
-
-function confirmBtnDisabled() { return document.getElementById('confirmBtn').disabled; }
-
-function updateConfirmState() {
-  if (popupMode === 'node') {
-    const title = document.getElementById('popupTitle').value.trim();
-    document.getElementById('confirmBtn').disabled = !(title && selectedType);
-  } else {
-    const target = document.getElementById('connectionTarget').value;
-    document.getElementById('confirmBtn').disabled = !target;
-  }
-}
-
-document.getElementById('popupTitle').addEventListener('input', updateConfirmState);
-
-function confirmAdd() {
-  if (popupMode === 'node') {
-    const title = document.getElementById('popupTitle').value.trim();
-    if (!title || !selectedType) return;
-
-    let id = slugify(title), n = 1;
-    while (nodes[id]) id = slugify(title) + '-' + (++n);
-
-    const isCenter = document.getElementById('newCenterCheck').checked;
-    nodes[id] = { title, type: selectedType, parentId: pendingParentId, order: orderCounter++, isCenter };
-    closePopup();
-    render();
-  } else {
-    const target = document.getElementById('connectionTarget').value;
-    if (!target) return;
-    addConnection(pendingParentId, target);
-    closePopup();
-  }
-}
-
-document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closePopup(); });
-
-function zoomBy(factor) {
-  const newW = Math.min(4000, Math.max(300, vw / factor));
-  const cx = vx + vw / 2, cy = vy + vh / 2;
-  vw = newW; vh = newW;
-  vx = cx - vw / 2; vy = cy - vh / 2;
-  applyViewBox();
+  svg.setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
+  // Keep the grid background covering the full visible area generously,
+  // so panning never reveals an edge.
+  const pad = Math.max(vw, vh) * 4;
+  gridBg.setAttribute('x', vx - pad);
+  gridBg.setAttribute('y', vy - pad);
+  gridBg.setAttribute('width', vw + pad * 2);
+  gridBg.setAttribute('height', vh + pad * 2);
+  zoomReadout.textContent = Math.round((BASE_W / vw) * 100) + '%';
 }
 
 function resetView() {
-  vx = -800; vy = -800; vw = 1600; vh = 1600;
+  vx = 0; vy = 0; vw = BASE_W; vh = BASE_H;
   applyViewBox();
 }
 
-const area = document.getElementById('mapArea');
+function zoom(factor, cx, cy) {
+  if (cx === undefined) cx = area.clientWidth / 2;
+  if (cy === undefined) cy = area.clientHeight / 2;
+  const rect = svg.getBoundingClientRect();
+  const svgX = vx + (cx - rect.left) / rect.width  * vw;
+  const svgY = vy + (cy - rect.top)  / rect.height * vh;
+  const newW = Math.min(MAX_VW, Math.max(MIN_VW, vw * (1 / factor)));
+  const newH = newW * (vh / vw);
+  const f = newW / vw;
+  vx = svgX - (svgX - vx) * f;
+  vy = svgY - (svgY - vy) * f;
+  vw = newW; vh = newH;
+  applyViewBox();
+}
+
+// ─── PAN (mouse) ────────────────────────────────────────────────────────────
+
 let dragging = false, sx, sy, svx, svy;
+
 area.addEventListener('mousedown', e => {
-  if(e.button !== 0) return;
-  dragging = true; sx = e.clientX; sy = e.clientY; svx = vx; svy = vy;
+  if (e.target.closest('.zoom-btn') || e.target.closest('.add-btn') || e.target.closest('.node-slot') || e.target.closest('.slot-menu') || e.target.closest('.layers-panel') || e.target.closest('.label-editor') || e.target.closest('.project-editor') || e.target.closest('.project-picker') || e.target.closest('.delete-confirm') || e.target.closest('.order-control') || e.target.classList.contains('node-outline')) return;
+  dragging = true;
+  sx = e.clientX; sy = e.clientY;
+  svx = vx; svy = vy;
 });
 window.addEventListener('mousemove', e => {
   if (!dragging) return;
-  const rect = area.getBoundingClientRect();
-  vx = svx - (e.clientX - sx) / rect.width * vw;
-  vy = svy - (e.clientY - sy) / rect.height * vh;
+  const rect = svg.getBoundingClientRect();
+  const dx = (e.clientX - sx) / rect.width  * vw;
+  const dy = (e.clientY - sy) / rect.height * vh;
+  vx = svx - dx; vy = svy - dy;
   applyViewBox();
 });
 window.addEventListener('mouseup', () => dragging = false);
+
 area.addEventListener('wheel', e => {
   e.preventDefault();
-  zoomBy(e.deltaY < 0 ? 1.15 : 0.85);
+  zoom(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY);
 }, { passive: false });
 
-render();
+// ─── PAN + PINCH ZOOM (touch) ───────────────────────────────────────────────
+
+let lastTouches = null;
+area.addEventListener('touchstart', e => { e.preventDefault(); lastTouches = e.touches; }, { passive: false });
+area.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const rect = svg.getBoundingClientRect();
+  const touches = e.touches;
+  if (touches.length === 1 && lastTouches?.length === 1) {
+    const dx = (touches[0].clientX - lastTouches[0].clientX) / rect.width  * vw;
+    const dy = (touches[0].clientY - lastTouches[0].clientY) / rect.height * vh;
+    vx -= dx; vy -= dy; applyViewBox();
+  } else if (touches.length === 2 && lastTouches?.length === 2) {
+    const prevDist = Math.hypot(lastTouches[0].clientX - lastTouches[1].clientX, lastTouches[0].clientY - lastTouches[1].clientY);
+    const newDist  = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+    if (prevDist === 0) return;
+    const midX = (touches[0].clientX + touches[1].clientX) / 2;
+    const midY = (touches[0].clientY + touches[1].clientY) / 2;
+    zoom(newDist / prevDist, midX, midY);
+  }
+  lastTouches = touches;
+}, { passive: false });
+area.addEventListener('touchend', e => { lastTouches = e.touches.length > 0 ? e.touches : null; }, { passive: false });
+
+// ─── GROUP NODES ────────────────────────────────────────────────────────────
+// A "group" is an outlined circle placed on the map, with 9 node slots:
+// one centered, eight spaced evenly around the outline. Each slot is either
+// empty (shows a "+") or filled with a project/role node.
+
+const svgNS = 'http://www.w3.org/2000/svg';
+const guidesLayer = document.getElementById('guidesLayer');
+const nodesLayer = document.getElementById('nodesLayer');
+const connectorsLayer = document.getElementById('connectorsLayer');
+const slotMenu = document.getElementById('slotMenu');
+
+const GROUP_RADIUS = 250; // world units — 500px standard diameter
+const SLOT_RADIUS   = 32; // size of each node placeholder
+const SLOT_COUNT    = 8;  // evenly spaced around the outline (+1 in the center)
+
+// Fixed anchor the whole map is built around — independent of pan/zoom,
+// so rings stay concentric no matter where the user has scrolled to.
+const MAP_CENTER = { x: BASE_W / 2, y: BASE_H / 2 };
+
+const TYPE_ICON = { project: '📁', role: '🎭' };
+
+// How much of the ring's circumference (in degrees) gets reserved at the
+// top for a label, so outline slots nudge out of its way.
+const LABEL_GAP_DEGREES = 55;
+const LABEL_RADIUS_OFFSET = SLOT_RADIUS + 20; // how far outside the ring the label sits
+
+const svgDefs = document.querySelector('#canvasSvg defs');
+
+// ─── FIREBASE (project catalog) ─────────────────────────────────────────────
+// Same Firebase project as the main LäroPlanen app — projects created here
+// live at /mapProjects/{id} and are the shared source of truth for title/url.
+// Nodes on the map only ever store a reference (the id); the title shown
+// on a node is looked up from this catalog live, so editing a project here
+// updates it everywhere it's placed.
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBmTngmHOQZ8Szv2I7o-zzqMfebQQvybx8",
+  authDomain: "laroplanen-help.firebaseapp.com",
+  databaseURL: "https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "laroplanen-help",
+  storageBucket: "laroplanen-help.firebasestorage.app",
+  messagingSenderId: "895065825769",
+  appId: "1:895065825769:web:2e519fa850e24f9a2b6b78"
+};
+
+let projectDb = null;
+let projectCatalog = {}; // id -> { title, url, id }
+
+(function initFirebaseProjects() {
+  const script1 = document.createElement('script');
+  script1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+  script1.onload = () => {
+    const script2 = document.createElement('script');
+    script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+    script2.onload = () => {
+      firebase.initializeApp(firebaseConfig);
+      projectDb = firebase.database();
+      projectDb.ref('mapProjects').on('value', snapshot => {
+        projectCatalog = snapshot.val() || {};
+        onProjectCatalogUpdated();
+      });
+    };
+    document.head.appendChild(script2);
+  };
+  document.head.appendChild(script1);
+})();
+
+// Keeps already-placed nodes and an open picker in sync whenever the
+// database changes (a title edited elsewhere, a new project added, etc).
+function onProjectCatalogUpdated() {
+  Object.values(groups).forEach(group => {
+    group.slots.forEach(slot => {
+      if (slot.type === 'project') renderSlot(group.id, slot);
+    });
+  });
+  if (projectPickerTarget) renderProjectPickerList(projectPickerFilter.value);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+let groups = {};        // id -> group record
+let groupIdCounter = 1;
+let connections = [];   // { id, from: {groupId, slotIndex}, to: {groupId, slotIndex}, el }
+let connectionIdCounter = 1;
+let connectingFrom = null; // { groupId, slotIndex } while in "create connection" mode
+let menuTarget = null;     // { groupId, slotIndex } while the submenu is open
+
+let centralGroupId = null;
+let layers = [];        // { id, index, radius, groupIds: [] }
+let layerIdCounter = 1;
+
+// Creates a group's DOM + data record at a given position and registers it.
+function createGroupAt(cx, cy) {
+  const id = 'group-' + groupIdCounter++;
+
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'node-group');
+  g.setAttribute('data-id', id);
+
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'node-outline');
+  circle.setAttribute('cx', cx);
+  circle.setAttribute('cy', cy);
+  circle.setAttribute('r', GROUP_RADIUS);
+  circle.addEventListener('click', e => {
+    e.stopPropagation();
+    openGroupLabelEditor(id);
+  });
+  g.appendChild(circle);
+
+  const orderControlsEl = document.createElementNS(svgNS, 'g');
+  orderControlsEl.setAttribute('class', 'order-controls');
+  g.appendChild(orderControlsEl);
+
+  const scaleControlsEl = document.createElementNS(svgNS, 'g');
+  scaleControlsEl.setAttribute('class', 'scale-controls');
+  g.appendChild(scaleControlsEl);
+
+  const labelRotateControlsEl = document.createElementNS(svgNS, 'g');
+  labelRotateControlsEl.setAttribute('class', 'label-rotate-controls');
+  g.appendChild(labelRotateControlsEl);
+
+  const deleteControlEl = document.createElementNS(svgNS, 'g');
+  deleteControlEl.setAttribute('class', 'group-delete-control');
+  g.appendChild(deleteControlEl);
+
+  groups[id] = { id, cx, cy, r: GROUP_RADIUS, slots: [], el: g, circleEl: circle, label: '', labelAngle: -Math.PI / 2, layerId: null, orderControlsEl, scaleControlsEl, labelRotateControlsEl, deleteControlEl, slotAngleOrder: [1, 2, 3, 4, 5, 6, 7, 8] };
+
+  const positions = buildSlotPositions(cx, cy, GROUP_RADIUS, 0);
+  const slots = positions.map((pos, i) => {
+    const slotEl = document.createElementNS(svgNS, 'g');
+    slotEl.setAttribute('data-group', id);
+    slotEl.setAttribute('data-slot-index', i);
+    slotEl.addEventListener('click', e => {
+      e.stopPropagation();
+      onSlotClick(id, i);
+    });
+    g.appendChild(slotEl);
+    return { index: i, x: pos.x, y: pos.y, isCenter: pos.isCenter, type: null, el: slotEl };
+  });
+  groups[id].slots = slots;
+
+  nodesLayer.appendChild(g);
+
+  applyGroupLayout(id);
+
+  return id;
+}
+
+// Recomputes and re-renders everything derived from a group's current
+// state (cx, cy, r, label, labelAngle, slotAngleOrder): the circle, the 9
+// slots (in whatever order slotAngleOrder currently specifies), the label
+// arc, the order/scale/label-rotate controls, and any attached connections.
+// This is the single place all of those get recalculated, so a custom node
+// order set via moveNodeOnRing survives later scaling/rotating/moving.
+function applyGroupLayout(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+
+  group.circleEl.setAttribute('cx', group.cx);
+  group.circleEl.setAttribute('cy', group.cy);
+  group.circleEl.setAttribute('r', group.r);
+
+  const gapRad = getLabelGapRadians(group);
+  const positions = buildSlotPositions(group.cx, group.cy, group.r, gapRad, group.labelAngle);
+
+  const centerSlot = group.slots[0];
+  centerSlot.x = positions[0].x;
+  centerSlot.y = positions[0].y;
+  renderSlot(groupId, centerSlot);
+
+  // Outline slots: position k on the ring is occupied by whichever stable
+  // slot index slotAngleOrder[k] currently points to.
+  group.slotAngleOrder.forEach((stableIndex, k) => {
+    const pos = positions[k + 1];
+    const slot = group.slots[stableIndex];
+    slot.x = pos.x;
+    slot.y = pos.y;
+    renderSlot(groupId, slot);
+  });
+
+  if (group.labelPathEl) updateGroupLabelPath(groupId);
+  updateGroupOrderControls(groupId);
+  updateGroupScaleControls(groupId);
+  updateGroupLabelRotateControls(groupId);
+  updateGroupDeleteControl(groupId);
+
+  syncConnectionsForGroup(groupId);
+}
+
+function syncConnectionsForGroup(groupId) {
+  connections.forEach(conn => {
+    if (conn.from.groupId === groupId) {
+      const s = getSlot(conn.from.groupId, conn.from.slotIndex);
+      conn.el.setAttribute('x1', s.x);
+      conn.el.setAttribute('y1', s.y);
+    }
+    if (conn.to.groupId === groupId) {
+      const s = getSlot(conn.to.groupId, conn.to.slotIndex);
+      conn.el.setAttribute('x2', s.x);
+      conn.el.setAttribute('y2', s.y);
+    }
+  });
+}
+
+// Repositions an existing group (used when a ring is redistributed) and
+// keeps its slots and any attached connector lines in sync.
+function moveGroupTo(groupId, cx, cy) {
+  const group = groups[groupId];
+  if (!group) return;
+  group.cx = cx; group.cy = cy;
+  applyGroupLayout(groupId);
+}
+
+// Swaps a node one step clockwise/counter-clockwise around its group's
+// outline, keeping its type and any connections attached to it. The center
+// slot has no order (there's only one), so it's a no-op there.
+function moveNodeOnRing(groupId, slotIndex, direction) {
+  const group = groups[groupId];
+  if (!group || slotIndex === 0) return;
+  const k = group.slotAngleOrder.indexOf(slotIndex);
+  if (k === -1) return;
+  const targetK = (k + direction + SLOT_COUNT) % SLOT_COUNT;
+  [group.slotAngleOrder[k], group.slotAngleOrder[targetK]] =
+    [group.slotAngleOrder[targetK], group.slotAngleOrder[k]];
+  applyGroupLayout(groupId);
+}
+
+// ─── CENTRAL GROUP ──────────────────────────────────────────────────────────
+
+function createCentralGroup() {
+  if (centralGroupId) {
+    console.log('Central group already exists.');
+    return;
+  }
+  centralGroupId = createGroupAt(MAP_CENTER.x, MAP_CENTER.y);
+  document.getElementById('coreStatus').textContent = 'Skapad';
+}
+
+// ─── LAYERS / RINGS ─────────────────────────────────────────────────────────
+
+const RING_SPACING = 700; // world units between consecutive ring radii
+
+function createLayer() {
+  const index = layers.length + 1;
+  const radius = RING_SPACING * index;
+  const id = 'layer-' + layerIdCounter++;
+  const layer = { id, index, radius, groupIds: [] };
+  layers.push(layer);
+
+  const guide = document.createElementNS(svgNS, 'circle');
+  guide.setAttribute('class', 'layer-ring-guide');
+  guide.setAttribute('cx', MAP_CENTER.x);
+  guide.setAttribute('cy', MAP_CENTER.y);
+  guide.setAttribute('r', radius);
+  guidesLayer.appendChild(guide);
+  layer.guideEl = guide;
+
+  renderLayersPanel();
+  return id;
+}
+
+function addGroupToLayer(layerId) {
+  const layer = layers.find(l => l.id === layerId);
+  if (!layer) return;
+  const groupId = createGroupAt(MAP_CENTER.x + layer.radius, MAP_CENTER.y);
+  groups[groupId].layerId = layerId;
+  layer.groupIds.push(groupId);
+  redistributeLayer(layer);
+  renderLayersPanel();
+}
+
+// ─── RING ORDERING (clockwise / counter-clockwise) ─────────────────────────
+
+function moveGroupOnRing(groupId, direction) {
+  const group = groups[groupId];
+  if (!group || !group.layerId) return;
+  const layer = layers.find(l => l.id === group.layerId);
+  if (!layer) return;
+  const count = layer.groupIds.length;
+  if (count < 2) return;
+
+  const idx = layer.groupIds.indexOf(groupId);
+  if (idx === -1) return;
+  const targetIdx = (idx + direction + count) % count;
+
+  [layer.groupIds[idx], layer.groupIds[targetIdx]] = [layer.groupIds[targetIdx], layer.groupIds[idx]];
+  redistributeLayer(layer);
+}
+
+// Builds/refreshes the pair of rotate arrows below a group. Hidden for the
+// central group and for rings that only have one group on them.
+const ORDER_BTN_RADIUS = 18;
+const ORDER_BTN_OFFSET_X = 40;
+const ORDER_BTN_OFFSET_Y = 40;
+
+// Small reorder arrows on each individual outline node (smaller than the
+// group-level ones, since they sit right under a 32-unit-radius slot).
+const NODE_ORDER_BTN_RADIUS = 12;
+const NODE_ORDER_BTN_OFFSET_X = 16;
+const NODE_ORDER_BTN_GAP = 16; // gap between a node's edge and its reorder arrows
+
+const PROJECT_RECT_WIDTH = 130;
+const PROJECT_RECT_HEIGHT = 56;
+const PROJECT_RECT_RX = 14;
+
+function updateGroupOrderControls(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.orderControlsEl;
+  container.innerHTML = '';
+
+  if (!group.layerId) return;
+  const layer = layers.find(l => l.id === group.layerId);
+  if (!layer || layer.groupIds.length < 2) return;
+
+  const y = group.cy + group.r + ORDER_BTN_OFFSET_Y;
+  container.appendChild(createOrderBtn(group.cx - ORDER_BTN_OFFSET_X, y, '↺', () => moveGroupOnRing(groupId, -1)));
+  container.appendChild(createOrderBtn(group.cx + ORDER_BTN_OFFSET_X, y, '↻', () => moveGroupOnRing(groupId, 1)));
+}
+
+function createOrderBtn(x, y, glyph, onClick, disabled = false, radius = ORDER_BTN_RADIUS, fontSize = 18) {
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'order-control' + (disabled ? ' disabled' : ''));
+
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'order-btn-bg');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y);
+  circle.setAttribute('r', radius);
+  g.appendChild(circle);
+
+  const text = document.createElementNS(svgNS, 'text');
+  text.setAttribute('class', 'order-btn-icon');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y);
+  text.style.fontSize = fontSize + 'px';
+  text.textContent = glyph;
+  g.appendChild(text);
+
+  if (!disabled) {
+    g.addEventListener('click', e => {
+      e.stopPropagation();
+      onClick();
+    });
+  }
+
+  return g;
+}
+
+const DELETE_BTN_RADIUS = 11;
+
+function createDeleteBtn(x, y, onClick) {
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'delete-btn');
+
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'delete-btn-bg');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y);
+  circle.setAttribute('r', DELETE_BTN_RADIUS);
+  g.appendChild(circle);
+
+  const text = document.createElementNS(svgNS, 'text');
+  text.setAttribute('class', 'delete-btn-icon');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y);
+  text.textContent = '×';
+  g.appendChild(text);
+
+  g.addEventListener('click', e => {
+    e.stopPropagation();
+    onClick();
+  });
+
+  return g;
+}
+
+// Shared in-canvas confirmation popup for destructive actions (deleting a
+// node or a whole group). Used instead of window.confirm(), since native
+// dialogs get silently blocked in some sandboxed preview environments.
+const deleteConfirm = document.getElementById('deleteConfirm');
+const deleteConfirmText = document.getElementById('deleteConfirmText');
+let deleteConfirmTarget = null; // { type: 'node'|'group', groupId, slotIndex? }
+
+function openDeleteConfirmAt(worldX, worldY, message, target) {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleEditor();
+
+  deleteConfirmTarget = target;
+  deleteConfirmText.textContent = message;
+  const pos = worldToScreen(worldX, worldY);
+  deleteConfirm.style.left = pos.x + 'px';
+  deleteConfirm.style.top = pos.y + 'px';
+  deleteConfirm.classList.add('open');
+}
+
+function cancelDeleteConfirm() {
+  deleteConfirmTarget = null;
+  deleteConfirm.classList.remove('open');
+}
+
+function confirmDelete() {
+  if (!deleteConfirmTarget) return;
+  const target = deleteConfirmTarget;
+  cancelDeleteConfirm();
+
+  if (target.type === 'node') {
+    performDeleteNode(target.groupId, target.slotIndex);
+  } else if (target.type === 'group') {
+    performDeleteGroup(target.groupId);
+  }
+}
+
+// ─── DELETE NODE ────────────────────────────────────────────────────────────
+
+function requestDeleteNode(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot || !slot.type) return;
+  const message = slot.type === 'project'
+    ? 'Ta bort noden från kartan? Länken till projektet tas bort, men projektet finns kvar i databasen. Eventuella linjer till den tas också bort.'
+    : 'Ta bort noden? Eventuella kopplingar till den tas också bort.';
+  openDeleteConfirmAt(slot.x, slot.y, message, { type: 'node', groupId, slotIndex });
+}
+
+// Clears a filled node back to empty, and removes any connections attached
+// to it (a dangling connection pointing at an empty "+" wouldn't make sense).
+function performDeleteNode(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot || !slot.type) return;
+
+  connections = connections.filter(conn => {
+    const touchesThisSlot =
+      (conn.from.groupId === groupId && conn.from.slotIndex === slotIndex) ||
+      (conn.to.groupId === groupId && conn.to.slotIndex === slotIndex);
+    if (touchesThisSlot) conn.el.remove();
+    return !touchesThisSlot;
+  });
+
+  slot.type = null;
+  slot.projectId = undefined;
+  slot.roleId = undefined;
+  renderSlot(groupId, slot);
+}
+
+// ─── DELETE GROUP ───────────────────────────────────────────────────────────
+
+function requestDeleteGroup(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  openDeleteConfirmAt(
+    group.cx, group.cy,
+    'Ta bort gruppen? Alla noder och kopplingar i den tas också bort.',
+    { type: 'group', groupId }
+  );
+}
+
+// Removes a group entirely: its DOM, its label path (lives in <defs>, so
+// not a child of the group), any connections touching any of its slots,
+// its spot on a ring (redistributing whatever's left on that ring), and —
+// if it was the central group — resets that tracking so "+" works again.
+function performDeleteGroup(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+
+  connections = connections.filter(conn => {
+    const touchesThisGroup = conn.from.groupId === groupId || conn.to.groupId === groupId;
+    if (touchesThisGroup) conn.el.remove();
+    return !touchesThisGroup;
+  });
+
+  if (group.labelPathEl) group.labelPathEl.remove();
+  group.el.remove();
+
+  if (group.layerId) {
+    const layer = layers.find(l => l.id === group.layerId);
+    if (layer) {
+      layer.groupIds = layer.groupIds.filter(id => id !== groupId);
+      redistributeLayer(layer);
+      renderLayersPanel();
+    }
+  }
+
+  if (centralGroupId === groupId) {
+    centralGroupId = null;
+    document.getElementById('coreStatus').textContent = 'Ej skapad';
+  }
+
+  delete groups[groupId];
+}
+
+// ─── GROUP SCALE (+/-) ──────────────────────────────────────────────────────
+// Sits one row below the order arrows, on every group (central or ringed).
+
+const SCALE_STEP = 50;          // world units — 100px change in diameter per click
+const MIN_GROUP_RADIUS = 100;   // 200px diameter floor
+const MAX_GROUP_RADIUS = 600;   // 1200px diameter ceiling
+const SCALE_BTN_OFFSET_Y = 80;  // one row below the order arrows
+
+function scaleGroup(groupId, deltaRadius) {
+  const group = groups[groupId];
+  if (!group) return;
+  const newR = Math.min(MAX_GROUP_RADIUS, Math.max(MIN_GROUP_RADIUS, group.r + deltaRadius));
+  if (newR === group.r) return;
+  group.r = newR;
+  moveGroupTo(groupId, group.cx, group.cy); // recomputes slots, label, order/scale controls, connections
+}
+
+function updateGroupScaleControls(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.scaleControlsEl;
+  container.innerHTML = '';
+
+  const y = group.cy + group.r + SCALE_BTN_OFFSET_Y;
+  const atMin = group.r <= MIN_GROUP_RADIUS;
+  const atMax = group.r >= MAX_GROUP_RADIUS;
+
+  container.appendChild(createOrderBtn(group.cx - ORDER_BTN_OFFSET_X, y, '−', () => scaleGroup(groupId, -SCALE_STEP), atMin));
+  container.appendChild(createOrderBtn(group.cx + ORDER_BTN_OFFSET_X, y, '+', () => scaleGroup(groupId, SCALE_STEP), atMax));
+}
+
+// ─── LABEL POSITION (rotate clockwise / counter-clockwise) ─────────────────
+// A third row, only shown once a group has a label — nudges the label (and
+// the slot gap that follows it) one step around the ring's circumference.
+
+const LABEL_ROTATE_STEP_DEGREES = 45; // matches the ring's natural 8-slot grid
+const LABEL_ROTATE_BTN_OFFSET_Y = 120; // one row below the scale controls
+
+function rotateGroupLabel(groupId, direction) {
+  const group = groups[groupId];
+  if (!group || !group.label) return;
+  const step = LABEL_ROTATE_STEP_DEGREES * Math.PI / 180;
+  group.labelAngle = (group.labelAngle ?? -Math.PI / 2) + direction * step;
+  moveGroupTo(groupId, group.cx, group.cy); // recomputes label path + nudged slot gap
+}
+
+function updateGroupLabelRotateControls(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.labelRotateControlsEl;
+  container.innerHTML = '';
+
+  if (!group.label) return; // nothing to rotate if there's no label yet
+
+  const y = group.cy + group.r + LABEL_ROTATE_BTN_OFFSET_Y;
+  container.appendChild(createOrderBtn(group.cx - ORDER_BTN_OFFSET_X, y, '‹', () => rotateGroupLabel(groupId, -1)));
+  container.appendChild(createOrderBtn(group.cx + ORDER_BTN_OFFSET_X, y, '›', () => rotateGroupLabel(groupId, 1)));
+}
+
+// ─── DELETE GROUP (control button) ─────────────────────────────────────────
+// A single button one row below the label-rotate arrows — always shown,
+// on every group including the central one.
+
+const GROUP_DELETE_BTN_OFFSET_Y = 160;
+
+function updateGroupDeleteControl(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.deleteControlEl;
+  container.innerHTML = '';
+
+  const y = group.cy + group.r + GROUP_DELETE_BTN_OFFSET_Y;
+  container.appendChild(createDeleteBtn(group.cx, y, () => requestDeleteGroup(groupId)));
+}
+
+// Spaces every group on a ring evenly around its circumference,
+// starting at 12 o'clock — same approach as the main app's student rings.
+function redistributeLayer(layer) {
+  const count = layer.groupIds.length;
+  if (!count) return;
+  const angleStep = (2 * Math.PI) / count;
+  layer.groupIds.forEach((groupId, i) => {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const cx = MAP_CENTER.x + layer.radius * Math.cos(angle);
+    const cy = MAP_CENTER.y + layer.radius * Math.sin(angle);
+    moveGroupTo(groupId, cx, cy);
+  });
+}
+
+function renderLayersPanel() {
+  const list = document.getElementById('layersList');
+  const empty = document.getElementById('layersEmpty');
+  list.innerHTML = '';
+  empty.style.display = layers.length ? 'none' : 'block';
+
+  layers.forEach(layer => {
+    const row = document.createElement('div');
+    row.className = 'layer-row';
+    row.innerHTML = `
+      <span class="layer-name">Lager ${layer.index}</span>
+      <span class="layer-count">${layer.groupIds.length} grupp${layer.groupIds.length === 1 ? '' : 'er'}</span>
+      <button class="layer-add-btn">+ Grupp</button>
+    `;
+    row.querySelector('.layer-add-btn').addEventListener('click', () => addGroupToLayer(layer.id));
+    list.appendChild(row);
+  });
+}
+
+// Returns 9 positions: index 0 = center, 1..8 spaced around the outline.
+// When gapRad > 0, a wedge of that angular width is left open — centered at
+// gapCenter (defaults to 12 o'clock) — so a curved label can sit there
+// without a node behind it. gapCenter rotates with the label position.
+function buildSlotPositions(cx, cy, r, gapRad = 0, gapCenter = -Math.PI / 2) {
+  const positions = [{ x: cx, y: cy, isCenter: true }];
+  const available = (2 * Math.PI) - gapRad;
+  const angleStep = available / SLOT_COUNT;
+  const buffer = gapRad > 0 ? angleStep / 2 : 0; // small symmetric margin either side of the gap
+  const start = gapCenter + gapRad / 2 + buffer;
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const angle = start + i * angleStep;
+    positions.push({
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+      isCenter: false,
+    });
+  }
+  return positions;
+}
+
+function getLabelGapRadians(group) {
+  return (group.label && group.label.trim()) ? (LABEL_GAP_DEGREES * Math.PI / 180) : 0;
+}
+
+// ─── GROUP LABEL (in-canvas editor) ─────────────────────────────────────────
+
+const labelEditor = document.getElementById('labelEditor');
+const labelEditorInput = document.getElementById('labelEditorInput');
+let labelEditorTarget = null; // groupId currently being edited
+
+function openGroupLabelEditor(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+
+  closeSlotMenu();
+  cancelConnection();
+
+  labelEditorTarget = groupId;
+  const pos = worldToScreen(group.cx, group.cy);
+  labelEditor.style.left = pos.x + 'px';
+  labelEditor.style.top = pos.y + 'px';
+  labelEditor.classList.add('open');
+
+  labelEditorInput.value = group.label || '';
+  requestAnimationFrame(() => { labelEditorInput.focus(); labelEditorInput.select(); });
+}
+
+function commitGroupLabelEditor() {
+  if (!labelEditorTarget) return;
+  const groupId = labelEditorTarget;
+  const group = groups[groupId];
+  const next = labelEditorInput.value.trim();
+  closeGroupLabelEditor();
+  if (!group || next === (group.label || '')) return; // nothing changed
+
+  group.label = next;
+  updateGroupLabelPath(groupId);
+  renderGroupLabelText(groupId);
+  moveGroupTo(groupId, group.cx, group.cy); // recompute slot nudging around the new gap
+}
+
+function cancelGroupLabelEditor() {
+  closeGroupLabelEditor();
+}
+
+function closeGroupLabelEditor() {
+  labelEditorTarget = null;
+  labelEditor.classList.remove('open');
+}
+
+labelEditorInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); commitGroupLabelEditor(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelGroupLabelEditor(); }
+  e.stopPropagation();
+});
+labelEditorInput.addEventListener('blur', () => commitGroupLabelEditor());
+
+// ─── PROJECT CATALOG (create in database, via header button) ───────────────
+// Not tied to any node — this just adds a new entry to /mapProjects. Placing
+// a project on the map happens separately, via the picker below.
+
+const projectEditor = document.getElementById('projectEditor');
+const projectTitleInput = document.getElementById('projectTitleInput');
+const projectUrlInput = document.getElementById('projectUrlInput');
+const projectIdInput = document.getElementById('projectIdInput');
+const projectEditorError = document.getElementById('projectEditorError');
+let projectCatalogEditorOpen = false;
+
+function openProjectCatalogEditor() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  closeProjectPicker();
+  cancelRoleEditor();
+  cancelDeleteConfirm();
+
+  projectCatalogEditorOpen = true;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  projectEditor.style.left = centerX + 'px';
+  projectEditor.style.top = centerY + 'px';
+  projectEditor.classList.add('open');
+
+  projectTitleInput.value = '';
+  projectUrlInput.value = '';
+  projectIdInput.value = '';
+  projectEditorError.textContent = '';
+  requestAnimationFrame(() => projectTitleInput.focus());
+}
+
+function cancelProjectCatalogEditor() {
+  projectCatalogEditorOpen = false;
+  projectEditor.classList.remove('open');
+}
+
+function submitProjectCatalogEditor() {
+  const title = projectTitleInput.value.trim();
+  const id = projectIdInput.value.trim();
+  const url = projectUrlInput.value.trim();
+
+  if (!title) {
+    projectEditorError.textContent = 'Titel krävs.';
+    projectTitleInput.focus();
+    return;
+  }
+  if (!id) {
+    projectEditorError.textContent = 'ID krävs.';
+    projectIdInput.focus();
+    return;
+  }
+  if (projectCatalog[id]) {
+    projectEditorError.textContent = 'Det här ID:t finns redan — välj ett annat.';
+    projectIdInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    projectEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const entry = { title, url, id };
+  projectDb.ref('mapProjects/' + id).set(entry)
+    .then(() => {
+      projectCatalog[id] = entry; // optimistic, the live listener will also confirm this
+      cancelProjectCatalogEditor();
+    })
+    .catch(err => {
+      projectEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[projectCatalog] save failed:', err);
+    });
+}
+
+[projectTitleInput, projectUrlInput, projectIdInput].forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitProjectCatalogEditor(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelProjectCatalogEditor(); }
+    e.stopPropagation();
+  });
+});
+
+// ─── PROJECT PICKER (link an existing catalog project to a node) ───────────
+
+const projectPicker = document.getElementById('projectPicker');
+const projectPickerFilter = document.getElementById('projectPickerFilter');
+const projectPickerList = document.getElementById('projectPickerList');
+let projectPickerTarget = null; // { groupId, slotIndex }
+
+function openProjectPicker(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  closeSlotMenu();
+  cancelConnection();
+
+  projectPickerTarget = { groupId, slotIndex };
+  const pos = worldToScreen(slot.x, slot.y);
+  projectPicker.style.left = pos.x + 'px';
+  projectPicker.style.top = pos.y + 'px';
+  projectPicker.classList.add('open');
+
+  projectPickerFilter.value = '';
+  renderProjectPickerList('');
+  requestAnimationFrame(() => projectPickerFilter.focus());
+}
+
+function closeProjectPicker() {
+  projectPickerTarget = null;
+  projectPicker.classList.remove('open');
+}
+
+function renderProjectPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(projectCatalog).filter(p =>
+    !q || p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+  );
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(projectCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga projekt i databasen ännu. Skapa ett via "+ Projekt" i menyn.';
+    projectPickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  projectPickerList.innerHTML = '';
+  entries.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'picker-item';
+    item.innerHTML = `${escapeHtml(p.title)}<span class="picker-item-id">${escapeHtml(p.id)}</span>`;
+    item.addEventListener('click', () => selectProjectForSlot(p.id));
+    projectPickerList.appendChild(item);
+  });
+}
+
+function selectProjectForSlot(projectId) {
+  if (!projectPickerTarget) return;
+  const { groupId, slotIndex } = projectPickerTarget;
+  closeProjectPicker();
+
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  slot.type = 'project';
+  slot.projectId = projectId;
+  renderSlot(groupId, slot);
+}
+
+projectPickerFilter.addEventListener('input', () => renderProjectPickerList(projectPickerFilter.value));
+projectPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeProjectPicker(); }
+  e.stopPropagation();
+});
+
+// ─── ROLE NODE (in-canvas creation form) ────────────────────────────────────
+
+const roleEditor = document.getElementById('roleEditor');
+const roleIdInput = document.getElementById('roleIdInput');
+const roleEditorError = document.getElementById('roleEditorError');
+let roleEditorTarget = null; // { groupId, slotIndex }
+
+function openRoleEditor(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  closeSlotMenu();
+  cancelConnection();
+
+  roleEditorTarget = { groupId, slotIndex };
+  const pos = worldToScreen(slot.x, slot.y);
+  roleEditor.style.left = pos.x + 'px';
+  roleEditor.style.top = pos.y + 'px';
+  roleEditor.classList.add('open');
+
+  roleIdInput.value = '';
+  roleEditorError.textContent = '';
+  requestAnimationFrame(() => roleIdInput.focus());
+}
+
+function closeRoleEditor() {
+  roleEditorTarget = null;
+  roleEditor.classList.remove('open');
+}
+
+function cancelRoleEditor() {
+  closeRoleEditor();
+}
+
+function submitRoleEditor() {
+  if (!roleEditorTarget) return;
+  const id = roleIdInput.value.trim();
+  if (!id) {
+    roleEditorError.textContent = 'ID krävs.';
+    roleIdInput.focus();
+    return;
+  }
+
+  const { groupId, slotIndex } = roleEditorTarget;
+  const slot = getSlot(groupId, slotIndex);
+  closeRoleEditor();
+  if (!slot) return;
+
+  slot.type = 'role';
+  slot.roleId = id;
+  renderSlot(groupId, slot);
+}
+
+roleIdInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); submitRoleEditor(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelRoleEditor(); }
+  e.stopPropagation();
+});
+
+// Builds/updates the invisible arc path (living in <defs>) that the label
+// text curves along. Centered on group.labelAngle — defaults to the top of
+// the ring, but rotates with it when the label position is nudged.
+function updateGroupLabelPath(groupId) {
+  const group = groups[groupId];
+  if (!group.labelPathEl) {
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('id', `label-path-${groupId}`);
+    path.setAttribute('fill', 'none');
+    svgDefs.appendChild(path);
+    group.labelPathEl = path;
+  }
+  const r = group.r + LABEL_RADIUS_OFFSET;
+  const labelAngle = group.labelAngle ?? -Math.PI / 2;
+  const startAngle = labelAngle - Math.PI / 2;
+  const endAngle = labelAngle + Math.PI / 2;
+  const p1x = group.cx + r * Math.cos(startAngle);
+  const p1y = group.cy + r * Math.sin(startAngle);
+  const p2x = group.cx + r * Math.cos(endAngle);
+  const p2y = group.cy + r * Math.sin(endAngle);
+  const d = `M ${p1x} ${p1y} A ${r} ${r} 0 0 1 ${p2x} ${p2y}`;
+  group.labelPathEl.setAttribute('d', d);
+}
+
+function renderGroupLabelText(groupId) {
+  const group = groups[groupId];
+  if (!group.labelTextEl) {
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('class', 'group-label');
+    const textPath = document.createElementNS(svgNS, 'textPath');
+    textPath.setAttribute('startOffset', '50%');
+    textPath.setAttribute('text-anchor', 'middle');
+    text.appendChild(textPath);
+    group.el.appendChild(text);
+    group.labelTextEl = text;
+    group.labelTextPathEl = textPath;
+  }
+  group.labelTextPathEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#label-path-${groupId}`);
+  group.labelTextPathEl.setAttribute('href', `#label-path-${groupId}`);
+  group.labelTextPathEl.textContent = group.label || '';
+  group.labelTextEl.style.display = group.label ? '' : 'none';
+}
+
+function getSlot(groupId, slotIndex) {
+  const group = groups[groupId];
+  if (!group) return null;
+  return group.slots[slotIndex] || null;
+}
+
+// Rebuilds a slot's visual contents based on its current state
+// (empty / filled / connecting).
+function renderSlot(groupId, slot) {
+  const g = slot.el;
+  g.innerHTML = '';
+  g.setAttribute('class', 'node-slot'
+    + (slot.type ? ` is-filled type-${slot.type}` : '')
+    + (connectingFrom && connectingFrom.groupId === groupId && connectingFrom.slotIndex === slot.index ? ' is-connecting' : ''));
+
+  let visualHalfHeight = SLOT_RADIUS;
+  let visualHalfWidth = SLOT_RADIUS;
+
+  if (slot.type === 'project') {
+    visualHalfHeight = PROJECT_RECT_HEIGHT / 2;
+    visualHalfWidth = PROJECT_RECT_WIDTH / 2;
+
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('class', 'project-card');
+    rect.setAttribute('x', slot.x - PROJECT_RECT_WIDTH / 2);
+    rect.setAttribute('y', slot.y - PROJECT_RECT_HEIGHT / 2);
+    rect.setAttribute('width', PROJECT_RECT_WIDTH);
+    rect.setAttribute('height', PROJECT_RECT_HEIGHT);
+    rect.setAttribute('rx', PROJECT_RECT_RX);
+    g.appendChild(rect);
+
+    const title = document.createElementNS(svgNS, 'text');
+    title.setAttribute('class', 'project-card-title');
+    title.setAttribute('x', slot.x);
+    title.setAttribute('y', slot.y);
+    const catalogEntry = projectCatalog[slot.projectId];
+    title.textContent = catalogEntry ? catalogEntry.title : '…';
+    g.appendChild(title);
+  } else {
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('class', 'slot-outline');
+    circle.setAttribute('cx', slot.x);
+    circle.setAttribute('cy', slot.y);
+    circle.setAttribute('r', SLOT_RADIUS);
+    g.appendChild(circle);
+
+    if (slot.type) {
+      const icon = document.createElementNS(svgNS, 'text');
+      icon.setAttribute('class', 'slot-icon');
+      icon.setAttribute('x', slot.x);
+      icon.setAttribute('y', slot.y);
+      icon.textContent = TYPE_ICON[slot.type];
+      g.appendChild(icon);
+    } else {
+      const plus = document.createElementNS(svgNS, 'text');
+      plus.setAttribute('class', 'slot-plus');
+      plus.setAttribute('x', slot.x);
+      plus.setAttribute('y', slot.y);
+      plus.textContent = '+';
+      g.appendChild(plus);
+    }
+  }
+
+  // Delete button — only on filled nodes, top-right corner of whichever
+  // shape is showing (works for both the center slot and outline slots).
+  if (slot.type) {
+    const dx = slot.x + visualHalfWidth * 0.78;
+    const dy = slot.y - visualHalfHeight * 0.78;
+    g.appendChild(createDeleteBtn(dx, dy, () => requestDeleteNode(groupId, slot.index)));
+  }
+
+  // Reorder arrows — only the 8 outline nodes have an order; the lone
+  // center slot doesn't. Offset from whichever shape is currently showing.
+  if (!slot.isCenter) {
+    const y = slot.y + visualHalfHeight + NODE_ORDER_BTN_GAP;
+    g.appendChild(createOrderBtn(slot.x - NODE_ORDER_BTN_OFFSET_X, y, '↺', () => moveNodeOnRing(groupId, slot.index, -1), false, NODE_ORDER_BTN_RADIUS, 12));
+    g.appendChild(createOrderBtn(slot.x + NODE_ORDER_BTN_OFFSET_X, y, '↻', () => moveNodeOnRing(groupId, slot.index, 1), false, NODE_ORDER_BTN_RADIUS, 12));
+  }
+}
+
+function onSlotClick(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  if (connectingFrom) {
+    if (connectingFrom.groupId === groupId && connectingFrom.slotIndex === slotIndex) {
+      cancelConnection();
+    } else {
+      completeConnection(connectingFrom, { groupId, slotIndex });
+    }
+    return;
+  }
+
+  if (slot.type) {
+    // Filled node clicked — editing existing nodes is a later step.
+    console.log('Node clicked (editing not implemented yet):', groupId, slotIndex, slot.type);
+    return;
+  }
+
+  openSlotMenu(groupId, slotIndex, slot.x, slot.y);
+}
+
+// ─── SUBMENU: create project / create role / create connection ────────────
+
+function worldToScreen(x, y) {
+  const pt = svg.createSVGPoint();
+  pt.x = x; pt.y = y;
+  const screenPt = pt.matrixTransform(svg.getScreenCTM());
+  const areaRect = area.getBoundingClientRect();
+  return { x: screenPt.x - areaRect.left, y: screenPt.y - areaRect.top };
+}
+
+function openSlotMenu(groupId, slotIndex, worldX, worldY) {
+  menuTarget = { groupId, slotIndex };
+  const pos = worldToScreen(worldX, worldY);
+  slotMenu.style.left = pos.x + 'px';
+  slotMenu.style.top = pos.y + 'px';
+  slotMenu.classList.add('open');
+}
+
+function closeSlotMenu() {
+  menuTarget = null;
+  slotMenu.classList.remove('open');
+}
+
+function handleMenuChoice(choice) {
+  if (!menuTarget) return;
+  const { groupId, slotIndex } = menuTarget;
+  closeSlotMenu();
+
+  if (choice === 'project') {
+    openProjectPicker(groupId, slotIndex);
+  } else if (choice === 'role') {
+    openRoleEditor(groupId, slotIndex);
+  } else if (choice === 'connection') {
+    startConnection(groupId, slotIndex);
+  }
+}
+
+// ─── CONNECTIONS ────────────────────────────────────────────────────────────
+
+function startConnection(groupId, slotIndex) {
+  connectingFrom = { groupId, slotIndex };
+  renderSlot(groupId, getSlot(groupId, slotIndex));
+}
+
+function cancelConnection() {
+  if (!connectingFrom) return;
+  const { groupId, slotIndex } = connectingFrom;
+  connectingFrom = null;
+  const slot = getSlot(groupId, slotIndex);
+  if (slot) renderSlot(groupId, slot);
+}
+
+function completeConnection(from, to) {
+  const fromSlot = getSlot(from.groupId, from.slotIndex);
+  const toSlot = getSlot(to.groupId, to.slotIndex);
+  connectingFrom = null;
+  if (fromSlot) renderSlot(from.groupId, fromSlot);
+  if (!fromSlot || !toSlot) return;
+
+  const line = document.createElementNS(svgNS, 'line');
+  line.setAttribute('class', 'connector-line');
+  line.setAttribute('x1', fromSlot.x);
+  line.setAttribute('y1', fromSlot.y);
+  line.setAttribute('x2', toSlot.x);
+  line.setAttribute('y2', toSlot.y);
+  connectorsLayer.appendChild(line);
+
+  const id = 'connection-' + connectionIdCounter++;
+  connections.push({ id, from, to, el: line });
+}
+
+// Clicking empty canvas: close the menu / cancel an in-progress connection.
+area.addEventListener('click', e => {
+  if (e.target.closest('.node-slot') || e.target.closest('.slot-menu') || e.target.closest('.zoom-btn') || e.target.closest('.add-btn') || e.target.closest('.layers-panel') || e.target.closest('.label-editor') || e.target.closest('.project-editor') || e.target.closest('.project-picker') || e.target.closest('.delete-confirm')) return;
+  closeSlotMenu();
+  cancelConnection();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleEditor();
+  cancelDeleteConfirm();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleEditor(); cancelDeleteConfirm(); }
+});
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+
+resetView();
 </script>
+
 </body>
 </html>
