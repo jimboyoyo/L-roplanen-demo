@@ -316,6 +316,22 @@
   }
   .project-editor input:focus { border-color: #3a6df0; }
   .project-editor input::placeholder { color: #bbb; }
+  .project-editor textarea {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+    resize: vertical;
+    transition: border-color 0.15s;
+  }
+  .project-editor textarea:focus { border-color: #3a6df0; }
+  .project-editor textarea::placeholder { color: #bbb; }
   .project-editor .editor-error {
     font-size: 11px;
     color: #ff6b6b;
@@ -591,6 +607,18 @@
   </div>
 
   <div class="project-editor role-editor" id="roleEditor">
+    <div class="field">
+      <label>Titel</label>
+      <input type="text" id="roleTitleInput" placeholder="Rollnamn…" maxlength="80" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Beskrivning</label>
+      <textarea id="roleDescriptionInput" placeholder="Kort beskrivning av rollen…" rows="3"></textarea>
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" id="roleUrlInput" placeholder="https://…" autocomplete="off" />
+    </div>
     <div class="field">
       <label>ID</label>
       <input type="text" id="roleIdInput" placeholder="t.ex. roll-014" autocomplete="off" />
@@ -1294,11 +1322,16 @@ function exportMapToSvgString() {
           ? `<a data-url="${escapeHtml(url)}">${rectMarkup}</a>\n`
           : rectMarkup;
       } else if (slot.type === 'role') {
+        const role = roleCatalog[slot.roleId];
+        const url = role ? role.url : '';
         const nodeId = `role-${slot.roleId}`;
-        nodesMarkup += `<circle id="${escapeHtml(nodeId)}" cx="${slot.x}" cy="${slot.y}" r="${SLOT_RADIUS}" `
+        const circleMarkup = `<circle id="${escapeHtml(nodeId)}" cx="${slot.x}" cy="${slot.y}" r="${SLOT_RADIUS}" `
           + `fill="rgba(240,168,58,0.35)" stroke="#f3bb63" stroke-width="2" `
           + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
           + `<text x="${slot.x}" y="${slot.y}" font-size="26" text-anchor="middle" dominant-baseline="central" pointer-events="none">${TYPE_ICON.role}</text>\n`;
+        nodesMarkup += url
+          ? `<a data-url="${escapeHtml(url)}">${circleMarkup}</a>\n`
+          : circleMarkup;
       }
     });
   });
@@ -1694,6 +1727,9 @@ projectPickerFilter.addEventListener('keydown', e => {
 // role on the map happens separately, via the picker below.
 
 const roleEditor = document.getElementById('roleEditor');
+const roleTitleInput = document.getElementById('roleTitleInput');
+const roleDescriptionInput = document.getElementById('roleDescriptionInput');
+const roleUrlInput = document.getElementById('roleUrlInput');
 const roleIdInput = document.getElementById('roleIdInput');
 const roleEditorError = document.getElementById('roleEditorError');
 
@@ -1712,9 +1748,12 @@ function openRoleCatalogEditor() {
   roleEditor.style.top = centerY + 'px';
   roleEditor.classList.add('open');
 
+  roleTitleInput.value = '';
+  roleDescriptionInput.value = '';
+  roleUrlInput.value = '';
   roleIdInput.value = '';
   roleEditorError.textContent = '';
-  requestAnimationFrame(() => roleIdInput.focus());
+  requestAnimationFrame(() => roleTitleInput.focus());
 }
 
 function cancelRoleCatalogEditor() {
@@ -1722,7 +1761,16 @@ function cancelRoleCatalogEditor() {
 }
 
 function submitRoleCatalogEditor() {
+  const title = roleTitleInput.value.trim();
+  const description = roleDescriptionInput.value.trim();
+  const url = roleUrlInput.value.trim();
   const id = roleIdInput.value.trim();
+
+  if (!title) {
+    roleEditorError.textContent = 'Titel krävs.';
+    roleTitleInput.focus();
+    return;
+  }
   if (!id) {
     roleEditorError.textContent = 'ID krävs.';
     roleIdInput.focus();
@@ -1738,7 +1786,7 @@ function submitRoleCatalogEditor() {
     return;
   }
 
-  const entry = { id };
+  const entry = { title, description, url, id };
   projectDb.ref('mapRoles/' + id).set(entry)
     .then(() => {
       roleCatalog[id] = entry; // optimistic, the live listener will also confirm this
@@ -1750,9 +1798,16 @@ function submitRoleCatalogEditor() {
     });
 }
 
-roleIdInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); submitRoleCatalogEditor(); }
-  else if (e.key === 'Escape') { e.preventDefault(); cancelRoleCatalogEditor(); }
+[roleTitleInput, roleUrlInput, roleIdInput].forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitRoleCatalogEditor(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelRoleCatalogEditor(); }
+    e.stopPropagation();
+  });
+});
+// The description is a textarea — Enter should add a newline, not submit.
+roleDescriptionInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); cancelRoleCatalogEditor(); }
   e.stopPropagation();
 });
 
@@ -1788,7 +1843,9 @@ function closeRolePicker() {
 
 function renderRolePickerList(query) {
   const q = query.trim().toLowerCase();
-  const entries = Object.values(roleCatalog).filter(r => !q || r.id.toLowerCase().includes(q));
+  const entries = Object.values(roleCatalog).filter(r =>
+    !q || (r.title || '').toLowerCase().includes(q) || r.id.toLowerCase().includes(q)
+  );
 
   if (!entries.length) {
     const emptyMsg = Object.keys(roleCatalog).length
@@ -1802,7 +1859,7 @@ function renderRolePickerList(query) {
   entries.forEach(r => {
     const item = document.createElement('div');
     item.className = 'picker-item';
-    item.textContent = r.id;
+    item.innerHTML = `${escapeHtml(r.title || r.id)}<span class="picker-item-id">${escapeHtml(r.id)}</span>`;
     item.addEventListener('click', () => selectRoleForSlot(r.id));
     rolePickerList.appendChild(item);
   });
