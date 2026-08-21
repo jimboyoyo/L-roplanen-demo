@@ -519,6 +519,7 @@
     <button class="add-btn" onclick="createCentralGroup()" title="Skapa central grupp">+</button>
     <button class="layer-btn" onclick="createLayer()" title="Nytt lager">Nytt lager</button>
     <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
+    <button class="layer-btn" onclick="openRoleCatalogEditor()" title="Skapa ny roll i databasen">+ Roll</button>
     <button class="layer-btn" onclick="saveMapToFirebase()" title="Spara kartan till Firebase Storage">Spara karta</button>
     <span class="hint" id="saveStatus"></span>
     <span class="hint">Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
@@ -564,7 +565,7 @@
 
   <div class="slot-menu" id="slotMenu">
     <button onclick="handleMenuChoice('project')">Lägg till projekt</button>
-    <button onclick="handleMenuChoice('role')">Skapa roll</button>
+    <button onclick="handleMenuChoice('role')">Lägg till roll</button>
     <button onclick="handleMenuChoice('connection')">Skapa koppling</button>
   </div>
 
@@ -595,12 +596,17 @@
       <input type="text" id="roleIdInput" placeholder="t.ex. roll-014" autocomplete="off" />
     </div>
     <div class="editor-error" id="roleEditorError"></div>
-    <button class="editor-submit" onclick="submitRoleEditor()">Skapa roll</button>
+    <button class="editor-submit" onclick="submitRoleCatalogEditor()">Skapa roll</button>
   </div>
 
   <div class="project-picker" id="projectPicker">
     <input type="text" id="projectPickerFilter" class="picker-filter" placeholder="Sök projekt…" autocomplete="off" />
     <div class="picker-list" id="projectPickerList"></div>
+  </div>
+
+  <div class="project-picker role-picker" id="rolePicker">
+    <input type="text" id="rolePickerFilter" class="picker-filter" placeholder="Sök roll…" autocomplete="off" />
+    <div class="picker-list" id="rolePickerList"></div>
   </div>
 
   <div class="delete-confirm" id="deleteConfirm">
@@ -755,6 +761,7 @@ const firebaseConfig = {
 
 let projectDb = null;
 let projectCatalog = {}; // id -> { title, url, id }
+let roleCatalog = {};    // id -> { id }
 
 (function initFirebaseProjects() {
   const script1 = document.createElement('script');
@@ -768,6 +775,10 @@ let projectCatalog = {}; // id -> { title, url, id }
       projectDb.ref('mapProjects').on('value', snapshot => {
         projectCatalog = snapshot.val() || {};
         onProjectCatalogUpdated();
+      });
+      projectDb.ref('mapRoles').on('value', snapshot => {
+        roleCatalog = snapshot.val() || {};
+        onRoleCatalogUpdated();
       });
     };
     document.head.appendChild(script2);
@@ -784,6 +795,10 @@ function onProjectCatalogUpdated() {
     });
   });
   if (projectPickerTarget) renderProjectPickerList(projectPickerFilter.value);
+}
+
+function onRoleCatalogUpdated() {
+  if (rolePickerTarget) renderRolePickerList(rolePickerFilter.value);
 }
 
 function escapeHtml(str) {
@@ -1101,7 +1116,8 @@ function openDeleteConfirmAt(worldX, worldY, message, target) {
   cancelGroupLabelEditor();
   cancelProjectCatalogEditor();
   closeProjectPicker();
-  cancelRoleEditor();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
 
   deleteConfirmTarget = target;
   deleteConfirmText.textContent = message;
@@ -1133,8 +1149,8 @@ function confirmDelete() {
 function requestDeleteNode(groupId, slotIndex) {
   const slot = getSlot(groupId, slotIndex);
   if (!slot || !slot.type) return;
-  const message = slot.type === 'project'
-    ? 'Ta bort noden från kartan? Länken till projektet tas bort, men projektet finns kvar i databasen. Eventuella linjer till den tas också bort.'
+  const message = (slot.type === 'project' || slot.type === 'role')
+    ? 'Ta bort noden från kartan? Länken tas bort, men posten finns kvar i databasen. Eventuella linjer till den tas också bort.'
     : 'Ta bort noden? Eventuella kopplingar till den tas också bort.';
   openDeleteConfirmAt(slot.x, slot.y, message, { type: 'node', groupId, slotIndex });
 }
@@ -1532,7 +1548,8 @@ function openProjectCatalogEditor() {
   cancelConnection();
   cancelGroupLabelEditor();
   closeProjectPicker();
-  cancelRoleEditor();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
   cancelDeleteConfirm();
 
   projectCatalogEditorOpen = true;
@@ -1672,24 +1689,27 @@ projectPickerFilter.addEventListener('keydown', e => {
   e.stopPropagation();
 });
 
-// ─── ROLE NODE (in-canvas creation form) ────────────────────────────────────
+// ─── ROLE CATALOG (create in database, via header button) ──────────────────
+// Not tied to any node — this just adds a new entry to /mapRoles. Placing a
+// role on the map happens separately, via the picker below.
 
 const roleEditor = document.getElementById('roleEditor');
 const roleIdInput = document.getElementById('roleIdInput');
 const roleEditorError = document.getElementById('roleEditorError');
-let roleEditorTarget = null; // { groupId, slotIndex }
 
-function openRoleEditor(groupId, slotIndex) {
-  const slot = getSlot(groupId, slotIndex);
-  if (!slot) return;
-
+function openRoleCatalogEditor() {
   closeSlotMenu();
   cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  closeRolePicker();
+  cancelDeleteConfirm();
 
-  roleEditorTarget = { groupId, slotIndex };
-  const pos = worldToScreen(slot.x, slot.y);
-  roleEditor.style.left = pos.x + 'px';
-  roleEditor.style.top = pos.y + 'px';
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  roleEditor.style.left = centerX + 'px';
+  roleEditor.style.top = centerY + 'px';
   roleEditor.classList.add('open');
 
   roleIdInput.value = '';
@@ -1697,37 +1717,113 @@ function openRoleEditor(groupId, slotIndex) {
   requestAnimationFrame(() => roleIdInput.focus());
 }
 
-function closeRoleEditor() {
-  roleEditorTarget = null;
+function cancelRoleCatalogEditor() {
   roleEditor.classList.remove('open');
 }
 
-function cancelRoleEditor() {
-  closeRoleEditor();
-}
-
-function submitRoleEditor() {
-  if (!roleEditorTarget) return;
+function submitRoleCatalogEditor() {
   const id = roleIdInput.value.trim();
   if (!id) {
     roleEditorError.textContent = 'ID krävs.';
     roleIdInput.focus();
     return;
   }
+  if (roleCatalog[id]) {
+    roleEditorError.textContent = 'Det här ID:t finns redan — välj ett annat.';
+    roleIdInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    roleEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
 
-  const { groupId, slotIndex } = roleEditorTarget;
-  const slot = getSlot(groupId, slotIndex);
-  closeRoleEditor();
-  if (!slot) return;
-
-  slot.type = 'role';
-  slot.roleId = id;
-  renderSlot(groupId, slot);
+  const entry = { id };
+  projectDb.ref('mapRoles/' + id).set(entry)
+    .then(() => {
+      roleCatalog[id] = entry; // optimistic, the live listener will also confirm this
+      cancelRoleCatalogEditor();
+    })
+    .catch(err => {
+      roleEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[roleCatalog] save failed:', err);
+    });
 }
 
 roleIdInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); submitRoleEditor(); }
-  else if (e.key === 'Escape') { e.preventDefault(); cancelRoleEditor(); }
+  if (e.key === 'Enter') { e.preventDefault(); submitRoleCatalogEditor(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelRoleCatalogEditor(); }
+  e.stopPropagation();
+});
+
+// ─── ROLE PICKER (link an existing catalog role to a node) ─────────────────
+
+const rolePicker = document.getElementById('rolePicker');
+const rolePickerFilter = document.getElementById('rolePickerFilter');
+const rolePickerList = document.getElementById('rolePickerList');
+let rolePickerTarget = null; // { groupId, slotIndex }
+
+function openRolePicker(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  closeSlotMenu();
+  cancelConnection();
+
+  rolePickerTarget = { groupId, slotIndex };
+  const pos = worldToScreen(slot.x, slot.y);
+  rolePicker.style.left = pos.x + 'px';
+  rolePicker.style.top = pos.y + 'px';
+  rolePicker.classList.add('open');
+
+  rolePickerFilter.value = '';
+  renderRolePickerList('');
+  requestAnimationFrame(() => rolePickerFilter.focus());
+}
+
+function closeRolePicker() {
+  rolePickerTarget = null;
+  rolePicker.classList.remove('open');
+}
+
+function renderRolePickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(roleCatalog).filter(r => !q || r.id.toLowerCase().includes(q));
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(roleCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga roller i databasen ännu. Skapa en via "+ Roll" i menyn.';
+    rolePickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  rolePickerList.innerHTML = '';
+  entries.forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'picker-item';
+    item.textContent = r.id;
+    item.addEventListener('click', () => selectRoleForSlot(r.id));
+    rolePickerList.appendChild(item);
+  });
+}
+
+function selectRoleForSlot(roleId) {
+  if (!rolePickerTarget) return;
+  const { groupId, slotIndex } = rolePickerTarget;
+  closeRolePicker();
+
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  slot.type = 'role';
+  slot.roleId = roleId;
+  renderSlot(groupId, slot);
+}
+
+rolePickerFilter.addEventListener('input', () => renderRolePickerList(rolePickerFilter.value));
+rolePickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeRolePicker(); }
   e.stopPropagation();
 });
 
@@ -1907,7 +2003,7 @@ function handleMenuChoice(choice) {
   if (choice === 'project') {
     openProjectPicker(groupId, slotIndex);
   } else if (choice === 'role') {
-    openRoleEditor(groupId, slotIndex);
+    openRolePicker(groupId, slotIndex);
   } else if (choice === 'connection') {
     startConnection(groupId, slotIndex);
   }
@@ -1954,11 +2050,12 @@ area.addEventListener('click', e => {
   cancelConnection();
   cancelProjectCatalogEditor();
   closeProjectPicker();
-  cancelRoleEditor();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
   cancelDeleteConfirm();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleEditor(); cancelDeleteConfirm(); }
+  if (e.key === 'Escape') { closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelDeleteConfirm(); }
 });
 
 // ─── INIT ───────────────────────────────────────────────────────────────────
