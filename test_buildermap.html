@@ -519,6 +519,8 @@
     <button class="add-btn" onclick="createCentralGroup()" title="Skapa central grupp">+</button>
     <button class="layer-btn" onclick="createLayer()" title="Nytt lager">Nytt lager</button>
     <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
+    <button class="layer-btn" onclick="saveMapToFirebase()" title="Spara kartan till Firebase Storage">Spara karta</button>
+    <span class="hint" id="saveStatus"></span>
     <span class="hint">Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
   </div>
 </header>
@@ -752,6 +754,7 @@ const firebaseConfig = {
 };
 
 let projectDb = null;
+let mapStorage = null;
 let projectCatalog = {}; // id -> { title, url, id }
 
 (function initFirebaseProjects() {
@@ -761,12 +764,18 @@ let projectCatalog = {}; // id -> { title, url, id }
     const script2 = document.createElement('script');
     script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
     script2.onload = () => {
-      firebase.initializeApp(firebaseConfig);
-      projectDb = firebase.database();
-      projectDb.ref('mapProjects').on('value', snapshot => {
-        projectCatalog = snapshot.val() || {};
-        onProjectCatalogUpdated();
-      });
+      const script3 = document.createElement('script');
+      script3.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js';
+      script3.onload = () => {
+        firebase.initializeApp(firebaseConfig);
+        projectDb = firebase.database();
+        mapStorage = firebase.storage();
+        projectDb.ref('mapProjects').on('value', snapshot => {
+          projectCatalog = snapshot.val() || {};
+          onProjectCatalogUpdated();
+        });
+      };
+      document.head.appendChild(script3);
     };
     document.head.appendChild(script2);
   };
@@ -1201,6 +1210,129 @@ function performDeleteGroup(groupId) {
   }
 
   delete groups[groupId];
+}
+
+// ─── EXPORT / SAVE ──────────────────────────────────────────────────────────
+// Serializes the current map into one real, deployable SVG file. Only real
+// content is written out (group circles, labels, filled nodes, connector
+// lines) — none of the builder's own chrome (arrows, +/− buttons, empty "+"
+// placeholders). Round-trip metadata (ring membership, label angle, node
+// order) rides along as data-* attributes the live app simply ignores.
+
+const EXPORT_MARGIN = 200; // world units of padding around the map's bounding box
+
+function exportMapToSvgString() {
+  const groupList = Object.values(groups);
+
+  // Bounding box across every group's circle, so nothing gets clipped.
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  groupList.forEach(g => {
+    minX = Math.min(minX, g.cx - g.r);
+    minY = Math.min(minY, g.cy - g.r);
+    maxX = Math.max(maxX, g.cx + g.r);
+    maxY = Math.max(maxY, g.cy + g.r);
+  });
+  if (!groupList.length) { minX = 0; minY = 0; maxX = BASE_W; maxY = BASE_H; }
+  const vbX = minX - EXPORT_MARGIN, vbY = minY - EXPORT_MARGIN;
+  const vbW = (maxX - minX) + EXPORT_MARGIN * 2, vbH = (maxY - minY) + EXPORT_MARGIN * 2;
+
+  let defs = '';
+  let groupsMarkup = '';
+  let nodesMarkup = '';
+  let connectorsMarkup = '';
+
+  groupList.forEach(group => {
+    const gapRad = getLabelGapRadians(group);
+    const labelAngle = group.labelAngle ?? -Math.PI / 2;
+
+    // Group circle (decorative in the live app; data-* is builder-only).
+    groupsMarkup += `<circle class="map-group-outline" cx="${group.cx}" cy="${group.cy}" r="${group.r}" `
+      + `fill="rgba(10,10,26,0.65)" stroke="#fff" stroke-width="2.5" `
+      + `data-role="group" data-group-id="${escapeHtml(group.id)}" `
+      + `data-label="${escapeHtml(group.label || '')}" data-label-angle="${labelAngle}" `
+      + `data-layer-id="${escapeHtml(group.layerId || '')}" `
+      + `data-slot-order="${group.slotAngleOrder.join(',')}" />\n`;
+
+    // Curved label, if any — same top-of-ring arc technique as the builder.
+    if (group.label) {
+      const pathId = `export-label-path-${group.id}`;
+      const r = group.r + LABEL_RADIUS_OFFSET;
+      const startAngle = labelAngle - Math.PI / 2;
+      const endAngle = labelAngle + Math.PI / 2;
+      const p1x = group.cx + r * Math.cos(startAngle), p1y = group.cy + r * Math.sin(startAngle);
+      const p2x = group.cx + r * Math.cos(endAngle), p2y = group.cy + r * Math.sin(endAngle);
+      defs += `<path id="${pathId}" fill="none" d="M ${p1x} ${p1y} A ${r} ${r} 0 0 1 ${p2x} ${p2y}" />\n`;
+      groupsMarkup += `<text font-family="Century Gothic, sans-serif" font-weight="700" font-size="30" fill="#fff" letter-spacing="0.06em">`
+        + `<textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeHtml(group.label)}</textPath></text>\n`;
+    }
+
+    // Filled nodes only — empty "+" placeholders never get exported.
+    group.slots.forEach(slot => {
+      if (!slot.type) return;
+
+      if (slot.type === 'project') {
+        const project = projectCatalog[slot.projectId];
+        const title = project ? project.title : '';
+        const url = project ? project.url : '';
+        const nodeId = `project-${slot.projectId}`;
+        const rectX = slot.x - PROJECT_RECT_WIDTH / 2, rectY = slot.y - PROJECT_RECT_HEIGHT / 2;
+        const rectMarkup = `<rect id="${escapeHtml(nodeId)}" x="${rectX}" y="${rectY}" width="${PROJECT_RECT_WIDTH}" height="${PROJECT_RECT_HEIGHT}" `
+          + `rx="${PROJECT_RECT_RX}" fill="#3a6df0" stroke="#6f93f5" stroke-width="2" `
+          + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
+          + `<text x="${slot.x}" y="${slot.y}" font-family="Century Gothic, sans-serif" font-weight="700" font-size="13" fill="#fff" `
+          + `text-anchor="middle" dominant-baseline="central" pointer-events="none">${escapeHtml(title)}</text>\n`;
+        nodesMarkup += url
+          ? `<a data-url="${escapeHtml(url)}">${rectMarkup}</a>\n`
+          : rectMarkup;
+      } else if (slot.type === 'role') {
+        const nodeId = `role-${slot.roleId}`;
+        nodesMarkup += `<circle id="${escapeHtml(nodeId)}" cx="${slot.x}" cy="${slot.y}" r="${SLOT_RADIUS}" `
+          + `fill="rgba(240,168,58,0.35)" stroke="#f3bb63" stroke-width="2" `
+          + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
+          + `<text x="${slot.x}" y="${slot.y}" font-size="26" text-anchor="middle" dominant-baseline="central" pointer-events="none">${TYPE_ICON.role}</text>\n`;
+      }
+    });
+  });
+
+  connections.forEach(conn => {
+    const fromSlot = getSlot(conn.from.groupId, conn.from.slotIndex);
+    const toSlot = getSlot(conn.to.groupId, conn.to.slotIndex);
+    if (!fromSlot || !toSlot) return;
+    connectorsMarkup += `<line class="connector" x1="${fromSlot.x}" y1="${fromSlot.y}" x2="${toSlot.x}" y2="${toSlot.y}" `
+      + `stroke="rgba(255,255,255,0.4)" stroke-width="2.5" />\n`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n`
+    + `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" `
+    + `viewBox="${vbX} ${vbY} ${vbW} ${vbH}">\n`
+    + `<defs>\n${defs}</defs>\n`
+    + `<g id="connector-layer">\n${connectorsMarkup}</g>\n`
+    + `<g id="group-layer">\n${groupsMarkup}</g>\n`
+    + `<g id="node-layer">\n${nodesMarkup}</g>\n`
+    + `</svg>\n`;
+}
+
+function saveMapToFirebase() {
+  const statusEl = document.getElementById('saveStatus');
+  if (!mapStorage) {
+    statusEl.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  statusEl.textContent = 'Sparar…';
+  const svgString = exportMapToSvgString();
+
+  mapStorage.ref('maps/map.svg')
+    .putString(svgString, 'raw', { contentType: 'image/svg+xml' })
+    .then(snapshot => snapshot.ref.getDownloadURL())
+    .then(url => {
+      statusEl.innerHTML = `Sparat ✓ — <a href="${escapeHtml(url)}" target="_blank" style="color:#7fb8ff;">öppna filen</a>`;
+      console.log('[saveMapToFirebase] map.svg URL:', url);
+    })
+    .catch(err => {
+      statusEl.textContent = 'Kunde inte spara. Se konsolen.';
+      console.error('[saveMapToFirebase] failed:', err);
+    });
 }
 
 // ─── GROUP SCALE (+/-) ──────────────────────────────────────────────────────
