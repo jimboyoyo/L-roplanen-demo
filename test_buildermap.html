@@ -754,7 +754,6 @@ const firebaseConfig = {
 };
 
 let projectDb = null;
-let mapStorage = null;
 let projectCatalog = {}; // id -> { title, url, id }
 
 (function initFirebaseProjects() {
@@ -764,18 +763,12 @@ let projectCatalog = {}; // id -> { title, url, id }
     const script2 = document.createElement('script');
     script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
     script2.onload = () => {
-      const script3 = document.createElement('script');
-      script3.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js';
-      script3.onload = () => {
-        firebase.initializeApp(firebaseConfig);
-        projectDb = firebase.database();
-        mapStorage = firebase.storage();
-        projectDb.ref('mapProjects').on('value', snapshot => {
-          projectCatalog = snapshot.val() || {};
-          onProjectCatalogUpdated();
-        });
-      };
-      document.head.appendChild(script3);
+      firebase.initializeApp(firebaseConfig);
+      projectDb = firebase.database();
+      projectDb.ref('mapProjects').on('value', snapshot => {
+        projectCatalog = snapshot.val() || {};
+        onProjectCatalogUpdated();
+      });
     };
     document.head.appendChild(script2);
   };
@@ -1314,7 +1307,7 @@ function exportMapToSvgString() {
 
 function saveMapToFirebase() {
   const statusEl = document.getElementById('saveStatus');
-  if (!mapStorage) {
+  if (!projectDb) {
     statusEl.textContent = 'Databasen är inte redo än — försök igen om en stund.';
     return;
   }
@@ -1322,12 +1315,14 @@ function saveMapToFirebase() {
   statusEl.textContent = 'Sparar…';
   const svgString = exportMapToSvgString();
 
-  mapStorage.ref('maps/map.svg')
-    .putString(svgString, 'raw', { contentType: 'image/svg+xml' })
-    .then(snapshot => snapshot.ref.getDownloadURL())
-    .then(url => {
-      statusEl.innerHTML = `Sparat ✓ — <a href="${escapeHtml(url)}" target="_blank" style="color:#7fb8ff;">öppna filen</a>`;
-      console.log('[saveMapToFirebase] map.svg URL:', url);
+  projectDb.ref('mapSvg').set(svgString)
+    .then(() => {
+      // Public REST read of a single value: the response is that string
+      // JSON-encoded, so a plain fetch() + JSON.parse() on the live app
+      // side gets the raw SVG back out — no Firebase SDK needed to read it.
+      const restUrl = firebaseConfig.databaseURL + '/mapSvg.json';
+      statusEl.innerHTML = `Sparat ✓ — <a href="${escapeHtml(restUrl)}" target="_blank" style="color:#7fb8ff;">visa rådata</a>`;
+      console.log('[saveMapToFirebase] mapSvg REST URL:', restUrl);
     })
     .catch(err => {
       statusEl.textContent = 'Kunde inte spara. Se konsolen.';
