@@ -536,7 +536,8 @@
     <button class="layer-btn" onclick="createLayer()" title="Nytt lager">Nytt lager</button>
     <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
     <button class="layer-btn" onclick="openRoleCatalogEditor()" title="Skapa ny roll i databasen">+ Roll</button>
-    <button class="layer-btn" onclick="saveMapToFirebase()" title="Spara kartan till Firebase Storage">Spara karta</button>
+    <button class="layer-btn" onclick="openMapSaveDialog()" title="Spara kartan till Firebase">Spara karta</button>
+    <button class="layer-btn" onclick="openMapLoadPicker()" title="Läs in en sparad karta från Firebase">Läs in karta</button>
     <span class="hint" id="saveStatus"></span>
     <span class="hint">Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
   </div>
@@ -637,11 +638,25 @@
     <div class="picker-list" id="rolePickerList"></div>
   </div>
 
+  <div class="project-editor" id="mapSaveDialog">
+    <div class="field">
+      <label>Namn på karta</label>
+      <input type="text" id="mapSaveNameInput" placeholder="t.ex. Ring 1 – prototyp" maxlength="60" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="mapSaveError"></div>
+    <button class="editor-submit" onclick="confirmMapSaveDialog()">Spara</button>
+  </div>
+
+  <div class="project-picker" id="mapLoadPicker">
+    <input type="text" id="mapLoadPickerFilter" class="picker-filter" placeholder="Sök karta…" autocomplete="off" />
+    <div class="picker-list" id="mapLoadPickerList"></div>
+  </div>
+
   <div class="delete-confirm" id="deleteConfirm">
     <div class="delete-confirm-text" id="deleteConfirmText">Ta bort noden? Eventuella kopplingar till den tas också bort.</div>
     <div class="delete-confirm-actions">
       <button class="delete-confirm-cancel" onclick="cancelDeleteConfirm()">Avbryt</button>
-      <button class="delete-confirm-ok" onclick="confirmDelete()">Ta bort</button>
+      <button class="delete-confirm-ok" id="deleteConfirmOkBtn" onclick="confirmDelete()">Ta bort</button>
     </div>
   </div>
 </div>
@@ -790,6 +805,9 @@ const firebaseConfig = {
 let projectDb = null;
 let projectCatalog = {}; // id -> { title, url, id }
 let roleCatalog = {};    // id -> { id }
+let mapCatalog = {};     // key -> { name, svg, savedAt }
+let currentMapKey = null;  // the map currently loaded/being worked on, if any
+let currentMapName = '';
 
 (function initFirebaseProjects() {
   const script1 = document.createElement('script');
@@ -807,6 +825,10 @@ let roleCatalog = {};    // id -> { id }
       projectDb.ref('mapRoles').on('value', snapshot => {
         roleCatalog = snapshot.val() || {};
         onRoleCatalogUpdated();
+      });
+      projectDb.ref('maps').on('value', snapshot => {
+        mapCatalog = snapshot.val() || {};
+        if (mapLoadPickerOpen) renderMapLoadPickerList(mapLoadPickerFilter.value);
       });
     };
     document.head.appendChild(script2);
@@ -845,8 +867,8 @@ let layers = [];        // { id, index, radius, groupIds: [] }
 let layerIdCounter = 1;
 
 // Creates a group's DOM + data record at a given position and registers it.
-function createGroupAt(cx, cy) {
-  const id = 'group-' + groupIdCounter++;
+function createGroupAt(cx, cy, forcedId = null) {
+  const id = forcedId || ('group-' + groupIdCounter++);
 
   const g = document.createElementNS(svgNS, 'g');
   g.setAttribute('class', 'node-group');
@@ -1146,9 +1168,12 @@ function openDeleteConfirmAt(worldX, worldY, message, target) {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
 
   deleteConfirmTarget = target;
   deleteConfirmText.textContent = message;
+  document.getElementById('deleteConfirmOkBtn').textContent = 'Ta bort';
   const pos = worldToScreen(worldX, worldY);
   deleteConfirm.style.left = pos.x + 'px';
   deleteConfirm.style.top = pos.y + 'px';
@@ -1169,6 +1194,8 @@ function confirmDelete() {
     performDeleteNode(target.groupId, target.slotIndex);
   } else if (target.type === 'group') {
     performDeleteGroup(target.groupId);
+  } else if (target.type === 'loadMap') {
+    performSelectedMapLoad();
   }
 }
 
@@ -1283,11 +1310,12 @@ function exportMapToSvgString() {
     const labelAngle = group.labelAngle ?? -Math.PI / 2;
 
     // Group circle (decorative in the live app; data-* is builder-only).
+    const layer = group.layerId ? layers.find(l => l.id === group.layerId) : null;
     groupsMarkup += `<circle class="map-group-outline" cx="${group.cx}" cy="${group.cy}" r="${group.r}" `
       + `fill="rgba(10,10,26,0.65)" stroke="#fff" stroke-width="2.5" `
       + `data-role="group" data-group-id="${escapeHtml(group.id)}" `
       + `data-label="${escapeHtml(group.label || '')}" data-label-angle="${labelAngle}" `
-      + `data-layer-id="${escapeHtml(group.layerId || '')}" `
+      + `data-layer-id="${escapeHtml(group.layerId || '')}" data-layer-index="${layer ? layer.index : ''}" `
       + `data-slot-order="${group.slotAngleOrder.join(',')}" />\n`;
 
     // Curved label, if any — same top-of-ring arc technique as the builder.
@@ -1341,7 +1369,9 @@ function exportMapToSvgString() {
     const toSlot = getSlot(conn.to.groupId, conn.to.slotIndex);
     if (!fromSlot || !toSlot) return;
     connectorsMarkup += `<line class="connector" x1="${fromSlot.x}" y1="${fromSlot.y}" x2="${toSlot.x}" y2="${toSlot.y}" `
-      + `stroke="rgba(255,255,255,0.4)" stroke-width="2.5" />\n`;
+      + `stroke="rgba(255,255,255,0.4)" stroke-width="2.5" `
+      + `data-from-group="${escapeHtml(conn.from.groupId)}" data-from-slot="${conn.from.slotIndex}" `
+      + `data-to-group="${escapeHtml(conn.to.groupId)}" data-to-slot="${conn.to.slotIndex}" />\n`;
   });
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n`
@@ -1354,29 +1384,319 @@ function exportMapToSvgString() {
     + `</svg>\n`;
 }
 
-function saveMapToFirebase() {
-  const statusEl = document.getElementById('saveStatus');
+// ─── SAVE (named, multi-map) ────────────────────────────────────────────────
+
+const mapSaveDialog = document.getElementById('mapSaveDialog');
+const mapSaveNameInput = document.getElementById('mapSaveNameInput');
+const mapSaveError = document.getElementById('mapSaveError');
+
+// Turns a display name into a Firebase-safe key (RTDB keys can't contain
+// '.', '#', '$', '[', ']', or '/').
+function slugifyMapName(name) {
+  return name.trim().toLowerCase()
+    .replace(/[.#$\[\]/]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'karta';
+}
+
+function openMapSaveDialog() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  mapSaveDialog.style.left = centerX + 'px';
+  mapSaveDialog.style.top = centerY + 'px';
+  mapSaveDialog.classList.add('open');
+
+  mapSaveNameInput.value = currentMapName || '';
+  mapSaveError.textContent = '';
+  requestAnimationFrame(() => { mapSaveNameInput.focus(); mapSaveNameInput.select(); });
+}
+
+function cancelMapSaveDialog() {
+  mapSaveDialog.classList.remove('open');
+}
+
+function confirmMapSaveDialog() {
+  const name = mapSaveNameInput.value.trim();
+  if (!name) {
+    mapSaveError.textContent = 'Namn krävs.';
+    mapSaveNameInput.focus();
+    return;
+  }
   if (!projectDb) {
-    statusEl.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    mapSaveError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
     return;
   }
 
+  const key = slugifyMapName(name);
+  cancelMapSaveDialog();
+
+  const statusEl = document.getElementById('saveStatus');
   statusEl.textContent = 'Sparar…';
   const svgString = exportMapToSvgString();
+  const entry = { name, svg: svgString, savedAt: firebase.database.ServerValue.TIMESTAMP };
 
-  projectDb.ref('mapSvg').set(svgString)
+  projectDb.ref('maps/' + key).set(entry)
     .then(() => {
-      // Public REST read of a single value: the response is that string
-      // JSON-encoded, so a plain fetch() + JSON.parse() on the live app
-      // side gets the raw SVG back out — no Firebase SDK needed to read it.
-      const restUrl = firebaseConfig.databaseURL + '/mapSvg.json';
-      statusEl.innerHTML = `Sparat ✓ — <a href="${escapeHtml(restUrl)}" target="_blank" style="color:#7fb8ff;">visa rådata</a>`;
-      console.log('[saveMapToFirebase] mapSvg REST URL:', restUrl);
+      mapCatalog[key] = { name, svg: svgString, savedAt: Date.now() }; // optimistic
+      currentMapKey = key;
+      currentMapName = name;
+      const restUrl = firebaseConfig.databaseURL + '/maps/' + key + '/svg.json';
+      statusEl.innerHTML = `Sparad som "${escapeHtml(name)}" ✓ — <a href="${escapeHtml(restUrl)}" target="_blank" style="color:#7fb8ff;">visa rådata</a>`;
     })
     .catch(err => {
       statusEl.textContent = 'Kunde inte spara. Se konsolen.';
-      console.error('[saveMapToFirebase] failed:', err);
+      console.error('[confirmMapSaveDialog] failed:', err);
     });
+}
+
+mapSaveNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); confirmMapSaveDialog(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelMapSaveDialog(); }
+  e.stopPropagation();
+});
+
+// ─── LOAD (pick from saved maps) ────────────────────────────────────────────
+// Reverses the export: fetches a chosen saved SVG from Firebase and rebuilds
+// the full builder state (groups, rings, node placements, connections) from
+// the data-* attributes embedded in it.
+
+const mapLoadPicker = document.getElementById('mapLoadPicker');
+const mapLoadPickerFilter = document.getElementById('mapLoadPickerFilter');
+const mapLoadPickerList = document.getElementById('mapLoadPickerList');
+let mapLoadPickerOpen = false;
+let pendingMapLoad = null; // { key, entry } while the overwrite-confirm is up
+
+function openMapLoadPicker() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelMapSaveDialog();
+  cancelDeleteConfirm();
+
+  mapLoadPickerOpen = true;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  mapLoadPicker.style.left = centerX + 'px';
+  mapLoadPicker.style.top = centerY + 'px';
+  mapLoadPicker.classList.add('open');
+
+  mapLoadPickerFilter.value = '';
+  renderMapLoadPickerList('');
+  requestAnimationFrame(() => mapLoadPickerFilter.focus());
+}
+
+function closeMapLoadPicker() {
+  mapLoadPickerOpen = false;
+  mapLoadPicker.classList.remove('open');
+}
+
+function renderMapLoadPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.entries(mapCatalog).filter(([key, m]) =>
+    !q || (m.name || key).toLowerCase().includes(q)
+  );
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(mapCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga sparade kartor ännu.';
+    mapLoadPickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  mapLoadPickerList.innerHTML = '';
+  entries
+    .sort((a, b) => (b[1].savedAt || 0) - (a[1].savedAt || 0)) // most recent first
+    .forEach(([key, m]) => {
+      const item = document.createElement('div');
+      item.className = 'picker-item';
+      item.innerHTML = `${escapeHtml(m.name || key)}<span class="picker-item-id">${escapeHtml(key)}</span>`;
+      item.addEventListener('click', () => selectMapToLoad(key));
+      mapLoadPickerList.appendChild(item);
+    });
+}
+
+mapLoadPickerFilter.addEventListener('input', () => renderMapLoadPickerList(mapLoadPickerFilter.value));
+mapLoadPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeMapLoadPicker(); }
+  e.stopPropagation();
+});
+
+function selectMapToLoad(key) {
+  closeMapLoadPicker();
+  const entry = mapCatalog[key];
+  if (!entry) return;
+
+  pendingMapLoad = { key, entry };
+  if (!Object.keys(groups).length) {
+    performSelectedMapLoad();
+    return;
+  }
+
+  deleteConfirmTarget = { type: 'loadMap' };
+  deleteConfirmText.textContent = `Läsa in "${entry.name || key}"? Den nuvarande, osparade kartan skrivs över.`;
+  document.getElementById('deleteConfirmOkBtn').textContent = 'Läs in';
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  deleteConfirm.style.left = centerX + 'px';
+  deleteConfirm.style.top = centerY + 'px';
+  deleteConfirm.classList.add('open');
+}
+
+function performSelectedMapLoad() {
+  if (!pendingMapLoad) return;
+  const { key, entry } = pendingMapLoad;
+  pendingMapLoad = null;
+
+  importMapFromSvgString(entry.svg);
+  currentMapKey = key;
+  currentMapName = entry.name || key;
+  document.getElementById('saveStatus').textContent = `Inläst: "${currentMapName}" ✓`;
+}
+
+function importMapFromSvgString(svgString) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, 'image/svg+xml');
+  if (doc.querySelector('parsererror')) {
+    console.error('[importMap] Could not parse the saved SVG.');
+    return;
+  }
+
+  // ── Wipe current state ──
+  nodesLayer.innerHTML = '';
+  connectorsLayer.innerHTML = '';
+  guidesLayer.innerHTML = '';
+  Array.from(svgDefs.querySelectorAll('path[id^="label-path-"]')).forEach(el => el.remove());
+
+  groups = {};
+  layers = [];
+  connections = [];
+  centralGroupId = null;
+  groupIdCounter = 1;
+  layerIdCounter = 1;
+  connectionIdCounter = 1;
+  document.getElementById('coreStatus').textContent = 'Ej skapad';
+
+  // ── Groups ──
+  const layerBuckets = {}; // layerId -> { index, groupIds: [] }
+
+  Array.from(doc.querySelectorAll('[data-role="group"]')).forEach(el => {
+    const id = el.getAttribute('data-group-id');
+    const cx = parseFloat(el.getAttribute('cx'));
+    const cy = parseFloat(el.getAttribute('cy'));
+    createGroupAt(cx, cy, id); // reuses the original id, so references still resolve
+
+    const group = groups[id];
+    group.r = parseFloat(el.getAttribute('r'));
+    group.label = el.getAttribute('data-label') || '';
+    group.labelAngle = parseFloat(el.getAttribute('data-label-angle'));
+    const slotOrderRaw = el.getAttribute('data-slot-order') || '1,2,3,4,5,6,7,8';
+    group.slotAngleOrder = slotOrderRaw.split(',').map(Number);
+
+    const layerId = el.getAttribute('data-layer-id') || '';
+    if (!layerId) {
+      centralGroupId = id;
+    } else {
+      const layerIndex = parseInt(el.getAttribute('data-layer-index') || '1', 10);
+      if (!layerBuckets[layerId]) layerBuckets[layerId] = { index: layerIndex, groupIds: [] };
+      layerBuckets[layerId].groupIds.push(id);
+      group.layerId = layerId;
+    }
+  });
+
+  if (centralGroupId) document.getElementById('coreStatus').textContent = 'Skapad';
+
+  // ── Rings, ordered by angle around the map center for sensible ↺↻ behaviour ──
+  Object.entries(layerBuckets).forEach(([layerId, bucket]) => {
+    bucket.groupIds.sort((a, b) => {
+      const angleA = Math.atan2(groups[a].cy - MAP_CENTER.y, groups[a].cx - MAP_CENTER.x);
+      const angleB = Math.atan2(groups[b].cy - MAP_CENTER.y, groups[b].cx - MAP_CENTER.x);
+      return angleA - angleB;
+    });
+    layers.push({ id: layerId, index: bucket.index, radius: RING_SPACING * bucket.index, groupIds: bucket.groupIds });
+  });
+  layers.sort((a, b) => a.index - b.index);
+  layers.forEach(layer => {
+    const guide = document.createElementNS(svgNS, 'circle');
+    guide.setAttribute('class', 'layer-ring-guide');
+    guide.setAttribute('cx', MAP_CENTER.x);
+    guide.setAttribute('cy', MAP_CENTER.y);
+    guide.setAttribute('r', layer.radius);
+    guidesLayer.appendChild(guide);
+    layer.guideEl = guide;
+  });
+
+  // Recompute every group's slots/label/controls now that r, label, labelAngle
+  // and slotAngleOrder are all in place.
+  Object.keys(groups).forEach(id => applyGroupLayout(id));
+
+  // ── Filled nodes ──
+  Array.from(doc.querySelectorAll('[data-role="node"]')).forEach(el => {
+    const groupId = el.getAttribute('data-group-id');
+    const slotIndex = parseInt(el.getAttribute('data-slot-index'), 10);
+    const group = groups[groupId];
+    if (!group) return;
+    const slot = group.slots[slotIndex];
+    if (!slot) return;
+
+    const rawId = el.getAttribute('id') || '';
+    if (rawId.startsWith('project-')) {
+      slot.type = 'project';
+      slot.projectId = rawId.slice('project-'.length);
+    } else if (rawId.startsWith('role-')) {
+      slot.type = 'role';
+      slot.roleId = rawId.slice('role-'.length);
+    }
+    renderSlot(groupId, slot);
+  });
+
+  // ── Connections ──
+  Array.from(doc.querySelectorAll('line.connector')).forEach(el => {
+    const from = { groupId: el.getAttribute('data-from-group'), slotIndex: parseInt(el.getAttribute('data-from-slot'), 10) };
+    const to = { groupId: el.getAttribute('data-to-group'), slotIndex: parseInt(el.getAttribute('data-to-slot'), 10) };
+    const fromSlot = getSlot(from.groupId, from.slotIndex);
+    const toSlot = getSlot(to.groupId, to.slotIndex);
+    if (!fromSlot || !toSlot) return;
+
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('class', 'connector-line');
+    line.setAttribute('x1', fromSlot.x);
+    line.setAttribute('y1', fromSlot.y);
+    line.setAttribute('x2', toSlot.x);
+    line.setAttribute('y2', toSlot.y);
+    connectorsLayer.appendChild(line);
+
+    const id = 'connection-' + connectionIdCounter++;
+    connections.push({ id, from, to, el: line });
+  });
+
+  // ── Keep future id generation collision-free ──
+  Object.keys(groups).forEach(id => {
+    const n = parseInt(id.replace('group-', ''), 10);
+    if (!isNaN(n) && n >= groupIdCounter) groupIdCounter = n + 1;
+  });
+  layers.forEach(layer => {
+    const n = parseInt(layer.id.replace('layer-', ''), 10);
+    if (!isNaN(n) && n >= layerIdCounter) layerIdCounter = n + 1;
+  });
+
+  renderLayersPanel();
 }
 
 // ─── GROUP SCALE (+/-) ──────────────────────────────────────────────────────
@@ -1583,6 +1903,8 @@ function openProjectCatalogEditor() {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
   cancelDeleteConfirm();
 
   projectCatalogEditorOpen = true;
@@ -1740,6 +2062,8 @@ function openRoleCatalogEditor() {
   cancelProjectCatalogEditor();
   closeProjectPicker();
   closeRolePicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
   cancelDeleteConfirm();
 
   const centerX = area.clientWidth / 2;
@@ -2109,10 +2433,12 @@ area.addEventListener('click', e => {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
   cancelDeleteConfirm();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelDeleteConfirm(); }
+  if (e.key === 'Escape') { closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm(); }
 });
 
 // ─── INIT ───────────────────────────────────────────────────────────────────
