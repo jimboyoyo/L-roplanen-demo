@@ -332,6 +332,28 @@
   }
   .project-editor textarea:focus { border-color: #3a6df0; }
   .project-editor textarea::placeholder { color: #bbb; }
+  .project-editor select {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .project-editor select:focus { border-color: #3a6df0; }
+  .project-editor input[type="color"] {
+    width: 100%;
+    height: 38px;
+    padding: 3px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+  }
   .project-editor .editor-error {
     font-size: 11px;
     color: #ff6b6b;
@@ -515,6 +537,14 @@
   }
   .delete-btn:hover text.delete-btn-icon { fill: #fff; }
 
+  .area-swatch-btn { cursor: pointer; }
+  .area-swatch-btn circle.area-swatch-bg {
+    stroke: rgba(255,255,255,0.4);
+    stroke-width: 1.5;
+    transition: stroke 0.15s;
+  }
+  .area-swatch-btn:hover circle.area-swatch-bg { stroke: #fff; }
+
   .zoom-readout {
     position: absolute;
     bottom: 16px;
@@ -591,6 +621,7 @@
       <button class="layer-btn" onclick="createLayer()" title="Nytt lager">Nytt lager</button>
       <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
       <button class="layer-btn" onclick="openRoleCatalogEditor()" title="Skapa ny roll i databasen">+ Roll</button>
+      <button class="layer-btn" onclick="openAreaCatalogEditor()" title="Skapa nytt område i databasen">+ Område</button>
       <button class="layer-btn" onclick="openMapSaveDialog()" title="Spara kartan till Firebase">Spara karta</button>
       <button class="layer-btn" onclick="openMapLoadPicker()" title="Läs in en sparad karta från Firebase">Läs in karta</button>
     </div>
@@ -667,6 +698,10 @@
       <input type="text" id="projectUrlInput" placeholder="https://…" autocomplete="off" />
     </div>
     <div class="field">
+      <label>Område</label>
+      <select id="projectAreaSelect"><option value="">Inget område</option></select>
+    </div>
+    <div class="field">
       <label>ID</label>
       <input type="text" id="projectIdInput" placeholder="t.ex. proj-014" autocomplete="off" />
     </div>
@@ -688,11 +723,33 @@
       <input type="text" id="roleUrlInput" placeholder="https://…" autocomplete="off" />
     </div>
     <div class="field">
+      <label>Område</label>
+      <select id="roleAreaSelect"><option value="">Inget område</option></select>
+    </div>
+    <div class="field">
       <label>ID</label>
       <input type="text" id="roleIdInput" placeholder="t.ex. roll-014" autocomplete="off" />
     </div>
     <div class="editor-error" id="roleEditorError"></div>
     <button class="editor-submit" onclick="submitRoleCatalogEditor()">Skapa roll</button>
+  </div>
+
+  <div class="project-editor" id="areaEditor">
+    <div class="field">
+      <label>Namn</label>
+      <input type="text" id="areaNameInput" placeholder="t.ex. Fotografi" maxlength="40" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Färg</label>
+      <input type="color" id="areaColorInput" value="#3a6df0" />
+    </div>
+    <div class="editor-error" id="areaEditorError"></div>
+    <button class="editor-submit" onclick="confirmAreaCatalogEditor()">Skapa område</button>
+  </div>
+
+  <div class="project-picker" id="areaPicker">
+    <input type="text" id="areaPickerFilter" class="picker-filter" placeholder="Sök område…" autocomplete="off" />
+    <div class="picker-list" id="areaPickerList"></div>
   </div>
 
   <div class="project-picker" id="projectPicker">
@@ -873,9 +930,10 @@ const firebaseConfig = {
 };
 
 let projectDb = null;
-let projectCatalog = {}; // id -> { title, url, id }
-let roleCatalog = {};    // id -> { id }
+let projectCatalog = {}; // id -> { title, url, id, area }
+let roleCatalog = {};    // id -> { id, title, description, url, area }
 let mapCatalog = {};     // key -> { name, svg, savedAt }
+let areaCatalog = {};    // id -> { id, name, color }
 let currentMapKey = null;  // the map currently loaded/being worked on, if any
 let currentMapName = '';
 
@@ -900,6 +958,10 @@ let currentMapName = '';
         mapCatalog = snapshot.val() || {};
         if (mapLoadPickerOpen) renderMapLoadPickerList(mapLoadPickerFilter.value);
       });
+      projectDb.ref('mapAreas').on('value', snapshot => {
+        areaCatalog = snapshot.val() || {};
+        onAreaCatalogUpdated();
+      });
     };
     document.head.appendChild(script2);
   };
@@ -918,7 +980,39 @@ function onProjectCatalogUpdated() {
 }
 
 function onRoleCatalogUpdated() {
+  Object.values(groups).forEach(group => {
+    group.slots.forEach(slot => {
+      if (slot.type === 'role') renderSlot(group.id, slot);
+    });
+  });
   if (rolePickerTarget) renderRolePickerList(rolePickerFilter.value);
+}
+
+// Area colors affect groups, project cards, and role circles alike, so a
+// catalog change needs to ripple through all three.
+function onAreaCatalogUpdated() {
+  updateAreaSelectOptions();
+  Object.keys(groups).forEach(id => applyGroupAreaColor(id));
+  Object.values(groups).forEach(group => {
+    group.slots.forEach(slot => {
+      if (slot.type === 'project' || slot.type === 'role') renderSlot(group.id, slot);
+    });
+  });
+  if (areaPickerTarget !== null) renderAreaPickerList(areaPickerFilter.value);
+}
+
+function updateAreaSelectOptions() {
+  [document.getElementById('projectAreaSelect'), document.getElementById('roleAreaSelect')].forEach(select => {
+    const current = select.value;
+    select.innerHTML = '<option value="">Inget område</option>';
+    Object.values(areaCatalog).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.name;
+      select.appendChild(opt);
+    });
+    if (areaCatalog[current]) select.value = current;
+  });
 }
 
 function escapeHtml(str) {
@@ -971,7 +1065,11 @@ function createGroupAt(cx, cy, forcedId = null) {
   deleteControlEl.setAttribute('class', 'group-delete-control');
   g.appendChild(deleteControlEl);
 
-  groups[id] = { id, cx, cy, r: GROUP_RADIUS, slots: [], el: g, circleEl: circle, label: '', labelAngle: -Math.PI / 2, layerId: null, orderControlsEl, scaleControlsEl, labelRotateControlsEl, deleteControlEl, slotAngleOrder: [1, 2, 3, 4, 5, 6, 7, 8] };
+  const areaControlEl = document.createElementNS(svgNS, 'g');
+  areaControlEl.setAttribute('class', 'area-control');
+  g.appendChild(areaControlEl);
+
+  groups[id] = { id, cx, cy, r: GROUP_RADIUS, slots: [], el: g, circleEl: circle, label: '', labelAngle: -Math.PI / 2, layerId: null, areaId: null, orderControlsEl, scaleControlsEl, labelRotateControlsEl, deleteControlEl, areaControlEl, slotAngleOrder: [1, 2, 3, 4, 5, 6, 7, 8] };
 
   const positions = buildSlotPositions(cx, cy, GROUP_RADIUS, 0);
   const slots = positions.map((pos, i) => {
@@ -1031,6 +1129,8 @@ function applyGroupLayout(groupId) {
   updateGroupScaleControls(groupId);
   updateGroupLabelRotateControls(groupId);
   updateGroupDeleteControl(groupId);
+  updateGroupAreaControl(groupId);
+  applyGroupAreaColor(groupId);
 
   syncConnectionsForGroup(groupId);
 }
@@ -1238,6 +1338,8 @@ function openDeleteConfirmAt(worldX, worldY, message, target) {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
 
@@ -1381,11 +1483,15 @@ function exportMapToSvgString() {
 
     // Group circle (decorative in the live app; data-* is builder-only).
     const layer = group.layerId ? layers.find(l => l.id === group.layerId) : null;
-    groupsMarkup += `<circle class="map-group-outline" cx="${group.cx}" cy="${group.cy}" r="${group.r}" `
-      + `fill="rgba(10,10,26,0.65)" stroke="#fff" stroke-width="2.5" `
+    const groupArea = group.areaId ? areaCatalog[group.areaId] : null;
+    const groupStroke = groupArea ? groupArea.color : '#fff';
+    const groupAreaClass = group.areaId ? ` area-${escapeHtml(group.areaId)}` : '';
+    groupsMarkup += `<circle class="map-group-outline${groupAreaClass}" cx="${group.cx}" cy="${group.cy}" r="${group.r}" `
+      + `fill="rgba(10,10,26,0.65)" stroke="${groupStroke}" stroke-width="2.5" `
       + `data-role="group" data-group-id="${escapeHtml(group.id)}" `
       + `data-label="${escapeHtml(group.label || '')}" data-label-angle="${labelAngle}" `
       + `data-layer-id="${escapeHtml(group.layerId || '')}" data-layer-index="${layer ? layer.index : ''}" `
+      + `data-area-id="${escapeHtml(group.areaId || '')}" `
       + `data-slot-order="${group.slotAngleOrder.join(',')}" />\n`;
 
     // Curved label, if any — same top-of-ring arc technique as the builder.
@@ -1397,7 +1503,7 @@ function exportMapToSvgString() {
       const p1x = group.cx + r * Math.cos(startAngle), p1y = group.cy + r * Math.sin(startAngle);
       const p2x = group.cx + r * Math.cos(endAngle), p2y = group.cy + r * Math.sin(endAngle);
       defs += `<path id="${pathId}" fill="none" d="M ${p1x} ${p1y} A ${r} ${r} 0 0 1 ${p2x} ${p2y}" />\n`;
-      groupsMarkup += `<text font-family="Century Gothic, sans-serif" font-weight="700" font-size="30" fill="#fff" letter-spacing="0.06em">`
+      groupsMarkup += `<text class="map-group-label" font-family="Century Gothic, sans-serif" font-weight="700" font-size="30" fill="#fff" letter-spacing="0.06em">`
         + `<textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeHtml(group.label)}</textPath></text>\n`;
     }
 
@@ -1409,12 +1515,15 @@ function exportMapToSvgString() {
         const project = projectCatalog[slot.projectId];
         const title = project ? project.title : '';
         const url = project ? project.url : '';
+        const projectArea = project && project.area ? areaCatalog[project.area] : null;
+        const projectFill = projectArea ? projectArea.color : '#3a6df0';
+        const projectAreaClass = project && project.area ? ` area-${escapeHtml(project.area)}` : '';
         const nodeId = `project-${slot.projectId}`;
         const rectX = slot.x - PROJECT_RECT_WIDTH / 2, rectY = slot.y - PROJECT_RECT_HEIGHT / 2;
-        const rectMarkup = `<rect id="${escapeHtml(nodeId)}" x="${rectX}" y="${rectY}" width="${PROJECT_RECT_WIDTH}" height="${PROJECT_RECT_HEIGHT}" `
-          + `rx="${PROJECT_RECT_RX}" fill="#3a6df0" stroke="#6f93f5" stroke-width="2" `
+        const rectMarkup = `<rect id="${escapeHtml(nodeId)}" class="map-project-card${projectAreaClass}" x="${rectX}" y="${rectY}" width="${PROJECT_RECT_WIDTH}" height="${PROJECT_RECT_HEIGHT}" `
+          + `rx="${PROJECT_RECT_RX}" fill="${projectFill}" stroke="#6f93f5" stroke-width="2" `
           + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
-          + `<text x="${slot.x}" y="${slot.y}" font-family="Century Gothic, sans-serif" font-weight="700" font-size="13" fill="#fff" `
+          + `<text class="map-project-title${projectAreaClass}" x="${slot.x}" y="${slot.y}" font-family="Century Gothic, sans-serif" font-weight="700" font-size="13" fill="#fff" `
           + `text-anchor="middle" dominant-baseline="central" pointer-events="none">${escapeHtml(title)}</text>\n`;
         nodesMarkup += url
           ? `<a data-url="${escapeHtml(url)}">${rectMarkup}</a>\n`
@@ -1422,11 +1531,15 @@ function exportMapToSvgString() {
       } else if (slot.type === 'role') {
         const role = roleCatalog[slot.roleId];
         const url = role ? role.url : '';
+        const roleArea = role && role.area ? areaCatalog[role.area] : null;
+        const roleFill = roleArea ? roleArea.color : 'rgba(240,168,58,0.35)';
+        const roleFillOpacity = roleArea ? ' fill-opacity="0.35"' : '';
+        const roleAreaClass = role && role.area ? ` area-${escapeHtml(role.area)}` : '';
         const nodeId = `role-${slot.roleId}`;
-        const circleMarkup = `<circle id="${escapeHtml(nodeId)}" cx="${slot.x}" cy="${slot.y}" r="${SLOT_RADIUS}" `
-          + `fill="rgba(240,168,58,0.35)" stroke="#f3bb63" stroke-width="2" `
+        const circleMarkup = `<circle id="${escapeHtml(nodeId)}" class="map-role${roleAreaClass}" cx="${slot.x}" cy="${slot.y}" r="${SLOT_RADIUS}" `
+          + `fill="${roleFill}"${roleFillOpacity} stroke="#f3bb63" stroke-width="2" `
           + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
-          + `<text x="${slot.x}" y="${slot.y}" font-size="26" text-anchor="middle" dominant-baseline="central" pointer-events="none">${TYPE_ICON.role}</text>\n`;
+          + `<text class="map-role-icon${roleAreaClass}" x="${slot.x}" y="${slot.y}" font-size="26" text-anchor="middle" dominant-baseline="central" pointer-events="none">${TYPE_ICON.role}</text>\n`;
         nodesMarkup += url
           ? `<a data-url="${escapeHtml(url)}">${circleMarkup}</a>\n`
           : circleMarkup;
@@ -1474,6 +1587,8 @@ function enterPreviewMode() {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -1553,7 +1668,163 @@ function closePreviewInfoPanel() {
   document.getElementById('previewInfoPanel').classList.remove('open');
 }
 
-// ─── SAVE (named, multi-map) ────────────────────────────────────────────────
+// ─── AREA CATALOG (create in database, via header button) ──────────────────
+
+const areaEditor = document.getElementById('areaEditor');
+const areaNameInput = document.getElementById('areaNameInput');
+const areaColorInput = document.getElementById('areaColorInput');
+const areaEditorError = document.getElementById('areaEditorError');
+
+function openAreaCatalogEditor() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  closeAreaPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  areaEditor.style.left = centerX + 'px';
+  areaEditor.style.top = centerY + 'px';
+  areaEditor.classList.add('open');
+
+  areaNameInput.value = '';
+  areaColorInput.value = '#3a6df0';
+  areaEditorError.textContent = '';
+  requestAnimationFrame(() => areaNameInput.focus());
+}
+
+function cancelAreaCatalogEditor() {
+  areaEditor.classList.remove('open');
+}
+
+function confirmAreaCatalogEditor() {
+  const name = areaNameInput.value.trim();
+  const color = areaColorInput.value;
+
+  if (!name) {
+    areaEditorError.textContent = 'Namn krävs.';
+    areaNameInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    areaEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const id = slugify(name, 'omrade');
+  if (areaCatalog[id]) {
+    areaEditorError.textContent = 'Ett område med det namnet finns redan.';
+    return;
+  }
+
+  const entry = { id, name, color };
+  projectDb.ref('mapAreas/' + id).set(entry)
+    .then(() => {
+      areaCatalog[id] = entry; // optimistic
+      onAreaCatalogUpdated();
+      cancelAreaCatalogEditor();
+    })
+    .catch(err => {
+      areaEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[areaCatalog] save failed:', err);
+    });
+}
+
+areaNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); confirmAreaCatalogEditor(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelAreaCatalogEditor(); }
+  e.stopPropagation();
+});
+
+// ─── AREA PICKER (assign an existing area to a group) ───────────────────────
+
+const areaPicker = document.getElementById('areaPicker');
+const areaPickerFilter = document.getElementById('areaPickerFilter');
+const areaPickerList = document.getElementById('areaPickerList');
+let areaPickerTarget = null; // groupId, while the picker is open
+
+function openAreaPickerForGroup(groupId) {
+  closeSlotMenu();
+  cancelConnection();
+
+  areaPickerTarget = groupId;
+  const group = groups[groupId];
+  const y = group.cy + group.r + AREA_SWATCH_BTN_OFFSET_Y;
+  const pos = worldToScreen(group.cx, y);
+  areaPicker.style.left = pos.x + 'px';
+  areaPicker.style.top = pos.y + 'px';
+  areaPicker.classList.add('open');
+
+  areaPickerFilter.value = '';
+  renderAreaPickerList('');
+  requestAnimationFrame(() => areaPickerFilter.focus());
+}
+
+function closeAreaPicker() {
+  areaPickerTarget = null;
+  areaPicker.classList.remove('open');
+}
+
+function renderAreaPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(areaCatalog).filter(a => !q || a.name.toLowerCase().includes(q));
+
+  areaPickerList.innerHTML = '';
+
+  const clearItem = document.createElement('div');
+  clearItem.className = 'picker-item';
+  clearItem.textContent = 'Inget område';
+  clearItem.addEventListener('click', () => selectAreaForGroup(null));
+  areaPickerList.appendChild(clearItem);
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(areaCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga områden i databasen ännu. Skapa ett via "+ Område" i menyn.';
+    const empty = document.createElement('div');
+    empty.className = 'picker-empty';
+    empty.textContent = emptyMsg;
+    areaPickerList.appendChild(empty);
+    return;
+  }
+
+  entries.forEach(a => {
+    const item = document.createElement('div');
+    item.className = 'picker-item';
+    item.style.display = 'flex';
+    item.style.alignItems = 'center';
+    item.style.gap = '8px';
+    item.innerHTML = `<span style="width:12px;height:12px;border-radius:50%;background:${escapeHtml(a.color)};flex-shrink:0;display:inline-block;"></span>${escapeHtml(a.name)}`;
+    item.addEventListener('click', () => selectAreaForGroup(a.id));
+    areaPickerList.appendChild(item);
+  });
+}
+
+function selectAreaForGroup(areaId) {
+  if (!areaPickerTarget) return;
+  const groupId = areaPickerTarget;
+  closeAreaPicker();
+
+  const group = groups[groupId];
+  if (!group) return;
+  group.areaId = areaId;
+  updateGroupAreaControl(groupId);
+  applyGroupAreaColor(groupId);
+}
+
+areaPickerFilter.addEventListener('input', () => renderAreaPickerList(areaPickerFilter.value));
+areaPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeAreaPicker(); }
+  e.stopPropagation();
+});
+
 
 const mapSaveDialog = document.getElementById('mapSaveDialog');
 const mapSaveNameInput = document.getElementById('mapSaveNameInput');
@@ -1561,13 +1832,17 @@ const mapSaveError = document.getElementById('mapSaveError');
 
 // Turns a display name into a Firebase-safe key (RTDB keys can't contain
 // '.', '#', '$', '[', ']', or '/').
-function slugifyMapName(name) {
+function slugify(name, fallback) {
   return name.trim().toLowerCase()
     .replace(/[.#$\[\]/]/g, '-')
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '') || 'karta';
+    .replace(/^-|-$/g, '') || fallback;
+}
+
+function slugifyMapName(name) {
+  return slugify(name, 'karta');
 }
 
 function openMapSaveDialog() {
@@ -1578,6 +1853,8 @@ function openMapSaveDialog() {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
   closeMapLoadPicker();
   cancelDeleteConfirm();
 
@@ -1655,6 +1932,8 @@ function openMapLoadPicker() {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
   cancelMapSaveDialog();
   cancelDeleteConfirm();
 
@@ -1777,6 +2056,7 @@ function importMapFromSvgString(svgString) {
     group.labelAngle = parseFloat(el.getAttribute('data-label-angle'));
     const slotOrderRaw = el.getAttribute('data-slot-order') || '1,2,3,4,5,6,7,8';
     group.slotAngleOrder = slotOrderRaw.split(',').map(Number);
+    group.areaId = el.getAttribute('data-area-id') || null;
 
     const layerId = el.getAttribute('data-layer-id') || '';
     if (!layerId) {
@@ -1943,6 +2223,48 @@ function updateGroupDeleteControl(groupId) {
   container.appendChild(createDeleteBtn(group.cx, y, () => requestDeleteGroup(groupId)));
 }
 
+// ─── AREA ASSIGNMENT (group) ────────────────────────────────────────────────
+// One more row below delete — a single swatch button showing the group's
+// current area color (or a neutral outline when unassigned).
+
+const AREA_SWATCH_BTN_RADIUS = 16;
+const AREA_SWATCH_BTN_OFFSET_Y = 200; // one row below the delete button
+const DEFAULT_GROUP_STROKE = '#fff';
+
+function updateGroupAreaControl(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.areaControlEl;
+  container.innerHTML = '';
+
+  const area = group.areaId ? areaCatalog[group.areaId] : null;
+  const y = group.cy + group.r + AREA_SWATCH_BTN_OFFSET_Y;
+
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'area-swatch-btn');
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'area-swatch-bg');
+  circle.setAttribute('cx', group.cx);
+  circle.setAttribute('cy', y);
+  circle.setAttribute('r', AREA_SWATCH_BTN_RADIUS);
+  circle.setAttribute('fill', area ? area.color : 'rgba(255,255,255,0.06)');
+  g.appendChild(circle);
+  g.addEventListener('click', e => {
+    e.stopPropagation();
+    openAreaPickerForGroup(groupId);
+  });
+  container.appendChild(g);
+}
+
+// Applies the group's area color to its outline circle's stroke — fill
+// stays the constant dark translucent background for content readability.
+function applyGroupAreaColor(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const area = group.areaId ? areaCatalog[group.areaId] : null;
+  group.circleEl.style.stroke = area ? area.color : DEFAULT_GROUP_STROKE;
+}
+
 // Spaces every group on a ring evenly around its circumference,
 // starting at 12 o'clock — same approach as the main app's student rings.
 function redistributeLayer(layer) {
@@ -2072,6 +2394,8 @@ function openProjectCatalogEditor() {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -2086,6 +2410,7 @@ function openProjectCatalogEditor() {
   projectTitleInput.value = '';
   projectUrlInput.value = '';
   projectIdInput.value = '';
+  document.getElementById('projectAreaSelect').value = '';
   projectEditorError.textContent = '';
   requestAnimationFrame(() => projectTitleInput.focus());
 }
@@ -2120,7 +2445,7 @@ function submitProjectCatalogEditor() {
     return;
   }
 
-  const entry = { title, url, id };
+  const entry = { title, url, id, area: document.getElementById('projectAreaSelect').value };
   projectDb.ref('mapProjects/' + id).set(entry)
     .then(() => {
       projectCatalog[id] = entry; // optimistic, the live listener will also confirm this
@@ -2231,6 +2556,8 @@ function openRoleCatalogEditor() {
   cancelProjectCatalogEditor();
   closeProjectPicker();
   closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -2245,6 +2572,7 @@ function openRoleCatalogEditor() {
   roleDescriptionInput.value = '';
   roleUrlInput.value = '';
   roleIdInput.value = '';
+  document.getElementById('roleAreaSelect').value = '';
   roleEditorError.textContent = '';
   requestAnimationFrame(() => roleTitleInput.focus());
 }
@@ -2279,7 +2607,7 @@ function submitRoleCatalogEditor() {
     return;
   }
 
-  const entry = { title, description, url, id };
+  const entry = { title, description, url, id, area: document.getElementById('roleAreaSelect').value };
   projectDb.ref('mapRoles/' + id).set(entry)
     .then(() => {
       roleCatalog[id] = entry; // optimistic, the live listener will also confirm this
@@ -2442,6 +2770,9 @@ function renderSlot(groupId, slot) {
     visualHalfHeight = PROJECT_RECT_HEIGHT / 2;
     visualHalfWidth = PROJECT_RECT_WIDTH / 2;
 
+    const catalogEntry = projectCatalog[slot.projectId];
+    const projectArea = catalogEntry && catalogEntry.area ? areaCatalog[catalogEntry.area] : null;
+
     const rect = document.createElementNS(svgNS, 'rect');
     rect.setAttribute('class', 'project-card');
     rect.setAttribute('x', slot.x - PROJECT_RECT_WIDTH / 2);
@@ -2449,13 +2780,13 @@ function renderSlot(groupId, slot) {
     rect.setAttribute('width', PROJECT_RECT_WIDTH);
     rect.setAttribute('height', PROJECT_RECT_HEIGHT);
     rect.setAttribute('rx', PROJECT_RECT_RX);
+    rect.style.fill = projectArea ? projectArea.color : '#3a6df0';
     g.appendChild(rect);
 
     const title = document.createElementNS(svgNS, 'text');
     title.setAttribute('class', 'project-card-title');
     title.setAttribute('x', slot.x);
     title.setAttribute('y', slot.y);
-    const catalogEntry = projectCatalog[slot.projectId];
     title.textContent = catalogEntry ? catalogEntry.title : '…';
     g.appendChild(title);
   } else {
@@ -2464,6 +2795,16 @@ function renderSlot(groupId, slot) {
     circle.setAttribute('cx', slot.x);
     circle.setAttribute('cy', slot.y);
     circle.setAttribute('r', SLOT_RADIUS);
+    if (slot.type === 'role') {
+      const catalogEntry = roleCatalog[slot.roleId];
+      const roleArea = catalogEntry && catalogEntry.area ? areaCatalog[catalogEntry.area] : null;
+      if (roleArea) {
+        circle.style.fill = roleArea.color;
+        circle.style.fillOpacity = '0.35';
+      } else {
+        circle.style.fill = 'rgba(240,168,58,0.35)';
+      }
+    }
     g.appendChild(circle);
 
     if (slot.type) {
@@ -2603,6 +2944,8 @@ area.addEventListener('click', e => {
   closeProjectPicker();
   cancelRoleCatalogEditor();
   closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -2610,7 +2953,7 @@ area.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (previewOpen) { exitPreviewMode(); return; }
-    closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm();
+    closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelAreaCatalogEditor(); closeAreaPicker(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm();
   }
 });
 
