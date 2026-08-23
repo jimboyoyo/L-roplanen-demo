@@ -224,6 +224,12 @@
     stroke: rgba(255,255,255,0.4);
     stroke-width: 2.5;
   }
+  .connector-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 20;
+    cursor: pointer;
+  }
 
   .slot-menu {
     position: absolute;
@@ -992,7 +998,7 @@ function onRoleCatalogUpdated() {
 // catalog change needs to ripple through all three.
 function onAreaCatalogUpdated() {
   updateAreaSelectOptions();
-  Object.keys(groups).forEach(id => applyGroupAreaColor(id));
+  Object.keys(groups).forEach(id => applyGroupOutlineStyle(id));
   Object.values(groups).forEach(group => {
     group.slots.forEach(slot => {
       if (slot.type === 'project' || slot.type === 'role') renderSlot(group.id, slot);
@@ -1130,7 +1136,7 @@ function applyGroupLayout(groupId) {
   updateGroupLabelRotateControls(groupId);
   updateGroupDeleteControl(groupId);
   updateGroupAreaControl(groupId);
-  applyGroupAreaColor(groupId);
+  applyGroupOutlineStyle(groupId);
 
   syncConnectionsForGroup(groupId);
 }
@@ -1139,13 +1145,17 @@ function syncConnectionsForGroup(groupId) {
   connections.forEach(conn => {
     if (conn.from.groupId === groupId) {
       const s = getSlot(conn.from.groupId, conn.from.slotIndex);
-      conn.el.setAttribute('x1', s.x);
-      conn.el.setAttribute('y1', s.y);
+      conn.hitLineEl.setAttribute('x1', s.x);
+      conn.hitLineEl.setAttribute('y1', s.y);
+      conn.visLineEl.setAttribute('x1', s.x);
+      conn.visLineEl.setAttribute('y1', s.y);
     }
     if (conn.to.groupId === groupId) {
       const s = getSlot(conn.to.groupId, conn.to.slotIndex);
-      conn.el.setAttribute('x2', s.x);
-      conn.el.setAttribute('y2', s.y);
+      conn.hitLineEl.setAttribute('x2', s.x);
+      conn.hitLineEl.setAttribute('y2', s.y);
+      conn.visLineEl.setAttribute('x2', s.x);
+      conn.visLineEl.setAttribute('y2', s.y);
     }
   });
 }
@@ -1487,7 +1497,7 @@ function exportMapToSvgString() {
     const groupStroke = groupArea ? groupArea.color : '#fff';
     const groupAreaClass = group.areaId ? ` area-${escapeHtml(group.areaId)}` : '';
     groupsMarkup += `<circle class="map-group-outline${groupAreaClass}" cx="${group.cx}" cy="${group.cy}" r="${group.r}" `
-      + `fill="rgba(10,10,26,0.65)" stroke="${groupStroke}" stroke-width="2.5" `
+      + `fill="rgba(10,10,26,0.65)" stroke="${groupStroke}" stroke-width="${GROUP_OUTLINE_WIDTH}" `
       + `data-role="group" data-group-id="${escapeHtml(group.id)}" `
       + `data-label="${escapeHtml(group.label || '')}" data-label-angle="${labelAngle}" `
       + `data-layer-id="${escapeHtml(group.layerId || '')}" data-layer-index="${layer ? layer.index : ''}" `
@@ -1551,10 +1561,14 @@ function exportMapToSvgString() {
     const fromSlot = getSlot(conn.from.groupId, conn.from.slotIndex);
     const toSlot = getSlot(conn.to.groupId, conn.to.slotIndex);
     if (!fromSlot || !toSlot) return;
-    connectorsMarkup += `<line class="connector" x1="${fromSlot.x}" y1="${fromSlot.y}" x2="${toSlot.x}" y2="${toSlot.y}" `
-      + `stroke="rgba(255,255,255,0.4)" stroke-width="2.5" `
+    const connArea = conn.areaId ? areaCatalog[conn.areaId] : null;
+    const connStroke = connArea ? connArea.color : 'rgba(255,255,255,0.4)';
+    const connAreaClass = conn.areaId ? ` area-${escapeHtml(conn.areaId)}` : '';
+    connectorsMarkup += `<line class="connector${connAreaClass}" x1="${fromSlot.x}" y1="${fromSlot.y}" x2="${toSlot.x}" y2="${toSlot.y}" `
+      + `stroke="${connStroke}" stroke-width="${CONNECTOR_WIDTH}" `
       + `data-from-group="${escapeHtml(conn.from.groupId)}" data-from-slot="${conn.from.slotIndex}" `
-      + `data-to-group="${escapeHtml(conn.to.groupId)}" data-to-slot="${conn.to.slotIndex}" />\n`;
+      + `data-to-group="${escapeHtml(conn.to.groupId)}" data-to-slot="${conn.to.slotIndex}" `
+      + `data-area-id="${escapeHtml(conn.areaId || '')}" />\n`;
   });
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n`
@@ -1743,21 +1757,41 @@ areaNameInput.addEventListener('keydown', e => {
   e.stopPropagation();
 });
 
-// ─── AREA PICKER (assign an existing area to a group) ───────────────────────
+// ─── AREA PICKER (assign an existing area to a group or connection) ────────
 
 const areaPicker = document.getElementById('areaPicker');
 const areaPickerFilter = document.getElementById('areaPickerFilter');
 const areaPickerList = document.getElementById('areaPickerList');
-let areaPickerTarget = null; // groupId, while the picker is open
+let areaPickerTarget = null; // { type: 'group'|'connection', id }
 
 function openAreaPickerForGroup(groupId) {
   closeSlotMenu();
   cancelConnection();
 
-  areaPickerTarget = groupId;
+  areaPickerTarget = { type: 'group', id: groupId };
   const group = groups[groupId];
   const y = group.cy + group.r + AREA_SWATCH_BTN_OFFSET_Y;
   const pos = worldToScreen(group.cx, y);
+  areaPicker.style.left = pos.x + 'px';
+  areaPicker.style.top = pos.y + 'px';
+  areaPicker.classList.add('open');
+
+  areaPickerFilter.value = '';
+  renderAreaPickerList('');
+  requestAnimationFrame(() => areaPickerFilter.focus());
+}
+
+function openAreaPickerForConnection(connectionId) {
+  closeSlotMenu();
+  cancelConnection();
+
+  const conn = connections.find(c => c.id === connectionId);
+  if (!conn) return;
+
+  areaPickerTarget = { type: 'connection', id: connectionId };
+  const midX = (parseFloat(conn.visLineEl.getAttribute('x1')) + parseFloat(conn.visLineEl.getAttribute('x2'))) / 2;
+  const midY = (parseFloat(conn.visLineEl.getAttribute('y1')) + parseFloat(conn.visLineEl.getAttribute('y2'))) / 2;
+  const pos = worldToScreen(midX, midY);
   areaPicker.style.left = pos.x + 'px';
   areaPicker.style.top = pos.y + 'px';
   areaPicker.classList.add('open');
@@ -1781,7 +1815,7 @@ function renderAreaPickerList(query) {
   const clearItem = document.createElement('div');
   clearItem.className = 'picker-item';
   clearItem.textContent = 'Inget område';
-  clearItem.addEventListener('click', () => selectAreaForGroup(null));
+  clearItem.addEventListener('click', () => selectAreaForPickerTarget(null));
   areaPickerList.appendChild(clearItem);
 
   if (!entries.length) {
@@ -1802,21 +1836,28 @@ function renderAreaPickerList(query) {
     item.style.alignItems = 'center';
     item.style.gap = '8px';
     item.innerHTML = `<span style="width:12px;height:12px;border-radius:50%;background:${escapeHtml(a.color)};flex-shrink:0;display:inline-block;"></span>${escapeHtml(a.name)}`;
-    item.addEventListener('click', () => selectAreaForGroup(a.id));
+    item.addEventListener('click', () => selectAreaForPickerTarget(a.id));
     areaPickerList.appendChild(item);
   });
 }
 
-function selectAreaForGroup(areaId) {
+function selectAreaForPickerTarget(areaId) {
   if (!areaPickerTarget) return;
-  const groupId = areaPickerTarget;
+  const target = areaPickerTarget;
   closeAreaPicker();
 
-  const group = groups[groupId];
-  if (!group) return;
-  group.areaId = areaId;
-  updateGroupAreaControl(groupId);
-  applyGroupAreaColor(groupId);
+  if (target.type === 'group') {
+    const group = groups[target.id];
+    if (!group) return;
+    group.areaId = areaId;
+    updateGroupAreaControl(target.id);
+    applyGroupOutlineStyle(target.id);
+  } else if (target.type === 'connection') {
+    const conn = connections.find(c => c.id === target.id);
+    if (!conn) return;
+    conn.areaId = areaId;
+    applyConnectionStyle(conn);
+  }
 }
 
 areaPickerFilter.addEventListener('input', () => renderAreaPickerList(areaPickerFilter.value));
@@ -2123,16 +2164,14 @@ function importMapFromSvgString(svgString) {
     const toSlot = getSlot(to.groupId, to.slotIndex);
     if (!fromSlot || !toSlot) return;
 
-    const line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('class', 'connector-line');
-    line.setAttribute('x1', fromSlot.x);
-    line.setAttribute('y1', fromSlot.y);
-    line.setAttribute('x2', toSlot.x);
-    line.setAttribute('y2', toSlot.y);
-    connectorsLayer.appendChild(line);
-
     const id = 'connection-' + connectionIdCounter++;
-    connections.push({ id, from, to, el: line });
+    const { g, hitLine, visLine } = createConnectorElements(fromSlot.x, fromSlot.y, toSlot.x, toSlot.y, id);
+    const conn = {
+      id, from, to, el: g, hitLineEl: hitLine, visLineEl: visLine,
+      areaId: el.getAttribute('data-area-id') || null,
+    };
+    connections.push(conn);
+    applyConnectionStyle(conn);
   });
 
   // ── Keep future id generation collision-free ──
@@ -2231,6 +2270,12 @@ const AREA_SWATCH_BTN_RADIUS = 16;
 const AREA_SWATCH_BTN_OFFSET_Y = 200; // one row below the delete button
 const DEFAULT_GROUP_STROKE = '#fff';
 
+// Line widths are global, not per-object — same rationale as colors: these
+// are just attribute defaults, and index.html's CSS (.map-group-outline,
+// .connector) can override them for the whole map at once.
+const GROUP_OUTLINE_WIDTH = 2.5;
+const CONNECTOR_WIDTH = 2.5;
+
 function updateGroupAreaControl(groupId) {
   const group = groups[groupId];
   if (!group) return;
@@ -2258,11 +2303,12 @@ function updateGroupAreaControl(groupId) {
 
 // Applies the group's area color to its outline circle's stroke — fill
 // stays the constant dark translucent background for content readability.
-function applyGroupAreaColor(groupId) {
+function applyGroupOutlineStyle(groupId) {
   const group = groups[groupId];
   if (!group) return;
   const area = group.areaId ? areaCatalog[group.areaId] : null;
   group.circleEl.style.stroke = area ? area.color : DEFAULT_GROUP_STROKE;
+  group.circleEl.style.strokeWidth = GROUP_OUTLINE_WIDTH + 'px';
 }
 
 // Spaces every group on a ring evenly around its circumference,
@@ -2915,6 +2961,42 @@ function cancelConnection() {
   if (slot) renderSlot(groupId, slot);
 }
 
+// Builds a connector's DOM: an invisible wide "hit" line (for reliable
+// clicking) layered with the thin visible line. Shared by connection
+// creation and import, so both stay in sync.
+function createConnectorElements(x1, y1, x2, y2, connectionId) {
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'connector-group');
+
+  const hitLine = document.createElementNS(svgNS, 'line');
+  hitLine.setAttribute('class', 'connector-hit');
+  hitLine.setAttribute('x1', x1); hitLine.setAttribute('y1', y1);
+  hitLine.setAttribute('x2', x2); hitLine.setAttribute('y2', y2);
+  hitLine.addEventListener('click', e => {
+    e.stopPropagation();
+    openAreaPickerForConnection(connectionId);
+  });
+
+  const visLine = document.createElementNS(svgNS, 'line');
+  visLine.setAttribute('class', 'connector-line');
+  visLine.setAttribute('x1', x1); visLine.setAttribute('y1', y1);
+  visLine.setAttribute('x2', x2); visLine.setAttribute('y2', y2);
+  visLine.style.pointerEvents = 'none';
+
+  g.appendChild(hitLine);
+  g.appendChild(visLine);
+  connectorsLayer.appendChild(g);
+
+  return { g, hitLine, visLine };
+}
+
+// Applies a connection's area color (if any) and width to its visible line.
+function applyConnectionStyle(conn) {
+  const connArea = conn.areaId ? areaCatalog[conn.areaId] : null;
+  conn.visLineEl.style.stroke = connArea ? connArea.color : 'rgba(255,255,255,0.4)';
+  conn.visLineEl.style.strokeWidth = CONNECTOR_WIDTH + 'px';
+}
+
 function completeConnection(from, to) {
   const fromSlot = getSlot(from.groupId, from.slotIndex);
   const toSlot = getSlot(to.groupId, to.slotIndex);
@@ -2922,16 +3004,11 @@ function completeConnection(from, to) {
   if (fromSlot) renderSlot(from.groupId, fromSlot);
   if (!fromSlot || !toSlot) return;
 
-  const line = document.createElementNS(svgNS, 'line');
-  line.setAttribute('class', 'connector-line');
-  line.setAttribute('x1', fromSlot.x);
-  line.setAttribute('y1', fromSlot.y);
-  line.setAttribute('x2', toSlot.x);
-  line.setAttribute('y2', toSlot.y);
-  connectorsLayer.appendChild(line);
-
   const id = 'connection-' + connectionIdCounter++;
-  connections.push({ id, from, to, el: line });
+  const { g, hitLine, visLine } = createConnectorElements(fromSlot.x, fromSlot.y, toSlot.x, toSlot.y, id);
+  const conn = { id, from, to, el: g, hitLineEl: hitLine, visLineEl: visLine, areaId: null };
+  connections.push(conn);
+  applyConnectionStyle(conn);
 }
 
 // Clicking empty canvas: close the menu / cancel an in-progress connection.
