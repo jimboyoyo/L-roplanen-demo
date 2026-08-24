@@ -664,6 +664,7 @@
       <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
       <button class="layer-btn" onclick="openRoleCatalogEditor()" title="Skapa ny roll i databasen">+ Roll</button>
       <button class="layer-btn" onclick="openAreaCatalogEditor()" title="Skapa nytt område i databasen">+ Område</button>
+      <button class="layer-btn" onclick="openSkillCatalogEditor()" title="Skapa en ny färdighet i databasen">+ Färdighet</button>
       <button class="layer-btn" onclick="openMapSaveDialog()" title="Spara kartan till Firebase">Spara karta</button>
       <button class="layer-btn" onclick="openMapLoadPicker()" title="Läs in en sparad karta från Firebase">Läs in karta</button>
     </div>
@@ -791,6 +792,19 @@
     </div>
     <div class="editor-error" id="areaEditorError"></div>
     <button class="editor-submit" onclick="confirmAreaCatalogEditor()">Skapa område</button>
+  </div>
+
+  <div class="project-editor" id="skillEditor">
+    <div class="field">
+      <label>Titel</label>
+      <input type="text" id="skillTitleInput" placeholder="t.ex. Photoshop – markera och maska" maxlength="100" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" id="skillUrlInput" placeholder="YouTube- eller OneDrive-länk…" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="skillEditorError"></div>
+    <button class="editor-submit" onclick="confirmSkillCatalogEditor()">Skapa färdighet</button>
   </div>
 
   <div class="project-picker" id="areaPicker">
@@ -980,6 +994,7 @@ let projectCatalog = {}; // id -> { title, url, id, area }
 let roleCatalog = {};    // id -> { id, title, description, url, area }
 let mapCatalog = {};     // key -> { name, svg, savedAt }
 let areaCatalog = {};    // id -> { id, name, color }
+let skillCatalog = {};   // id -> { id, title, url }
 let currentMapKey = null;  // the map currently loaded/being worked on, if any
 let currentMapName = '';
 
@@ -1007,6 +1022,9 @@ let currentMapName = '';
       projectDb.ref('mapAreas').on('value', snapshot => {
         areaCatalog = snapshot.val() || {};
         onAreaCatalogUpdated();
+      });
+      projectDb.ref('mapSkills').on('value', snapshot => {
+        skillCatalog = snapshot.val() || {};
       });
     };
     document.head.appendChild(script2);
@@ -1393,6 +1411,7 @@ function openDeleteConfirmAt(worldX, worldY, message, target) {
   closeRolePicker();
   cancelAreaCatalogEditor();
   closeAreaPicker();
+  cancelSkillCatalogEditor();
   cancelMapSaveDialog();
   closeMapLoadPicker();
 
@@ -1650,6 +1669,7 @@ function enterPreviewMode() {
   closeRolePicker();
   cancelAreaCatalogEditor();
   closeAreaPicker();
+  cancelSkillCatalogEditor();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -1865,6 +1885,98 @@ areaNameInput.addEventListener('keydown', e => {
   e.stopPropagation();
 });
 
+// ─── SKILL CATALOG (create in database, via header button) ─────────────────
+// Skills are the building blocks roles will eventually be made of — a
+// title plus a link to a video, folder, or slide deck. With hundreds of
+// these expected, IDs are auto-generated from the title (no separate ID
+// field to fill in), and a duplicate title just gets a numeric suffix
+// rather than blocking — friction that matters little at 5 entries becomes
+// real friction at 500.
+
+const skillEditor = document.getElementById('skillEditor');
+const skillTitleInput = document.getElementById('skillTitleInput');
+const skillUrlInput = document.getElementById('skillUrlInput');
+const skillEditorError = document.getElementById('skillEditorError');
+
+function openSkillCatalogEditor() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  skillEditor.style.left = centerX + 'px';
+  skillEditor.style.top = centerY + 'px';
+  skillEditor.classList.add('open');
+
+  skillTitleInput.value = '';
+  skillUrlInput.value = '';
+  skillEditorError.textContent = '';
+  requestAnimationFrame(() => skillTitleInput.focus());
+}
+
+function cancelSkillCatalogEditor() {
+  skillEditor.classList.remove('open');
+}
+
+// Appends -2, -3, etc. until the id is free, rather than erroring out.
+function uniqueSkillId(baseId) {
+  if (!skillCatalog[baseId]) return baseId;
+  let n = 2;
+  while (skillCatalog[baseId + '-' + n]) n++;
+  return baseId + '-' + n;
+}
+
+function confirmSkillCatalogEditor() {
+  const title = skillTitleInput.value.trim();
+  const url = skillUrlInput.value.trim();
+
+  if (!title) {
+    skillEditorError.textContent = 'Titel krävs.';
+    skillTitleInput.focus();
+    return;
+  }
+  if (!url) {
+    skillEditorError.textContent = 'URL krävs.';
+    skillUrlInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    skillEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const id = uniqueSkillId(slugify(title, 'fardighet'));
+  const entry = { id, title, url };
+  projectDb.ref('mapSkills/' + id).set(entry)
+    .then(() => {
+      skillCatalog[id] = entry; // optimistic
+      cancelSkillCatalogEditor();
+    })
+    .catch(err => {
+      skillEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[skillCatalog] save failed:', err);
+    });
+}
+
+[skillTitleInput, skillUrlInput].forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmSkillCatalogEditor(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelSkillCatalogEditor(); }
+    e.stopPropagation();
+  });
+});
+
 // ─── AREA PICKER (assign an existing area to a group or connection) ────────
 
 const areaPicker = document.getElementById('areaPicker');
@@ -2004,6 +2116,7 @@ function openMapSaveDialog() {
   closeRolePicker();
   cancelAreaCatalogEditor();
   closeAreaPicker();
+  cancelSkillCatalogEditor();
   closeMapLoadPicker();
   cancelDeleteConfirm();
 
@@ -2083,6 +2196,7 @@ function openMapLoadPicker() {
   closeRolePicker();
   cancelAreaCatalogEditor();
   closeAreaPicker();
+  cancelSkillCatalogEditor();
   cancelMapSaveDialog();
   cancelDeleteConfirm();
 
@@ -2550,6 +2664,7 @@ function openProjectCatalogEditor() {
   closeRolePicker();
   cancelAreaCatalogEditor();
   closeAreaPicker();
+  cancelSkillCatalogEditor();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -2712,6 +2827,7 @@ function openRoleCatalogEditor() {
   closeRolePicker();
   cancelAreaCatalogEditor();
   closeAreaPicker();
+  cancelSkillCatalogEditor();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -3147,6 +3263,7 @@ area.addEventListener('click', e => {
   closeRolePicker();
   cancelAreaCatalogEditor();
   closeAreaPicker();
+  cancelSkillCatalogEditor();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -3154,7 +3271,7 @@ area.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (previewOpen) { exitPreviewMode(); return; }
-    closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelAreaCatalogEditor(); closeAreaPicker(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm();
+    closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelAreaCatalogEditor(); closeAreaPicker(); cancelSkillCatalogEditor(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm();
   }
 });
 
