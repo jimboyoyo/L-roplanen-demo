@@ -569,9 +569,42 @@
     background: #0a0a1a;
     display: none;
   }
-  .preview-layer.open { display: block; }
-  .preview-svg-host { width: 100%; height: 100%; }
+  .preview-layer.open { display: flex; }
+  .preview-svg-host { flex: 1; height: 100%; min-width: 0; }
   .preview-svg-host svg { width: 100%; height: 100%; display: block; }
+
+  .preview-css-panel {
+    width: 380px;
+    flex-shrink: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #12121f;
+    border-left: 1px solid rgba(255,255,255,0.1);
+  }
+  .preview-css-panel-title {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+    padding: 14px 16px 10px;
+    flex-shrink: 0;
+  }
+  .preview-css-panel textarea {
+    flex: 1;
+    width: 100%;
+    background: #0a0a1a;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    color: #d4d4d4;
+    font-family: 'SF Mono', Consolas, Monaco, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    padding: 14px 16px;
+    outline: none;
+    resize: none;
+    box-sizing: border-box;
+  }
 
   .preview-info-panel {
     position: absolute;
@@ -681,6 +714,10 @@
       <div class="preview-info-title" id="previewInfoTitle"></div>
       <div class="preview-info-description" id="previewInfoDescription"></div>
       <a class="preview-info-link" id="previewInfoLink" href="#" target="_blank" rel="noopener noreferrer">Öppna länk ↗</a>
+    </div>
+    <div class="preview-css-panel">
+      <div class="preview-css-panel-title">CSS (endast förhandsgranskning — kopiera till index.html när du är nöjd)</div>
+      <textarea id="previewCssInput" spellcheck="false"></textarea>
     </div>
   </div>
 
@@ -1618,6 +1655,7 @@ function enterPreviewMode() {
   const host = document.getElementById('previewSvgHost');
   host.innerHTML = exportMapToSvgString();
   wirePreviewInteractivity(host);
+  applyPreviewCss();
   closePreviewInfoPanel();
 
   document.getElementById('previewLayer').classList.add('open');
@@ -1650,6 +1688,62 @@ function wirePreviewInteractivity(host) {
       showPreviewNodeInfo(nodeEl);
     });
   });
+}
+
+// ─── PREVIEW CSS ─────────────────────────────────────────────────────────────
+// Purely a preview-time overlay — never part of exportMapToSvgString() or
+// anything that gets saved. Same class names the export already produces,
+// so whatever ends up looking right here can be copied straight into
+// index.html's stylesheet as-is.
+
+const DEFAULT_MAP_CSS = `/* Kartans stil — samma klasser som exporten producerar.
+   Det som ser bra ut här kan klistras in direkt i index.html. */
+
+.map-group-outline {
+  stroke-width: 2.5px;
+}
+
+.map-group-label {
+  font-size: 30px;
+  letter-spacing: 0.06em;
+}
+
+.connector {
+  stroke-width: 2.5px;
+}
+
+.map-project-card {
+  /* fylls annars av projektets område */
+}
+
+.map-project-title {
+  font-size: 13px;
+}
+
+.map-role {
+  /* fylls annars av rollens område */
+}
+
+.map-role-icon {
+  font-size: 26px;
+}
+`;
+
+const previewCssInput = document.getElementById('previewCssInput');
+previewCssInput.value = DEFAULT_MAP_CSS;
+previewCssInput.addEventListener('input', applyPreviewCss);
+previewCssInput.addEventListener('keydown', e => e.stopPropagation());
+
+function applyPreviewCss() {
+  const svg = document.querySelector('#previewSvgHost svg');
+  if (!svg) return;
+  let styleEl = svg.querySelector('#previewCustomStyle');
+  if (!styleEl) {
+    styleEl = document.createElementNS(svgNS, 'style');
+    styleEl.setAttribute('id', 'previewCustomStyle');
+    svg.insertBefore(styleEl, svg.firstChild);
+  }
+  styleEl.textContent = previewCssInput.value;
 }
 
 function showPreviewNodeInfo(nodeEl) {
