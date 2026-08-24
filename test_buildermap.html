@@ -481,12 +481,15 @@
   .delete-confirm-ok:hover { background: #f0665a; }
 
   .project-card {
-    fill: #3a6df0;
-    stroke: #6f93f5;
-    stroke-width: 2;
-    transition: fill 0.15s;
+    fill: #fff;
+    stroke: #3d2f6e;
+    stroke-width: 5;
   }
-  .node-slot:hover .project-card { fill: #4a7bf7; }
+  .project-card-band {
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .node-slot:hover .project-card-band { opacity: 0.85; }
   .project-card-title {
     fill: #fff;
     font-family: 'Century Gothic', CenturyGothic, sans-serif;
@@ -1297,6 +1300,9 @@ const NODE_ORDER_BTN_GAP = 16; // gap between a node's edge and its reorder arro
 const PROJECT_RECT_WIDTH = 130;
 const PROJECT_RECT_HEIGHT = 56;
 const PROJECT_RECT_RX = 14;
+const PROJECT_BAND_HEIGHT_RATIO = 0.4; // the colored band's share of the card's height
+const PROJECT_DEFAULT_ACCENT = '#3d2f6e'; // border + band color when no area is assigned
+const PROJECT_BAND_OPACITY = 0.82; // band is the same hue as the border, just lighter over the white card
 
 function updateGroupOrderControls(groupId) {
   const group = groups[groupId];
@@ -1563,13 +1569,17 @@ function exportMapToSvgString() {
         const title = project ? project.title : '';
         const url = project ? project.url : '';
         const projectArea = project && project.area ? areaCatalog[project.area] : null;
-        const projectFill = projectArea ? projectArea.color : '#3a6df0';
+        const accentColor = projectArea ? projectArea.color : PROJECT_DEFAULT_ACCENT;
         const projectAreaClass = project && project.area ? ` area-${escapeHtml(project.area)}` : '';
         const nodeId = `project-${slot.projectId}`;
         const rectX = slot.x - PROJECT_RECT_WIDTH / 2, rectY = slot.y - PROJECT_RECT_HEIGHT / 2;
+        const bandHeight = PROJECT_RECT_HEIGHT * PROJECT_BAND_HEIGHT_RATIO;
+        const bandY = rectY + (PROJECT_RECT_HEIGHT - bandHeight) / 2;
         const rectMarkup = `<rect id="${escapeHtml(nodeId)}" class="map-project-card${projectAreaClass}" x="${rectX}" y="${rectY}" width="${PROJECT_RECT_WIDTH}" height="${PROJECT_RECT_HEIGHT}" `
-          + `rx="${PROJECT_RECT_RX}" fill="${projectFill}" stroke="#6f93f5" stroke-width="2" `
+          + `rx="${PROJECT_RECT_RX}" fill="#fff" stroke="${accentColor}" stroke-width="5" `
           + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
+          + `<rect class="map-project-band${projectAreaClass}" x="${rectX}" y="${bandY}" width="${PROJECT_RECT_WIDTH}" height="${bandHeight}" `
+          + `fill="${accentColor}" fill-opacity="${PROJECT_BAND_OPACITY}" pointer-events="none" />\n`
           + `<text class="map-project-title${projectAreaClass}" x="${slot.x}" y="${slot.y}" font-family="Century Gothic, sans-serif" font-weight="700" font-size="13" fill="#fff" `
           + `text-anchor="middle" dominant-baseline="central" pointer-events="none">${escapeHtml(title)}</text>\n`;
         nodesMarkup += url
@@ -1714,6 +1724,10 @@ const DEFAULT_MAP_CSS = `/* Kartans stil — samma klasser som exporten producer
 
 .map-project-card {
   /* fylls annars av projektets område */
+}
+
+.map-project-band {
+  /* fylls annars av projektets område, ljusare nyans */
 }
 
 .map-project-title {
@@ -2912,16 +2926,32 @@ function renderSlot(groupId, slot) {
 
     const catalogEntry = projectCatalog[slot.projectId];
     const projectArea = catalogEntry && catalogEntry.area ? areaCatalog[catalogEntry.area] : null;
+    const accentColor = projectArea ? projectArea.color : PROJECT_DEFAULT_ACCENT;
+
+    const cardX = slot.x - PROJECT_RECT_WIDTH / 2, cardY = slot.y - PROJECT_RECT_HEIGHT / 2;
+    const bandHeight = PROJECT_RECT_HEIGHT * PROJECT_BAND_HEIGHT_RATIO;
+    const bandY = cardY + (PROJECT_RECT_HEIGHT - bandHeight) / 2;
 
     const rect = document.createElementNS(svgNS, 'rect');
     rect.setAttribute('class', 'project-card');
-    rect.setAttribute('x', slot.x - PROJECT_RECT_WIDTH / 2);
-    rect.setAttribute('y', slot.y - PROJECT_RECT_HEIGHT / 2);
+    rect.setAttribute('x', cardX);
+    rect.setAttribute('y', cardY);
     rect.setAttribute('width', PROJECT_RECT_WIDTH);
     rect.setAttribute('height', PROJECT_RECT_HEIGHT);
     rect.setAttribute('rx', PROJECT_RECT_RX);
-    rect.style.fill = projectArea ? projectArea.color : '#3a6df0';
+    rect.style.fill = '#fff';
+    rect.style.stroke = accentColor;
     g.appendChild(rect);
+
+    const band = document.createElementNS(svgNS, 'rect');
+    band.setAttribute('class', 'project-card-band');
+    band.setAttribute('x', cardX);
+    band.setAttribute('y', bandY);
+    band.setAttribute('width', PROJECT_RECT_WIDTH);
+    band.setAttribute('height', bandHeight);
+    band.style.fill = accentColor;
+    band.style.fillOpacity = PROJECT_BAND_OPACITY;
+    g.appendChild(band);
 
     const title = document.createElementNS(svgNS, 'text');
     title.setAttribute('class', 'project-card-title');
