@@ -351,6 +351,49 @@
     box-sizing: border-box;
   }
   .project-editor select:focus { border-color: #3a6df0; }
+
+  .skill-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .skill-chip-list:empty { margin-bottom: 0; }
+  .skill-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(58,109,240,0.18);
+    border: 1px solid rgba(58,109,240,0.4);
+    border-radius: 20px;
+    padding: 4px 6px 4px 10px;
+    font-size: 11px;
+    color: #fff;
+  }
+  .skill-chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+  }
+  .skill-chip-remove:hover { color: #fff; }
+  .skill-add-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px dashed rgba(255,255,255,0.3);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.75);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 8px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .skill-add-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); }
   .project-editor input[type="color"] {
     width: 100%;
     height: 38px;
@@ -774,11 +817,21 @@
       <select id="roleAreaSelect"><option value="">Inget område</option></select>
     </div>
     <div class="field">
+      <label>Färdigheter</label>
+      <div class="skill-chip-list" id="roleSkillChips"></div>
+      <button type="button" class="skill-add-btn" onclick="openSkillPickerForRole()">+ Lägg till färdighet</button>
+    </div>
+    <div class="field">
       <label>ID</label>
       <input type="text" id="roleIdInput" placeholder="t.ex. roll-014" autocomplete="off" />
     </div>
     <div class="editor-error" id="roleEditorError"></div>
     <button class="editor-submit" onclick="submitRoleCatalogEditor()">Skapa roll</button>
+  </div>
+
+  <div class="project-picker" id="skillPicker">
+    <input type="text" id="skillPickerFilter" class="picker-filter" placeholder="Sök färdighet…" autocomplete="off" />
+    <div class="picker-list" id="skillPickerList"></div>
   </div>
 
   <div class="project-editor" id="areaEditor">
@@ -1412,6 +1465,7 @@ function openDeleteConfirmAt(worldX, worldY, message, target) {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
 
@@ -1670,6 +1724,7 @@ function enterPreviewMode() {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -1909,6 +1964,7 @@ function openSkillCatalogEditor() {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -2117,6 +2173,7 @@ function openMapSaveDialog() {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   closeMapLoadPicker();
   cancelDeleteConfirm();
 
@@ -2197,6 +2254,7 @@ function openMapLoadPicker() {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   cancelMapSaveDialog();
   cancelDeleteConfirm();
 
@@ -2665,6 +2723,7 @@ function openProjectCatalogEditor() {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -2807,6 +2866,94 @@ projectPickerFilter.addEventListener('keydown', e => {
   e.stopPropagation();
 });
 
+// ─── ROLE SKILLS (attach skills from the catalog while creating a role) ────
+// A role holds a list of skill ids. roleEditorSkills tracks the in-progress
+// selection while the role form is open; it's written into the role entry
+// on submit.
+
+let roleEditorSkills = [];
+
+function renderRoleSkillChips() {
+  const container = document.getElementById('roleSkillChips');
+  container.innerHTML = '';
+  roleEditorSkills.forEach(skillId => {
+    const skill = skillCatalog[skillId];
+    const chip = document.createElement('div');
+    chip.className = 'skill-chip';
+    chip.innerHTML = `<span>${escapeHtml(skill ? skill.title : skillId)}</span>`;
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'skill-chip-remove';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', () => {
+      roleEditorSkills = roleEditorSkills.filter(id => id !== skillId);
+      renderRoleSkillChips();
+    });
+    chip.appendChild(removeBtn);
+    container.appendChild(chip);
+  });
+}
+
+const skillPicker = document.getElementById('skillPicker');
+const skillPickerFilter = document.getElementById('skillPickerFilter');
+const skillPickerList = document.getElementById('skillPickerList');
+let skillPickerOpen = false;
+
+// Deliberately does NOT close the role editor — this picker layers on top
+// of it, and selecting (or cancelling) returns to the still-open form.
+function openSkillPickerForRole() {
+  skillPickerOpen = true;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  skillPicker.style.left = centerX + 'px';
+  skillPicker.style.top = centerY + 'px';
+  skillPicker.classList.add('open');
+
+  skillPickerFilter.value = '';
+  renderSkillPickerList('');
+  requestAnimationFrame(() => skillPickerFilter.focus());
+}
+
+function closeSkillPicker() {
+  skillPickerOpen = false;
+  skillPicker.classList.remove('open');
+}
+
+function renderSkillPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(skillCatalog).filter(s =>
+    !roleEditorSkills.includes(s.id) && (!q || s.title.toLowerCase().includes(q))
+  );
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(skillCatalog).length
+      ? 'Inga fler färdigheter hittades.'
+      : 'Inga färdigheter i databasen ännu. Skapa en via "+ Färdighet" i menyn.';
+    skillPickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  skillPickerList.innerHTML = '';
+  entries.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'picker-item';
+    item.textContent = s.title;
+    item.addEventListener('click', () => selectSkillForRole(s.id));
+    skillPickerList.appendChild(item);
+  });
+}
+
+function selectSkillForRole(skillId) {
+  if (!roleEditorSkills.includes(skillId)) roleEditorSkills.push(skillId);
+  closeSkillPicker();
+  renderRoleSkillChips();
+}
+
+skillPickerFilter.addEventListener('input', () => renderSkillPickerList(skillPickerFilter.value));
+skillPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeSkillPicker(); }
+  e.stopPropagation();
+});
+
 // ─── ROLE CATALOG (create in database, via header button) ──────────────────
 // Not tied to any node — this just adds a new entry to /mapRoles. Placing a
 // role on the map happens separately, via the picker below.
@@ -2828,6 +2975,7 @@ function openRoleCatalogEditor() {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -2843,6 +2991,8 @@ function openRoleCatalogEditor() {
   roleUrlInput.value = '';
   roleIdInput.value = '';
   document.getElementById('roleAreaSelect').value = '';
+  roleEditorSkills = [];
+  renderRoleSkillChips();
   roleEditorError.textContent = '';
   requestAnimationFrame(() => roleTitleInput.focus());
 }
@@ -2877,7 +3027,7 @@ function submitRoleCatalogEditor() {
     return;
   }
 
-  const entry = { title, description, url, id, area: document.getElementById('roleAreaSelect').value };
+  const entry = { title, description, url, id, area: document.getElementById('roleAreaSelect').value, skills: [...roleEditorSkills] };
   projectDb.ref('mapRoles/' + id).set(entry)
     .then(() => {
       roleCatalog[id] = entry; // optimistic, the live listener will also confirm this
@@ -3255,6 +3405,7 @@ function completeConnection(from, to) {
 area.addEventListener('click', e => {
   if (previewOpen) return;
   if (e.target.closest('.node-slot') || e.target.closest('.slot-menu') || e.target.closest('.zoom-btn') || e.target.closest('.add-btn') || e.target.closest('.layers-panel') || e.target.closest('.label-editor') || e.target.closest('.project-editor') || e.target.closest('.project-picker') || e.target.closest('.delete-confirm')) return;
+  if (skillPickerOpen) { closeSkillPicker(); return; }
   closeSlotMenu();
   cancelConnection();
   cancelProjectCatalogEditor();
@@ -3264,6 +3415,7 @@ area.addEventListener('click', e => {
   cancelAreaCatalogEditor();
   closeAreaPicker();
   cancelSkillCatalogEditor();
+  closeSkillPicker();
   cancelMapSaveDialog();
   closeMapLoadPicker();
   cancelDeleteConfirm();
@@ -3271,7 +3423,8 @@ area.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (previewOpen) { exitPreviewMode(); return; }
-    closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelAreaCatalogEditor(); closeAreaPicker(); cancelSkillCatalogEditor(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm();
+    if (skillPickerOpen) { closeSkillPicker(); return; }
+    closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelAreaCatalogEditor(); closeAreaPicker(); cancelSkillCatalogEditor(); closeSkillPicker(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm();
   }
 });
 
