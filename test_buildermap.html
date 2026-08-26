@@ -321,6 +321,7 @@
     transition: border-color 0.15s;
   }
   .project-editor input:focus { border-color: #3a6df0; }
+  .project-editor input:disabled { background: #eee; color: #888; cursor: not-allowed; }
   .project-editor input::placeholder { color: #bbb; }
   .project-editor textarea {
     width: 100%;
@@ -469,6 +470,39 @@
     color: rgba(255,255,255,0.35);
     margin-top: 2px;
   }
+  .picker-item-editable {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: default;
+  }
+  .picker-item-editable:hover { background: rgba(255,255,255,0.1); }
+  .picker-item-label {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .picker-edit-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 5px;
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .picker-edit-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
   .picker-empty {
     padding: 16px 14px;
     font-size: 12px;
@@ -706,6 +740,7 @@
       <button class="layer-btn" onclick="createLayer()" title="Nytt lager">Nytt lager</button>
       <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
       <button class="layer-btn" onclick="openRoleCatalogEditor()" title="Skapa ny roll i databasen">+ Roll</button>
+      <button class="layer-btn" onclick="openRolePickerForBrowsing()" title="Bläddra och redigera roller">✎ Roller</button>
       <button class="layer-btn" onclick="openAreaCatalogEditor()" title="Skapa nytt område i databasen">+ Område</button>
       <button class="layer-btn" onclick="openSkillCatalogEditor()" title="Skapa en ny färdighet i databasen">+ Färdighet</button>
       <button class="layer-btn" onclick="openMapSaveDialog()" title="Spara kartan till Firebase">Spara karta</button>
@@ -826,7 +861,7 @@
       <input type="text" id="roleIdInput" placeholder="t.ex. roll-014" autocomplete="off" />
     </div>
     <div class="editor-error" id="roleEditorError"></div>
-    <button class="editor-submit" onclick="submitRoleCatalogEditor()">Skapa roll</button>
+    <button class="editor-submit" id="roleEditorSubmitBtn" onclick="submitRoleCatalogEditor()">Skapa roll</button>
   </div>
 
   <div class="project-picker" id="skillPicker">
@@ -2872,6 +2907,7 @@ projectPickerFilter.addEventListener('keydown', e => {
 // on submit.
 
 let roleEditorSkills = [];
+let roleEditorEditingId = null; // null = creating new; otherwise, the role id being edited
 
 function renderRoleSkillChips() {
   const container = document.getElementById('roleSkillChips');
@@ -2980,6 +3016,7 @@ function openRoleCatalogEditor() {
   closeMapLoadPicker();
   cancelDeleteConfirm();
 
+  roleEditorEditingId = null;
   const centerX = area.clientWidth / 2;
   const centerY = area.clientHeight / 2;
   roleEditor.style.left = centerX + 'px';
@@ -2990,10 +3027,54 @@ function openRoleCatalogEditor() {
   roleDescriptionInput.value = '';
   roleUrlInput.value = '';
   roleIdInput.value = '';
+  roleIdInput.disabled = false;
   document.getElementById('roleAreaSelect').value = '';
   roleEditorSkills = [];
   renderRoleSkillChips();
   roleEditorError.textContent = '';
+  document.getElementById('roleEditorSubmitBtn').textContent = 'Skapa roll';
+  requestAnimationFrame(() => roleTitleInput.focus());
+}
+
+// Loads an existing role's data into the same form, in edit mode: the ID
+// field locks (changing it would orphan the old database entry and break
+// any node on the map still pointing at it), and submitting updates the
+// existing record instead of checking for a fresh, unique id.
+function openRoleEditorForEdit(roleId) {
+  const roleData = roleCatalog[roleId];
+  if (!roleData) return;
+
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  roleEditorEditingId = roleId;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  roleEditor.style.left = centerX + 'px';
+  roleEditor.style.top = centerY + 'px';
+  roleEditor.classList.add('open');
+
+  roleTitleInput.value = roleData.title || '';
+  roleDescriptionInput.value = roleData.description || '';
+  roleUrlInput.value = roleData.url || '';
+  roleIdInput.value = roleData.id;
+  roleIdInput.disabled = true;
+  document.getElementById('roleAreaSelect').value = roleData.area || '';
+  roleEditorSkills = [...(roleData.skills || [])];
+  renderRoleSkillChips();
+  roleEditorError.textContent = '';
+  document.getElementById('roleEditorSubmitBtn').textContent = 'Spara ändringar';
   requestAnimationFrame(() => roleTitleInput.focus());
 }
 
@@ -3005,22 +3086,28 @@ function submitRoleCatalogEditor() {
   const title = roleTitleInput.value.trim();
   const description = roleDescriptionInput.value.trim();
   const url = roleUrlInput.value.trim();
-  const id = roleIdInput.value.trim();
 
   if (!title) {
     roleEditorError.textContent = 'Titel krävs.';
     roleTitleInput.focus();
     return;
   }
-  if (!id) {
-    roleEditorError.textContent = 'ID krävs.';
-    roleIdInput.focus();
-    return;
-  }
-  if (roleCatalog[id]) {
-    roleEditorError.textContent = 'Det här ID:t finns redan — välj ett annat.';
-    roleIdInput.focus();
-    return;
+
+  let id;
+  if (roleEditorEditingId) {
+    id = roleEditorEditingId; // locked — reuse the existing entry's key
+  } else {
+    id = roleIdInput.value.trim();
+    if (!id) {
+      roleEditorError.textContent = 'ID krävs.';
+      roleIdInput.focus();
+      return;
+    }
+    if (roleCatalog[id]) {
+      roleEditorError.textContent = 'Det här ID:t finns redan — välj ett annat.';
+      roleIdInput.focus();
+      return;
+    }
   }
   if (!projectDb) {
     roleEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
@@ -3052,12 +3139,12 @@ roleDescriptionInput.addEventListener('keydown', e => {
   e.stopPropagation();
 });
 
-// ─── ROLE PICKER (link an existing catalog role to a node) ─────────────────
+// ─── ROLE PICKER (link an existing catalog role to a node, or browse/edit) ──
 
 const rolePicker = document.getElementById('rolePicker');
 const rolePickerFilter = document.getElementById('rolePickerFilter');
 const rolePickerList = document.getElementById('rolePickerList');
-let rolePickerTarget = null; // { groupId, slotIndex }
+let rolePickerTarget = null; // { groupId, slotIndex }, or null when just browsing
 
 function openRolePicker(groupId, slotIndex) {
   const slot = getSlot(groupId, slotIndex);
@@ -3070,6 +3157,35 @@ function openRolePicker(groupId, slotIndex) {
   const pos = worldToScreen(slot.x, slot.y);
   rolePicker.style.left = pos.x + 'px';
   rolePicker.style.top = pos.y + 'px';
+  rolePicker.classList.add('open');
+
+  rolePickerFilter.value = '';
+  renderRolePickerList('');
+  requestAnimationFrame(() => rolePickerFilter.focus());
+}
+
+// Opens the same picker with no placement target — for browsing/editing
+// roles directly, without needing to click an empty node first.
+function openRolePickerForBrowsing() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  rolePickerTarget = null;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  rolePicker.style.left = centerX + 'px';
+  rolePicker.style.top = centerY + 'px';
   rolePicker.classList.add('open');
 
   rolePickerFilter.value = '';
@@ -3099,9 +3215,30 @@ function renderRolePickerList(query) {
   rolePickerList.innerHTML = '';
   entries.forEach(r => {
     const item = document.createElement('div');
-    item.className = 'picker-item';
-    item.innerHTML = `${escapeHtml(r.title || r.id)}<span class="picker-item-id">${escapeHtml(r.id)}</span>`;
-    item.addEventListener('click', () => selectRoleForSlot(r.id));
+    item.className = 'picker-item picker-item-editable';
+
+    const label = document.createElement('div');
+    label.className = 'picker-item-label';
+    label.innerHTML = `${escapeHtml(r.title || r.id)}<span class="picker-item-id">${escapeHtml(r.id)}</span>`;
+    // With a placement target, clicking the label places the role. When
+    // just browsing (no target), clicking it opens the same edit form the
+    // pencil does — there's nothing else useful for a click to do here.
+    label.addEventListener('click', () => {
+      if (rolePickerTarget) selectRoleForSlot(r.id);
+      else openRoleEditorForEdit(r.id);
+    });
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'picker-edit-btn';
+    editBtn.textContent = '✎';
+    editBtn.title = 'Redigera';
+    editBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      openRoleEditorForEdit(r.id);
+    });
+
+    item.appendChild(label);
+    item.appendChild(editBtn);
     rolePickerList.appendChild(item);
   });
 }
