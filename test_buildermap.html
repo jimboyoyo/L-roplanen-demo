@@ -1,669 +1,3574 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radial Map Studio</title>
+<title>Kartbyggare — LäroPlanen</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: radial-gradient(circle at center, #12122c 0%, #070714 100%);
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    background: #0a0a1a;
     color: #fff;
     height: 100vh;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
-  #mapArea {
+  header {
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .hint {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .canvas-area:active { cursor: grabbing; }
+
+  #canvasSvg {
     width: 100%;
     height: 100%;
-    position: relative;
-    cursor: grab;
+    display: block;
   }
-  #mapArea:active { cursor: grabbing; }
-  #mapArea svg { display: block; width: 100%; height: 100%; }
-
-  .plus-btn circle { transition: fill 0.15s, transform 0.15s; }
-  .plus-btn:hover circle { fill: rgba(255,255,255,0.35); transform: scale(1.05); }
-  .plus-btn { cursor: pointer; }
-
-  .node-group { transition: filter 0.2s ease; }
-  .node-group:hover { filter: drop-shadow(0 0 8px rgba(127, 119, 221, 0.4)); }
-
-  .del-btn { cursor: pointer; opacity: 0; transition: opacity 0.2s ease, transform 0.2s; }
-  .node-group:hover .del-btn { opacity: 1; }
-  .del-btn:hover { transform: scale(1.1); }
 
   .zoom-controls {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
+    bottom: 16px;
+    right: 16px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    z-index: 10;
+    gap: 4px;
+    z-index: 5;
   }
+
   .zoom-btn {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(22, 22, 46, 0.8);
-    backdrop-filter: blur(8px);
-    color: rgba(255,255,255,0.85);
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, border-color 0.2s;
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s;
   }
-  .zoom-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); }
+  .zoom-btn:hover { background: rgba(255,255,255,0.18); }
 
-  .top-controls {
+  .add-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.9);
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s, border-color 0.15s;
+  }
+  .add-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.4); }
+
+  .layer-btn {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.9);
+    font-family: inherit;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .layer-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.4); }
+
+  .layers-panel {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    gap: 10px;
-    z-index: 10;
-  }
-  .action-pill {
-    background: rgba(22, 22, 46, 0.8);
-    backdrop-filter: blur(8px);
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    width: 210px;
+    background: rgba(10,10,26,0.85);
     border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    color: rgba(255,255,255,0.7);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 8px 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .action-pill:hover { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.1); }
-
-  #overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(4, 4, 12, 0.7);
-    backdrop-filter: blur(4px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-  }
-  #overlay.open { display: flex; }
-
-  #popup {
-    background: #16162e;
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    border-radius: 16px;
-    padding: 24px;
-    width: 320px;
-  }
-
-  #popup h3 {
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.45);
-    margin-bottom: 16px;
-  }
-  #popupTitle {
-    width: 100%;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    color: #fff;
-    font-size: 14px;
-    padding: 10px 12px;
-    outline: none;
-    margin-bottom: 16px;
-  }
-  #popupTitle:focus { border-color: #7f77dd; }
-
-  .type-options {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .type-option {
-    flex: 1;
-    text-align: center;
-    padding: 10px 4px;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.6);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .type-option:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
-  .type-option.selected {
-    color: #fff;
-    border-color: #7f77dd;
-    background: rgba(127,119,221,0.18);
-  }
-  .type-option .swatch {
-    width: 20px; height: 20px;
-    margin: 0 auto 6px;
-  }
-
-  .mode-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 16px;
-    background: rgba(0,0,0,0.2);
-    padding: 3px;
     border-radius: 10px;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
   }
-  .mode-tab {
-    flex: 1;
-    text-align: center;
-    padding: 8px 4px;
-    border-radius: 8px;
+  .layers-panel-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.4); text-transform: uppercase;
+    padding: 10px 12px 8px;
+  }
+  .layer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
     font-size: 12px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.5);
+  }
+  .layer-row .layer-name { color: rgba(255,255,255,0.85); }
+  .layer-row .layer-count { color: rgba(255,255,255,0.35); font-size: 10px; }
+  .layer-row .layer-add-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 5px;
+    color: rgba(255,255,255,0.85);
+    font-family: inherit;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .layer-row .layer-add-btn:hover { background: rgba(255,255,255,0.22); }
+  .layers-empty {
+    padding: 4px 12px 10px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+  }
+
+  .layer-ring-guide {
+    fill: none;
+    stroke: rgba(255,255,255,0.15);
+    stroke-width: 1.5;
+    stroke-dasharray: 10 8;
+  }
+
+  .node-group circle.node-outline {
+    fill: rgba(10,10,26,0.65);
+    stroke: #fff;
+    stroke-width: 2.5;
+    cursor: text;
+  }
+
+  .group-label {
+    fill: #fff;
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+  }
+
+  .node-slot { cursor: pointer; }
+  .node-slot circle.slot-outline {
+    fill: rgba(255,255,255,0.04);
+    stroke: rgba(255,255,255,0.35);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .node-slot:hover circle.slot-outline {
+    fill: rgba(255,255,255,0.12);
+    stroke: rgba(255,255,255,0.7);
+  }
+  .node-slot .slot-plus {
+    fill: rgba(255,255,255,0.35);
+    font-size: 22px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    transition: fill 0.15s;
+  }
+  .node-slot:hover .slot-plus { fill: rgba(255,255,255,0.85); }
+
+  .node-slot.is-filled circle.slot-outline {
+    stroke-dasharray: none;
+    stroke-width: 2;
+  }
+  .node-slot.type-project circle.slot-outline { fill: rgba(58,109,240,0.35); stroke: #6f93f5; }
+  .node-slot.type-role circle.slot-outline    { fill: rgba(240,168,58,0.35); stroke: #f3bb63; }
+  .node-slot .slot-icon {
+    font-size: 26px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+
+  .node-slot.is-connecting circle.slot-outline {
+    stroke: #4ee08a;
+    stroke-width: 2.5;
+    stroke-dasharray: 4 3;
+    animation: connectPulse 1s ease-in-out infinite;
+  }
+  @keyframes connectPulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.5; }
+  }
+
+  .connector-line {
+    stroke: rgba(255,255,255,0.4);
+    stroke-width: 2.5;
+  }
+  .connector-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 20;
+    cursor: pointer;
+  }
+
+  .slot-menu {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    overflow: hidden;
+    z-index: 50;
+    min-width: 160px;
+    transform: translate(-50%, -50%);
+  }
+  .slot-menu.open { display: flex; }
+  .slot-menu button {
     background: none;
     border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    font-family: inherit;
+    font-size: 12px;
+    text-align: left;
+    padding: 10px 14px;
     cursor: pointer;
+    transition: background 0.15s;
   }
-  .mode-tab.selected { color: #fff; background: rgba(127,119,221,0.25); }
+  .slot-menu button:last-child { border-bottom: none; }
+  .slot-menu button:hover { background: rgba(255,255,255,0.1); }
 
-  #connectionTarget {
-    width: 100%;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.15);
+  .label-editor {
+    position: absolute;
+    display: none;
+    z-index: 50;
+    transform: translate(-50%, -50%);
+  }
+  .label-editor.open { display: block; }
+  .label-editor input {
+    background: #fff;
+    border: 2px solid #1a1a2e;
     border-radius: 8px;
-    color: #fff;
-    font-size: 13px;
-    padding: 10px 12px;
+    padding: 9px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111;
     outline: none;
-    margin-bottom: 20px;
+    width: 200px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   }
-  .field-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+  .label-editor input::placeholder { color: #bbb; font-weight: 400; }
 
-  .popup-actions { display: flex; gap: 10px; }
-  .popup-actions button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
+  .project-editor {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 60;
+    width: 230px;
+    transform: translate(-50%, -50%);
   }
-  #cancelBtn { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
-  #confirmBtn { background: #5a5af0; color: #fff; }
-  #confirmBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .project-editor.open { display: flex; }
+  .project-editor .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .project-editor label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.4); text-transform: uppercase;
+  }
+  .project-editor input {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+  }
+  .project-editor input:focus { border-color: #3a6df0; }
+  .project-editor input:disabled { background: #eee; color: #888; cursor: not-allowed; }
+  .project-editor input::placeholder { color: #bbb; }
+  .project-editor textarea {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+    resize: vertical;
+    transition: border-color 0.15s;
+  }
+  .project-editor textarea:focus { border-color: #3a6df0; }
+  .project-editor textarea::placeholder { color: #bbb; }
+  .project-editor select {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .project-editor select:focus { border-color: #3a6df0; }
+
+  .skill-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .skill-chip-list:empty { margin-bottom: 0; }
+  .skill-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(58,109,240,0.18);
+    border: 1px solid rgba(58,109,240,0.4);
+    border-radius: 20px;
+    padding: 4px 6px 4px 10px;
+    font-size: 11px;
+    color: #fff;
+  }
+  .skill-chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+  }
+  .skill-chip-remove:hover { color: #fff; }
+  .skill-add-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px dashed rgba(255,255,255,0.3);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.75);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 8px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .skill-add-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); }
+  .project-editor input[type="color"] {
+    width: 100%;
+    height: 38px;
+    padding: 3px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .project-editor .editor-error {
+    font-size: 11px;
+    color: #ff6b6b;
+    min-height: 14px;
+  }
+  .project-editor .editor-submit {
+    background: #3a6df0;
+    border: none;
+    border-radius: 7px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .project-editor .editor-submit:hover { background: #527af5; }
+
+  .project-picker {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 60;
+    width: 240px;
+    max-height: 280px;
+    overflow: hidden;
+    transform: translate(-50%, -50%);
+  }
+  .project-picker.open { display: flex; }
+  .picker-filter {
+    margin: 12px 12px 8px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .picker-list {
+    overflow-y: auto;
+    padding-bottom: 8px;
+  }
+  .picker-item {
+    padding: 9px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: background 0.15s;
+  }
+  .picker-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .picker-item .picker-item-id {
+    display: block;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 2px;
+  }
+  .picker-item-editable {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: default;
+  }
+  .picker-item-editable:hover { background: rgba(255,255,255,0.1); }
+  .picker-item-label {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .picker-edit-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 5px;
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .picker-edit-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .picker-empty {
+    padding: 16px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+    text-align: center;
+  }
+
+  .delete-confirm {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 60;
+    width: 220px;
+    transform: translate(-50%, -50%);
+  }
+  .delete-confirm.open { display: flex; }
+  .delete-confirm-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.8);
+  }
+  .delete-confirm-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .delete-confirm-actions button {
+    flex: 1;
+    border: none;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 9px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .delete-confirm-cancel {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.85);
+  }
+  .delete-confirm-cancel:hover { background: rgba(255,255,255,0.2); }
+  .delete-confirm-ok {
+    background: #e74c3c;
+    color: #fff;
+  }
+  .delete-confirm-ok:hover { background: #f0665a; }
+
+  .project-card {
+    fill: #fff;
+    stroke: #3d2f6e;
+    stroke-width: 5;
+  }
+  .project-card-band {
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .node-slot:hover .project-card-band { opacity: 0.85; }
+  .project-card-title {
+    fill: #fff;
+    font-family: 'Century Gothic', CenturyGothic, sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+
+  .order-control { cursor: pointer; }
+  .order-control circle.order-btn-bg {
+    fill: rgba(10,10,26,0.75);
+    stroke: rgba(255,255,255,0.3);
+    stroke-width: 1.5;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .order-control:hover circle.order-btn-bg {
+    fill: rgba(255,255,255,0.18);
+    stroke: rgba(255,255,255,0.65);
+  }
+  .order-control text.order-btn-icon {
+    fill: rgba(255,255,255,0.75);
+    font-size: 18px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    transition: fill 0.15s;
+  }
+  .order-control:hover text.order-btn-icon { fill: #fff; }
+  .order-control.disabled { cursor: default; pointer-events: none; }
+  .order-control.disabled circle.order-btn-bg { fill: rgba(10,10,26,0.75); stroke: rgba(255,255,255,0.12); }
+  .order-control.disabled text.order-btn-icon { fill: rgba(255,255,255,0.25); }
+
+  .delete-btn { cursor: pointer; }
+  .delete-btn circle.delete-btn-bg {
+    fill: rgba(10,10,26,0.9);
+    stroke: rgba(255,255,255,0.4);
+    stroke-width: 1.5;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .delete-btn:hover circle.delete-btn-bg {
+    fill: #e74c3c;
+    stroke: #e74c3c;
+  }
+  .delete-btn text.delete-btn-icon {
+    fill: rgba(255,255,255,0.8);
+    font-size: 14px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    transition: fill 0.15s;
+  }
+  .delete-btn:hover text.delete-btn-icon { fill: #fff; }
+
+  .area-swatch-btn { cursor: pointer; }
+  .area-swatch-btn circle.area-swatch-bg {
+    stroke: rgba(255,255,255,0.4);
+    stroke-width: 1.5;
+    transition: stroke 0.15s;
+  }
+  .area-swatch-btn:hover circle.area-swatch-bg { stroke: #fff; }
+
+  .zoom-readout {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.06em;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .preview-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    background: #0a0a1a;
+    display: none;
+  }
+  .preview-layer.open { display: flex; }
+  .preview-svg-host { flex: 1; height: 100%; min-width: 0; }
+  .preview-svg-host svg { width: 100%; height: 100%; display: block; }
+
+  .preview-css-panel {
+    width: 380px;
+    flex-shrink: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #12121f;
+    border-left: 1px solid rgba(255,255,255,0.1);
+  }
+  .preview-css-panel-title {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+    padding: 14px 16px 10px;
+    flex-shrink: 0;
+  }
+  .preview-css-panel textarea {
+    flex: 1;
+    width: 100%;
+    background: #0a0a1a;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    color: #d4d4d4;
+    font-family: 'SF Mono', Consolas, Monaco, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    padding: 14px 16px;
+    outline: none;
+    resize: none;
+    box-sizing: border-box;
+  }
+
+  .preview-info-panel {
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
+    z-index: 20;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    width: 260px;
+    max-width: calc(100% - 40px);
+  }
+  .preview-info-panel.open { display: flex; }
+  .preview-info-close {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none; border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 18px; cursor: pointer;
+    line-height: 1; padding: 0;
+  }
+  .preview-info-close:hover { color: #fff; }
+  .preview-info-title {
+    font-size: 15px; font-weight: 700;
+    color: #fff; padding-right: 16px;
+  }
+  .preview-info-description {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.5;
+  }
+  .preview-info-link {
+    font-size: 12px;
+    color: #7fb8ff;
+    text-decoration: none;
+    font-weight: 700;
+  }
+  .preview-info-link:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
 
-<div id="mapArea">
-  <svg id="mapSvg" viewBox="-800 -800 1600 1600"></svg>
-  <div class="top-controls">
-    <button class="action-pill" onclick="saveToLocalStorage()">Save Map</button>
-    <button class="action-pill" onclick="clearMap()">Clear</button>
+<header>
+  <h1>KARTBYGGARE</h1>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <div id="builderToolbar" style="display:flex; align-items:center; gap:14px;">
+      <button class="add-btn" onclick="createCentralGroup()" title="Skapa central grupp">+</button>
+      <button class="layer-btn" onclick="createLayer()" title="Nytt lager">Nytt lager</button>
+      <button class="layer-btn" onclick="openProjectCatalogEditor()" title="Skapa nytt projekt i databasen">+ Projekt</button>
+      <button class="layer-btn" onclick="openRoleCatalogEditor()" title="Skapa ny roll i databasen">+ Roll</button>
+      <button class="layer-btn" onclick="openRolePickerForBrowsing()" title="Bläddra och redigera roller">✎ Roller</button>
+      <button class="layer-btn" onclick="openAreaCatalogEditor()" title="Skapa nytt område i databasen">+ Område</button>
+      <button class="layer-btn" onclick="openSkillCatalogEditor()" title="Skapa en ny färdighet i databasen">+ Färdighet</button>
+      <button class="layer-btn" onclick="openMapSaveDialog()" title="Spara kartan till Firebase">Spara karta</button>
+      <button class="layer-btn" onclick="openMapLoadPicker()" title="Läs in en sparad karta från Firebase">Läs in karta</button>
+    </div>
+    <button class="layer-btn" id="previewToggleBtn" onclick="togglePreviewMode()" title="Förhandsgranska kartan">Förhandsgranska</button>
+    <span class="hint" id="saveStatus"></span>
+    <span class="hint" id="headerHint">Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
   </div>
-  <div class="zoom-controls">
-    <button class="zoom-btn" onclick="zoomBy(1.2)">+</button>
-    <button class="zoom-btn" onclick="zoomBy(0.8)">−</button>
-    <button class="zoom-btn" onclick="resetView()" style="font-size:14px;">↺</button>
-  </div>
-</div>
+</header>
 
-<div id="overlay">
-  <div id="popup">
-    <h3 id="popupHeading">Add to map</h3>
-    <div class="mode-tabs">
-      <button type="button" class="mode-tab selected" data-mode="node" onclick="selectMode('node')">New Node</button>
-      <button type="button" class="mode-tab" data-mode="connection" id="connectionTab" onclick="selectMode('connection')">Connection</button>
+<div class="canvas-area" id="canvasArea">
+  <svg id="canvasSvg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+      </pattern>
+      <pattern id="gridMajor" width="100" height="100" patternUnits="userSpaceOnUse">
+        <rect width="100" height="100" fill="url(#grid)"/>
+        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="0.75"/>
+      </pattern>
+    </defs>
+    <rect id="gridBg" fill="url(#gridMajor)" />
+    <g id="world">
+      <g id="guidesLayer"></g>
+      <g id="connectorsLayer"></g>
+      <g id="nodesLayer"></g>
+    </g>
+  </svg>
+
+  <div class="layers-panel" id="layersPanel">
+    <div class="layers-panel-title">Lager</div>
+    <div class="layer-row">
+      <span class="layer-name">Central grupp</span>
+      <span class="layer-count" id="coreStatus">Ej skapad</span>
     </div>
-    <div id="nodeFields">
-      <input type="text" id="popupTitle" placeholder="Enter node name..." autocomplete="off" onkeydown="if(event.key==='Enter' && !confirmBtnDisabled())confirmAdd()">
-      <div class="type-options">
-        <div class="type-option" data-type="project" onclick="selectType('project')">
-          <div class="swatch" style="background:#1d9e75; border-radius:6px;"></div>Project
-        </div>
-        <div class="type-option" data-type="node" onclick="selectType('node')">
-          <div class="swatch" style="background:#e09b2d; border-radius:50%;"></div>Node
-        </div>
-        <div class="type-option" data-type="circle" onclick="selectType('circle')">
-          <div class="swatch" style="border:2px solid #7f77dd; border-radius:50%;"></div>Circle
-        </div>
-      </div>
-      <label style="display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:16px; cursor:pointer;">
-        <input type="checkbox" id="newCenterCheck" style="margin-top:2px; cursor:pointer;">
-        <span>New center hub — expands its own local radial burst</span>
-      </label>
+    <div id="layersList"></div>
+    <div class="layers-empty" id="layersEmpty">Inga lager ännu.</div>
+  </div>
+
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+    <button class="zoom-btn" onclick="zoom(0.8)">−</button>
+    <button class="zoom-btn" onclick="resetView()" title="Återställ vy" style="font-size:12px;">↺</button>
+  </div>
+
+  <div class="zoom-readout" id="zoomReadout">100%</div>
+
+  <div class="preview-layer" id="previewLayer">
+    <div class="preview-svg-host" id="previewSvgHost"></div>
+    <div class="preview-info-panel" id="previewInfoPanel">
+      <button class="preview-info-close" onclick="closePreviewInfoPanel()">×</button>
+      <div class="preview-info-title" id="previewInfoTitle"></div>
+      <div class="preview-info-description" id="previewInfoDescription"></div>
+      <a class="preview-info-link" id="previewInfoLink" href="#" target="_blank" rel="noopener noreferrer">Öppna länk ↗</a>
     </div>
-    <div id="connectionFields" style="display:none;">
-      <div class="field-label">Connect this node to:</div>
-      <select id="connectionTarget" onchange="updateConfirmState()"></select>
+    <div class="preview-css-panel">
+      <div class="preview-css-panel-title">CSS (endast förhandsgranskning — kopiera till index.html när du är nöjd)</div>
+      <textarea id="previewCssInput" spellcheck="false"></textarea>
     </div>
-    <div class="popup-actions">
-      <button id="cancelBtn" onclick="closePopup()">Cancel</button>
-      <button id="confirmBtn" onclick="confirmAdd()" disabled>Add</button>
+  </div>
+
+  <div class="slot-menu" id="slotMenu">
+    <button onclick="handleMenuChoice('project')">Lägg till projekt</button>
+    <button onclick="handleMenuChoice('role')">Lägg till roll</button>
+    <button onclick="handleMenuChoice('connection')">Skapa koppling</button>
+  </div>
+
+  <div class="label-editor" id="labelEditor">
+    <input type="text" id="labelEditorInput" placeholder="Namn på grupp…" maxlength="60" autocomplete="off" />
+  </div>
+
+  <div class="project-editor" id="projectEditor">
+    <div class="field">
+      <label>Titel</label>
+      <input type="text" id="projectTitleInput" placeholder="Projektnamn…" maxlength="80" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" id="projectUrlInput" placeholder="https://…" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Område</label>
+      <select id="projectAreaSelect"><option value="">Inget område</option></select>
+    </div>
+    <div class="field">
+      <label>ID</label>
+      <input type="text" id="projectIdInput" placeholder="t.ex. proj-014" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="projectEditorError"></div>
+    <button class="editor-submit" onclick="submitProjectCatalogEditor()">Skapa projekt</button>
+  </div>
+
+  <div class="project-editor role-editor" id="roleEditor">
+    <div class="field">
+      <label>Titel</label>
+      <input type="text" id="roleTitleInput" placeholder="Rollnamn…" maxlength="80" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Beskrivning</label>
+      <textarea id="roleDescriptionInput" placeholder="Kort beskrivning av rollen…" rows="3"></textarea>
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" id="roleUrlInput" placeholder="https://…" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Område</label>
+      <select id="roleAreaSelect"><option value="">Inget område</option></select>
+    </div>
+    <div class="field">
+      <label>Färdigheter</label>
+      <div class="skill-chip-list" id="roleSkillChips"></div>
+      <button type="button" class="skill-add-btn" onclick="openSkillPickerForRole()">+ Lägg till färdighet</button>
+    </div>
+    <div class="field">
+      <label>ID</label>
+      <input type="text" id="roleIdInput" placeholder="t.ex. roll-014" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="roleEditorError"></div>
+    <button class="editor-submit" id="roleEditorSubmitBtn" onclick="submitRoleCatalogEditor()">Skapa roll</button>
+  </div>
+
+  <div class="project-picker" id="skillPicker">
+    <input type="text" id="skillPickerFilter" class="picker-filter" placeholder="Sök färdighet…" autocomplete="off" />
+    <div class="picker-list" id="skillPickerList"></div>
+  </div>
+
+  <div class="project-editor" id="areaEditor">
+    <div class="field">
+      <label>Namn</label>
+      <input type="text" id="areaNameInput" placeholder="t.ex. Fotografi" maxlength="40" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Färg</label>
+      <input type="color" id="areaColorInput" value="#3a6df0" />
+    </div>
+    <div class="editor-error" id="areaEditorError"></div>
+    <button class="editor-submit" onclick="confirmAreaCatalogEditor()">Skapa område</button>
+  </div>
+
+  <div class="project-editor" id="skillEditor">
+    <div class="field">
+      <label>Titel</label>
+      <input type="text" id="skillTitleInput" placeholder="t.ex. Photoshop – markera och maska" maxlength="100" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" id="skillUrlInput" placeholder="YouTube- eller OneDrive-länk…" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="skillEditorError"></div>
+    <button class="editor-submit" onclick="confirmSkillCatalogEditor()">Skapa färdighet</button>
+  </div>
+
+  <div class="project-picker" id="areaPicker">
+    <input type="text" id="areaPickerFilter" class="picker-filter" placeholder="Sök område…" autocomplete="off" />
+    <div class="picker-list" id="areaPickerList"></div>
+  </div>
+
+  <div class="project-picker" id="projectPicker">
+    <input type="text" id="projectPickerFilter" class="picker-filter" placeholder="Sök projekt…" autocomplete="off" />
+    <div class="picker-list" id="projectPickerList"></div>
+  </div>
+
+  <div class="project-picker role-picker" id="rolePicker">
+    <input type="text" id="rolePickerFilter" class="picker-filter" placeholder="Sök roll…" autocomplete="off" />
+    <div class="picker-list" id="rolePickerList"></div>
+  </div>
+
+  <div class="project-editor" id="mapSaveDialog">
+    <div class="field">
+      <label>Namn på karta</label>
+      <input type="text" id="mapSaveNameInput" placeholder="t.ex. Ring 1 – prototyp" maxlength="60" autocomplete="off" />
+    </div>
+    <div class="editor-error" id="mapSaveError"></div>
+    <button class="editor-submit" onclick="confirmMapSaveDialog()">Spara</button>
+  </div>
+
+  <div class="project-picker" id="mapLoadPicker">
+    <input type="text" id="mapLoadPickerFilter" class="picker-filter" placeholder="Sök karta…" autocomplete="off" />
+    <div class="picker-list" id="mapLoadPickerList"></div>
+  </div>
+
+  <div class="delete-confirm" id="deleteConfirm">
+    <div class="delete-confirm-text" id="deleteConfirmText">Ta bort noden? Eventuella kopplingar till den tas också bort.</div>
+    <div class="delete-confirm-actions">
+      <button class="delete-confirm-cancel" onclick="cancelDeleteConfirm()">Avbryt</button>
+      <button class="delete-confirm-ok" id="deleteConfirmOkBtn" onclick="confirmDelete()">Ta bort</button>
     </div>
   </div>
 </div>
 
 <script>
-let nodes = JSON.parse(localStorage.getItem('radial_nodes')) || {
-  "core": { title: "Root Hub", type: "project", parentId: null, order: 0, isCenter: true }
-};
-let connections = JSON.parse(localStorage.getItem('radial_connections')) || [];
-let orderCounter = Object.keys(nodes).length;
-let pendingParentId = null;
-let selectedType = null;
-let popupMode = 'node';
+// ─── VIEWBOX STATE ──────────────────────────────────────────────────────────
+// The world is laid out in a fixed coordinate space (SVG units == grid units,
+// 10 units per small grid cell). vx/vy/vw/vh describe the visible viewBox.
 
-const svgNS = 'http://www.w3.org/2000/svg';
-let vx = -800, vy = -800, vw = 1600, vh = 1600;
+let vx = 0, vy = 0, vw = 2000, vh = 1200;
+const BASE_W = 2000, BASE_H = 1200; // "100% zoom" reference size
+const MIN_VW = 200;                 // most zoomed-in (10x)
+const MAX_VW = 8000;                // most zoomed-out (0.25x)
 
-function computeLayout() {
-  const ids = Object.keys(nodes);
-  if (!ids.length) return { pos: {}, depth: {} };
-
-  const children = {};
-  ids.forEach(id => {
-    const p = nodes[id].parentId;
-    if (p !== null) (children[p] ??= []).push(id);
-  });
-  Object.values(children).forEach(list => list.sort((a, b) => nodes[a].order - nodes[b].order));
-
-  const weight = {};
-  function getWeight(id) {
-    if (weight[id] !== undefined) return weight[id];
-    const kids = children[id] || [];
-    return (weight[id] = kids.length ? kids.reduce((s, c) => s + getWeight(c), 0) : 1);
-  }
-  ids.forEach(id => getWeight(id));
-
-  // Dynamically calculate spacing based on the max sibling count at any node to prevent angular overlap
-  let maxSiblings = 1;
-  Object.values(children).forEach(kids => { if (kids.length > maxSiblings) maxSiblings = kids.length; });
-  const BASE_RING_SPACING = Math.max(160, maxSiblings * 24);
-  const CENTER_PUSH = 140;
-
-  const pos = {};
-  const depth = {};
-
-  const roots = ids.filter(id => nodes[id].parentId === null);
-  roots.forEach(id => {
-    pos[id] = { x: 0, y: 0 };
-    depth[id] = 0;
-    layoutChildren(id, 0, 0, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI, 0);
-  });
-
-  function layoutChildren(parentId, originX, originY, startAngle, endAngle, originDepth) {
-    const kids = children[parentId] || [];
-    if (!kids.length) return;
-    const totalWeight = kids.reduce((s, c) => s + getWeight(c), 0);
-    let cursor = startAngle;
-    kids.forEach(id => {
-      const span = (endAngle - startAngle) * (getWeight(id) / totalWeight);
-      const mid = cursor + span / 2;
-      const localD = originDepth + 1;
-      let r = BASE_RING_SPACING * localD;
-      if (nodes[id].isCenter) r += CENTER_PUSH;
-      pos[id] = { x: originX + r * Math.cos(mid), y: originY + r * Math.sin(mid) };
-      depth[id] = localD;
-      if (nodes[id].isCenter) {
-        layoutChildren(id, pos[id].x, pos[id].y, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI, 0);
-      } else {
-        layoutChildren(id, originX, originY, cursor, cursor + span, localD);
-      }
-      cursor += span;
-    });
-  }
-
-  resolveCollisions(pos);
-  return { pos, depth };
-}
-
-function resolveCollisions(pos) {
-  const ids = Object.keys(pos);
-  if (ids.length < 2) return;
-
-  const r = {};
-  ids.forEach(id => { r[id] = typeStyle(nodes[id].type).r + 32; }); // Increased buffer safety margin
-  const fixed = new Set(ids.filter(id => nodes[id].parentId === null));
-
-  // High iteration pass count with strict structural shifting guarantees zero overlaps
-  for (let iter = 0; iter < 800; iter++) {
-    let moved = false;
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const a = ids[i], b = ids[j];
-        let dx = pos[b].x - pos[a].x;
-        let dy = pos[b].y - pos[a].y;
-        let dist = Math.hypot(dx, dy);
-        const minDist = r[a] + r[b];
-        if (dist >= minDist) continue;
-        moved = true;
-        if (dist < 0.001) { dx = 1; dy = 0; dist = 1; }
-        const overlap = (minDist - dist) / 2;
-        const ux = dx / dist, uy = dy / dist;
-        if (!fixed.has(a)) { pos[a].x -= ux * overlap; pos[a].y -= uy * overlap; }
-        if (!fixed.has(b)) { pos[b].x += ux * overlap; pos[b].y += uy * overlap; }
-      }
-    }
-    if (!moved) break;
-  }
-}
-
-function typeStyle(type) {
-  if (type === 'project') return { shape: 'rect', fill: '#1d9e75', r: 26 };
-  if (type === 'node')    return { shape: 'circle', fill: '#e09b2d', r: 18 };
-  return { shape: 'ring', fill: 'none', stroke: '#7f77dd', r: 30 };
-}
-
-function render() {
-  const { pos } = computeLayout();
-  const svg = document.getElementById('mapSvg');
-  svg.innerHTML = '';
-  applyViewBox();
-
-  const ids = Object.keys(nodes);
-
-  ids.forEach(id => {
-    const p = nodes[id].parentId;
-    if (p === null || !pos[p] || !pos[id]) return;
-    const line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('x1', pos[p].x); line.setAttribute('y1', pos[p].y);
-    line.setAttribute('x2', pos[id].x); line.setAttribute('y2', pos[id].y);
-    line.setAttribute('stroke', 'rgba(255,255,255,0.2)');
-    line.setAttribute('stroke-width', '1.5');
-    svg.appendChild(line);
-  });
-
-  connections.forEach(([a, b]) => {
-    if (!pos[a] || !pos[b]) return;
-    const g = document.createElementNS(svgNS, 'g');
-    g.style.cursor = 'pointer';
-
-    const visible = document.createElementNS(svgNS, 'line');
-    visible.setAttribute('x1', pos[a].x); visible.setAttribute('y1', pos[a].y);
-    visible.setAttribute('x2', pos[b].x); visible.setAttribute('y2', pos[b].y);
-    visible.setAttribute('stroke', 'rgba(160,150,255,0.55)');
-    visible.setAttribute('stroke-width', '2');
-    visible.setAttribute('stroke-dasharray', '6 4');
-    g.appendChild(visible);
-
-    const hit = document.createElementNS(svgNS, 'line');
-    hit.setAttribute('x1', pos[a].x); hit.setAttribute('y1', pos[a].y);
-    hit.setAttribute('x2', pos[b].x); hit.setAttribute('y2', pos[b].y);
-    hit.setAttribute('stroke', 'transparent');
-    hit.setAttribute('stroke-width', '14');
-    g.appendChild(hit);
-
-    const title = document.createElementNS(svgNS, 'title');
-    title.textContent = 'Click to remove connection';
-    g.appendChild(title);
-
-    g.addEventListener('mouseenter', () => visible.setAttribute('stroke', 'rgba(231,76,60,0.9)'));
-    g.addEventListener('mouseleave', () => visible.setAttribute('stroke', 'rgba(160,150,255,0.55)'));
-    g.addEventListener('click', () => removeConnection(a, b));
-
-    svg.appendChild(g);
-  });
-
-  ids.forEach(id => {
-    if (!pos[id]) return;
-    const { x, y } = pos[id];
-    const node = nodes[id];
-    const style = typeStyle(node.type);
-    const g = document.createElementNS(svgNS, 'g');
-    g.setAttribute('class', 'node-group');
-
-    let shapeEl;
-    if (style.shape === 'rect') {
-      shapeEl = document.createElementNS(svgNS, 'rect');
-      shapeEl.setAttribute('x', x - style.r); shapeEl.setAttribute('y', y - style.r);
-      shapeEl.setAttribute('width', style.r * 2); shapeEl.setAttribute('height', style.r * 2);
-      shapeEl.setAttribute('rx', 8); shapeEl.setAttribute('fill', style.fill);
-    } else if (style.shape === 'ring') {
-      shapeEl = document.createElementNS(svgNS, 'circle');
-      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y); shapeEl.setAttribute('r', style.r);
-      shapeEl.setAttribute('fill', 'none'); shapeEl.setAttribute('stroke', style.stroke); shapeEl.setAttribute('stroke-width', 2.5);
-    } else {
-      shapeEl = document.createElementNS(svgNS, 'circle');
-      shapeEl.setAttribute('cx', x); shapeEl.setAttribute('cy', y); shapeEl.setAttribute('r', style.r);
-      shapeEl.setAttribute('fill', style.fill);
-    }
-    g.appendChild(shapeEl);
-
-    if (node.isCenter) {
-      const hubRing = document.createElementNS(svgNS, 'circle');
-      hubRing.setAttribute('cx', x); hubRing.setAttribute('cy', y); hubRing.setAttribute('r', style.r + 8);
-      hubRing.setAttribute('fill', 'none'); hubRing.setAttribute('stroke', 'rgba(255,255,255,0.4)');
-      hubRing.setAttribute('stroke-width', '1'); hubRing.setAttribute('stroke-dasharray', '3 3');
-      g.insertBefore(hubRing, shapeEl);
-    }
-
-    const text = document.createElementNS(svgNS, 'text');
-    text.setAttribute('x', x); text.setAttribute('y', y + style.r + 16);
-    text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '11');
-    text.setAttribute('font-weight', '500'); text.setAttribute('fill', 'rgba(255,255,255,0.85)');
-    text.textContent = node.title;
-    g.appendChild(text);
-
-    const plus = makePlus(x + style.r * 0.75, y - style.r * 0.75, () => openPopup(id));
-    g.appendChild(plus);
-
-    const del = document.createElementNS(svgNS, 'g');
-    del.setAttribute('class', 'del-btn');
-    const delX = x - style.r * 0.75, delY = y - style.r * 0.75;
-    const delCircle = document.createElementNS(svgNS, 'circle');
-    delCircle.setAttribute('cx', delX); delCircle.setAttribute('cy', delY); delCircle.setAttribute('r', 10);
-    delCircle.setAttribute('fill', 'rgba(231,76,60,0.9)');
-    del.appendChild(delCircle);
-    const delText = document.createElementNS(svgNS, 'text');
-    delText.setAttribute('x', delX); delText.setAttribute('y', delY + 4);
-    delText.setAttribute('text-anchor', 'middle'); delText.setAttribute('font-size', '12');
-    delText.setAttribute('fill', '#fff'); delText.textContent = '×';
-    del.appendChild(delText);
-    del.addEventListener('click', e => { e.stopPropagation(); removeNode(id); });
-    g.appendChild(del);
-
-    svg.appendChild(g);
-  });
-
-  if (!ids.length) {
-    svg.appendChild(makePlus(0, 0, () => openPopup(null), 28));
-  }
-}
-
-function makePlus(cx, cy, onClick, radius) {
-  const r = radius || 18;
-  const g = document.createElementNS(svgNS, 'g');
-  g.setAttribute('class', 'plus-btn');
-  const circle = document.createElementNS(svgNS, 'circle');
-  circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', r);
-  circle.setAttribute('fill', 'rgba(255,255,255,0.12)'); circle.setAttribute('stroke', 'rgba(255,255,255,0.3)');
-  circle.setAttribute('stroke-width', '1'); g.appendChild(circle);
-  const text = document.createElementNS(svgNS, 'text');
-  text.setAttribute('x', cx); text.setAttribute('y', cy + r * 0.35); text.setAttribute('text-anchor', 'middle');
-  text.setAttribute('font-size', r * 1.1); text.setAttribute('fill', '#fff'); text.textContent = '+';
-  g.appendChild(text);
-  g.addEventListener('click', e => { e.stopPropagation(); onClick(); });
-  return g;
-}
+const svg = document.getElementById('canvasSvg');
+const gridBg = document.getElementById('gridBg');
+const area = document.getElementById('canvasArea');
+const zoomReadout = document.getElementById('zoomReadout');
 
 function applyViewBox() {
-  document.getElementById('mapSvg').setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
-}
-
-function hasConnection(a, b) {
-  return connections.some(c => (c[0] === a && c[1] === b) || (c[0] === b && c[1] === a));
-}
-
-function addConnection(a, b) {
-  if (!a || !b || a === b || hasConnection(a, b)) return;
-  connections.push([a, b]);
-  render();
-}
-
-function removeConnection(a, b) {
-  connections = connections.filter(c => !((c[0] === a && c[1] === b) || (c[0] === b && c[1] === a)));
-  render();
-}
-
-function slugify(s) {
-  return s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'node';
-}
-
-function removeNode(id) {
-  if (!confirm('Remove "' + nodes[id].title + '" and all connected subnodes?')) return;
-  const toRemove = new Set([id]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    Object.keys(nodes).forEach(nid => {
-      if (!toRemove.has(nid) && toRemove.has(nodes[nid].parentId)) { toRemove.add(nid); grew = true; }
-    });
-  }
-  toRemove.forEach(nid => delete nodes[nid]);
-  connections = connections.filter(([a, b]) => !toRemove.has(a) && !toRemove.has(b));
-  render();
-}
-
-function clearMap() {
-  if (Object.keys(nodes).length && !confirm('Clear entire map?')) return;
-  nodes = {};
-  connections = [];
-  orderCounter = 0;
-  render();
-}
-
-function saveToLocalStorage() {
-  localStorage.setItem('radial_nodes', JSON.stringify(nodes));
-  localStorage.setItem('radial_connections', JSON.stringify(connections));
-  alert('Map saved successfully!');
-}
-
-function openPopup(parentId) {
-  pendingParentId = parentId;
-  selectedType = null;
-  document.getElementById('popupTitle').value = '';
-  document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
-  document.getElementById('newCenterCheck').checked = false;
-
-  const hasExistingNodes = Object.keys(nodes).length > 1 && parentId !== null;
-  document.getElementById('connectionTab').style.display = hasExistingNodes ? 'block' : 'none';
-  populateConnectionTargets(parentId);
-  selectMode('node');
-
-  document.getElementById('overlay').classList.add('open');
-  setTimeout(() => document.getElementById('popupTitle').focus(), 50);
-}
-
-function populateConnectionTargets(parentId) {
-  const select = document.getElementById('connectionTarget');
-  select.innerHTML = '';
-  Object.keys(nodes).forEach(id => {
-    if (id === parentId || hasConnection(parentId, id)) return;
-    if (nodes[id].parentId === parentId || nodes[parentId]?.parentId === id) return;
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = nodes[id].title;
-    select.appendChild(opt);
-  });
-}
-
-function selectMode(mode) {
-  popupMode = mode;
-  document.querySelectorAll('.mode-tab').forEach(el => el.classList.toggle('selected', el.dataset.mode === mode));
-  document.getElementById('nodeFields').style.display = mode === 'node' ? 'block' : 'none';
-  document.getElementById('connectionFields').style.display = mode === 'connection' ? 'block' : 'none';
-  document.getElementById('popupHeading').textContent = mode === 'node' ? 'Add Node' : 'Connect Nodes';
-  updateConfirmState();
-}
-
-function closePopup() { document.getElementById('overlay').classList.remove('open'); }
-
-function selectType(type) {
-  selectedType = type;
-  document.querySelectorAll('.type-option').forEach(el => el.classList.toggle('selected', el.dataset.type === type));
-  updateConfirmState();
-}
-
-function confirmBtnDisabled() { return document.getElementById('confirmBtn').disabled; }
-
-function updateConfirmState() {
-  if (popupMode === 'node') {
-    const title = document.getElementById('popupTitle').value.trim();
-    document.getElementById('confirmBtn').disabled = !(title && selectedType);
-  } else {
-    const target = document.getElementById('connectionTarget').value;
-    document.getElementById('confirmBtn').disabled = !target;
-  }
-}
-
-document.getElementById('popupTitle').addEventListener('input', updateConfirmState);
-
-function confirmAdd() {
-  if (popupMode === 'node') {
-    const title = document.getElementById('popupTitle').value.trim();
-    if (!title || !selectedType) return;
-
-    let id = slugify(title), n = 1;
-    while (nodes[id]) id = slugify(title) + '-' + (++n);
-
-    const isCenter = document.getElementById('newCenterCheck').checked;
-    nodes[id] = { title, type: selectedType, parentId: pendingParentId, order: orderCounter++, isCenter };
-    closePopup();
-    render();
-  } else {
-    const target = document.getElementById('connectionTarget').value;
-    if (!target) return;
-    addConnection(pendingParentId, target);
-    closePopup();
-  }
-}
-
-document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closePopup(); });
-
-function zoomBy(factor) {
-  const newW = Math.min(4000, Math.max(300, vw / factor));
-  const cx = vx + vw / 2, cy = vy + vh / 2;
-  vw = newW; vh = newW;
-  vx = cx - vw / 2; vy = cy - vh / 2;
-  applyViewBox();
+  svg.setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
+  // Keep the grid background covering the full visible area generously,
+  // so panning never reveals an edge.
+  const pad = Math.max(vw, vh) * 4;
+  gridBg.setAttribute('x', vx - pad);
+  gridBg.setAttribute('y', vy - pad);
+  gridBg.setAttribute('width', vw + pad * 2);
+  gridBg.setAttribute('height', vh + pad * 2);
+  zoomReadout.textContent = Math.round((BASE_W / vw) * 100) + '%';
 }
 
 function resetView() {
-  vx = -800; vy = -800; vw = 1600; vh = 1600;
+  vx = 0; vy = 0; vw = BASE_W; vh = BASE_H;
   applyViewBox();
 }
 
-const area = document.getElementById('mapArea');
+function zoom(factor, cx, cy) {
+  if (cx === undefined) cx = area.clientWidth / 2;
+  if (cy === undefined) cy = area.clientHeight / 2;
+  const rect = svg.getBoundingClientRect();
+  const svgX = vx + (cx - rect.left) / rect.width  * vw;
+  const svgY = vy + (cy - rect.top)  / rect.height * vh;
+  const newW = Math.min(MAX_VW, Math.max(MIN_VW, vw * (1 / factor)));
+  const newH = newW * (vh / vw);
+  const f = newW / vw;
+  vx = svgX - (svgX - vx) * f;
+  vy = svgY - (svgY - vy) * f;
+  vw = newW; vh = newH;
+  applyViewBox();
+}
+
+// ─── PAN (mouse) ────────────────────────────────────────────────────────────
+
 let dragging = false, sx, sy, svx, svy;
+
 area.addEventListener('mousedown', e => {
-  if(e.button !== 0) return;
-  dragging = true; sx = e.clientX; sy = e.clientY; svx = vx; svy = vy;
+  if (previewOpen) return;
+  if (e.target.closest('.zoom-btn') || e.target.closest('.add-btn') || e.target.closest('.node-slot') || e.target.closest('.slot-menu') || e.target.closest('.layers-panel') || e.target.closest('.label-editor') || e.target.closest('.project-editor') || e.target.closest('.project-picker') || e.target.closest('.delete-confirm') || e.target.closest('.order-control') || e.target.classList.contains('node-outline')) return;
+  dragging = true;
+  sx = e.clientX; sy = e.clientY;
+  svx = vx; svy = vy;
 });
 window.addEventListener('mousemove', e => {
   if (!dragging) return;
-  const rect = area.getBoundingClientRect();
-  vx = svx - (e.clientX - sx) / rect.width * vw;
-  vy = svy - (e.clientY - sy) / rect.height * vh;
+  const rect = svg.getBoundingClientRect();
+  const dx = (e.clientX - sx) / rect.width  * vw;
+  const dy = (e.clientY - sy) / rect.height * vh;
+  vx = svx - dx; vy = svy - dy;
   applyViewBox();
 });
 window.addEventListener('mouseup', () => dragging = false);
+
 area.addEventListener('wheel', e => {
+  if (previewOpen) return;
   e.preventDefault();
-  zoomBy(e.deltaY < 0 ? 1.15 : 0.85);
+  zoom(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY);
 }, { passive: false });
 
-render();
+// ─── PAN + PINCH ZOOM (touch) ───────────────────────────────────────────────
+
+let lastTouches = null;
+area.addEventListener('touchstart', e => { if (previewOpen) return; e.preventDefault(); lastTouches = e.touches; }, { passive: false });
+area.addEventListener('touchmove', e => {
+  if (previewOpen) return;
+  e.preventDefault();
+  const rect = svg.getBoundingClientRect();
+  const touches = e.touches;
+  if (touches.length === 1 && lastTouches?.length === 1) {
+    const dx = (touches[0].clientX - lastTouches[0].clientX) / rect.width  * vw;
+    const dy = (touches[0].clientY - lastTouches[0].clientY) / rect.height * vh;
+    vx -= dx; vy -= dy; applyViewBox();
+  } else if (touches.length === 2 && lastTouches?.length === 2) {
+    const prevDist = Math.hypot(lastTouches[0].clientX - lastTouches[1].clientX, lastTouches[0].clientY - lastTouches[1].clientY);
+    const newDist  = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+    if (prevDist === 0) return;
+    const midX = (touches[0].clientX + touches[1].clientX) / 2;
+    const midY = (touches[0].clientY + touches[1].clientY) / 2;
+    zoom(newDist / prevDist, midX, midY);
+  }
+  lastTouches = touches;
+}, { passive: false });
+area.addEventListener('touchend', e => { if (previewOpen) return; lastTouches = e.touches.length > 0 ? e.touches : null; }, { passive: false });
+
+// ─── GROUP NODES ────────────────────────────────────────────────────────────
+// A "group" is an outlined circle placed on the map, with 9 node slots:
+// one centered, eight spaced evenly around the outline. Each slot is either
+// empty (shows a "+") or filled with a project/role node.
+
+const svgNS = 'http://www.w3.org/2000/svg';
+const guidesLayer = document.getElementById('guidesLayer');
+const nodesLayer = document.getElementById('nodesLayer');
+const connectorsLayer = document.getElementById('connectorsLayer');
+const slotMenu = document.getElementById('slotMenu');
+
+const GROUP_RADIUS = 250; // world units — 500px standard diameter
+const SLOT_RADIUS   = 32; // size of each node placeholder
+const SLOT_COUNT    = 8;  // evenly spaced around the outline (+1 in the center)
+
+// Fixed anchor the whole map is built around — independent of pan/zoom,
+// so rings stay concentric no matter where the user has scrolled to.
+const MAP_CENTER = { x: BASE_W / 2, y: BASE_H / 2 };
+
+const TYPE_ICON = { project: '📁', role: '🎭' };
+
+// How much of the ring's circumference (in degrees) gets reserved at the
+// top for a label, so outline slots nudge out of its way.
+const LABEL_GAP_DEGREES = 55;
+const LABEL_RADIUS_OFFSET = SLOT_RADIUS + 20; // how far outside the ring the label sits
+
+const svgDefs = document.querySelector('#canvasSvg defs');
+
+// ─── FIREBASE (project catalog) ─────────────────────────────────────────────
+// Same Firebase project as the main LäroPlanen app — projects created here
+// live at /mapProjects/{id} and are the shared source of truth for title/url.
+// Nodes on the map only ever store a reference (the id); the title shown
+// on a node is looked up from this catalog live, so editing a project here
+// updates it everywhere it's placed.
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBmTngmHOQZ8Szv2I7o-zzqMfebQQvybx8",
+  authDomain: "laroplanen-help.firebaseapp.com",
+  databaseURL: "https://laroplanen-help-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "laroplanen-help",
+  storageBucket: "laroplanen-help.firebasestorage.app",
+  messagingSenderId: "895065825769",
+  appId: "1:895065825769:web:2e519fa850e24f9a2b6b78"
+};
+
+let projectDb = null;
+let projectCatalog = {}; // id -> { title, url, id, area }
+let roleCatalog = {};    // id -> { id, title, description, url, area }
+let mapCatalog = {};     // key -> { name, svg, savedAt }
+let areaCatalog = {};    // id -> { id, name, color }
+let skillCatalog = {};   // id -> { id, title, url }
+let currentMapKey = null;  // the map currently loaded/being worked on, if any
+let currentMapName = '';
+
+(function initFirebaseProjects() {
+  const script1 = document.createElement('script');
+  script1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+  script1.onload = () => {
+    const script2 = document.createElement('script');
+    script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+    script2.onload = () => {
+      firebase.initializeApp(firebaseConfig);
+      projectDb = firebase.database();
+      projectDb.ref('mapProjects').on('value', snapshot => {
+        projectCatalog = snapshot.val() || {};
+        onProjectCatalogUpdated();
+      });
+      projectDb.ref('mapRoles').on('value', snapshot => {
+        roleCatalog = snapshot.val() || {};
+        onRoleCatalogUpdated();
+      });
+      projectDb.ref('maps').on('value', snapshot => {
+        mapCatalog = snapshot.val() || {};
+        if (mapLoadPickerOpen) renderMapLoadPickerList(mapLoadPickerFilter.value);
+      });
+      projectDb.ref('mapAreas').on('value', snapshot => {
+        areaCatalog = snapshot.val() || {};
+        onAreaCatalogUpdated();
+      });
+      projectDb.ref('mapSkills').on('value', snapshot => {
+        skillCatalog = snapshot.val() || {};
+      });
+    };
+    document.head.appendChild(script2);
+  };
+  document.head.appendChild(script1);
+})();
+
+// Keeps already-placed nodes and an open picker in sync whenever the
+// database changes (a title edited elsewhere, a new project added, etc).
+function onProjectCatalogUpdated() {
+  Object.values(groups).forEach(group => {
+    group.slots.forEach(slot => {
+      if (slot.type === 'project') renderSlot(group.id, slot);
+    });
+  });
+  if (projectPickerTarget) renderProjectPickerList(projectPickerFilter.value);
+}
+
+function onRoleCatalogUpdated() {
+  Object.values(groups).forEach(group => {
+    group.slots.forEach(slot => {
+      if (slot.type === 'role') renderSlot(group.id, slot);
+    });
+  });
+  if (rolePickerTarget) renderRolePickerList(rolePickerFilter.value);
+}
+
+// Area colors affect groups, project cards, and role circles alike, so a
+// catalog change needs to ripple through all three.
+function onAreaCatalogUpdated() {
+  updateAreaSelectOptions();
+  Object.keys(groups).forEach(id => applyGroupOutlineStyle(id));
+  Object.values(groups).forEach(group => {
+    group.slots.forEach(slot => {
+      if (slot.type === 'project' || slot.type === 'role') renderSlot(group.id, slot);
+    });
+  });
+  if (areaPickerTarget !== null) renderAreaPickerList(areaPickerFilter.value);
+}
+
+function updateAreaSelectOptions() {
+  [document.getElementById('projectAreaSelect'), document.getElementById('roleAreaSelect')].forEach(select => {
+    const current = select.value;
+    select.innerHTML = '<option value="">Inget område</option>';
+    Object.values(areaCatalog).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.name;
+      select.appendChild(opt);
+    });
+    if (areaCatalog[current]) select.value = current;
+  });
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+let groups = {};        // id -> group record
+let groupIdCounter = 1;
+let connections = [];   // { id, from: {groupId, slotIndex}, to: {groupId, slotIndex}, el }
+let connectionIdCounter = 1;
+let connectingFrom = null; // { groupId, slotIndex } while in "create connection" mode
+let menuTarget = null;     // { groupId, slotIndex } while the submenu is open
+
+let centralGroupId = null;
+let layers = [];        // { id, index, radius, groupIds: [] }
+let layerIdCounter = 1;
+
+// Creates a group's DOM + data record at a given position and registers it.
+function createGroupAt(cx, cy, forcedId = null) {
+  const id = forcedId || ('group-' + groupIdCounter++);
+
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'node-group');
+  g.setAttribute('data-id', id);
+
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'node-outline');
+  circle.setAttribute('cx', cx);
+  circle.setAttribute('cy', cy);
+  circle.setAttribute('r', GROUP_RADIUS);
+  circle.addEventListener('click', e => {
+    e.stopPropagation();
+    openGroupLabelEditor(id);
+  });
+  g.appendChild(circle);
+
+  const orderControlsEl = document.createElementNS(svgNS, 'g');
+  orderControlsEl.setAttribute('class', 'order-controls');
+  g.appendChild(orderControlsEl);
+
+  const scaleControlsEl = document.createElementNS(svgNS, 'g');
+  scaleControlsEl.setAttribute('class', 'scale-controls');
+  g.appendChild(scaleControlsEl);
+
+  const labelRotateControlsEl = document.createElementNS(svgNS, 'g');
+  labelRotateControlsEl.setAttribute('class', 'label-rotate-controls');
+  g.appendChild(labelRotateControlsEl);
+
+  const deleteControlEl = document.createElementNS(svgNS, 'g');
+  deleteControlEl.setAttribute('class', 'group-delete-control');
+  g.appendChild(deleteControlEl);
+
+  const areaControlEl = document.createElementNS(svgNS, 'g');
+  areaControlEl.setAttribute('class', 'area-control');
+  g.appendChild(areaControlEl);
+
+  groups[id] = { id, cx, cy, r: GROUP_RADIUS, slots: [], el: g, circleEl: circle, label: '', labelAngle: -Math.PI / 2, layerId: null, areaId: null, orderControlsEl, scaleControlsEl, labelRotateControlsEl, deleteControlEl, areaControlEl, slotAngleOrder: [1, 2, 3, 4, 5, 6, 7, 8] };
+
+  const positions = buildSlotPositions(cx, cy, GROUP_RADIUS, 0);
+  const slots = positions.map((pos, i) => {
+    const slotEl = document.createElementNS(svgNS, 'g');
+    slotEl.setAttribute('data-group', id);
+    slotEl.setAttribute('data-slot-index', i);
+    slotEl.addEventListener('click', e => {
+      e.stopPropagation();
+      onSlotClick(id, i);
+    });
+    g.appendChild(slotEl);
+    return { index: i, x: pos.x, y: pos.y, isCenter: pos.isCenter, type: null, el: slotEl };
+  });
+  groups[id].slots = slots;
+
+  nodesLayer.appendChild(g);
+
+  applyGroupLayout(id);
+
+  return id;
+}
+
+// Recomputes and re-renders everything derived from a group's current
+// state (cx, cy, r, label, labelAngle, slotAngleOrder): the circle, the 9
+// slots (in whatever order slotAngleOrder currently specifies), the label
+// arc, the order/scale/label-rotate controls, and any attached connections.
+// This is the single place all of those get recalculated, so a custom node
+// order set via moveNodeOnRing survives later scaling/rotating/moving.
+function applyGroupLayout(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+
+  group.circleEl.setAttribute('cx', group.cx);
+  group.circleEl.setAttribute('cy', group.cy);
+  group.circleEl.setAttribute('r', group.r);
+
+  const gapRad = getLabelGapRadians(group);
+  const positions = buildSlotPositions(group.cx, group.cy, group.r, gapRad, group.labelAngle);
+
+  const centerSlot = group.slots[0];
+  centerSlot.x = positions[0].x;
+  centerSlot.y = positions[0].y;
+  renderSlot(groupId, centerSlot);
+
+  // Outline slots: position k on the ring is occupied by whichever stable
+  // slot index slotAngleOrder[k] currently points to.
+  group.slotAngleOrder.forEach((stableIndex, k) => {
+    const pos = positions[k + 1];
+    const slot = group.slots[stableIndex];
+    slot.x = pos.x;
+    slot.y = pos.y;
+    renderSlot(groupId, slot);
+  });
+
+  if (group.labelPathEl) updateGroupLabelPath(groupId);
+  updateGroupOrderControls(groupId);
+  updateGroupScaleControls(groupId);
+  updateGroupLabelRotateControls(groupId);
+  updateGroupDeleteControl(groupId);
+  updateGroupAreaControl(groupId);
+  applyGroupOutlineStyle(groupId);
+
+  syncConnectionsForGroup(groupId);
+}
+
+function syncConnectionsForGroup(groupId) {
+  connections.forEach(conn => {
+    if (conn.from.groupId === groupId) {
+      const s = getSlot(conn.from.groupId, conn.from.slotIndex);
+      conn.hitLineEl.setAttribute('x1', s.x);
+      conn.hitLineEl.setAttribute('y1', s.y);
+      conn.visLineEl.setAttribute('x1', s.x);
+      conn.visLineEl.setAttribute('y1', s.y);
+    }
+    if (conn.to.groupId === groupId) {
+      const s = getSlot(conn.to.groupId, conn.to.slotIndex);
+      conn.hitLineEl.setAttribute('x2', s.x);
+      conn.hitLineEl.setAttribute('y2', s.y);
+      conn.visLineEl.setAttribute('x2', s.x);
+      conn.visLineEl.setAttribute('y2', s.y);
+    }
+  });
+}
+
+// Repositions an existing group (used when a ring is redistributed) and
+// keeps its slots and any attached connector lines in sync.
+function moveGroupTo(groupId, cx, cy) {
+  const group = groups[groupId];
+  if (!group) return;
+  group.cx = cx; group.cy = cy;
+  applyGroupLayout(groupId);
+}
+
+// Swaps a node one step clockwise/counter-clockwise around its group's
+// outline, keeping its type and any connections attached to it. The center
+// slot has no order (there's only one), so it's a no-op there.
+function moveNodeOnRing(groupId, slotIndex, direction) {
+  const group = groups[groupId];
+  if (!group || slotIndex === 0) return;
+  const k = group.slotAngleOrder.indexOf(slotIndex);
+  if (k === -1) return;
+  const targetK = (k + direction + SLOT_COUNT) % SLOT_COUNT;
+  [group.slotAngleOrder[k], group.slotAngleOrder[targetK]] =
+    [group.slotAngleOrder[targetK], group.slotAngleOrder[k]];
+  applyGroupLayout(groupId);
+}
+
+// ─── CENTRAL GROUP ──────────────────────────────────────────────────────────
+
+function createCentralGroup() {
+  if (centralGroupId) {
+    console.log('Central group already exists.');
+    return;
+  }
+  centralGroupId = createGroupAt(MAP_CENTER.x, MAP_CENTER.y);
+  document.getElementById('coreStatus').textContent = 'Skapad';
+}
+
+// ─── LAYERS / RINGS ─────────────────────────────────────────────────────────
+
+const RING_SPACING = 700; // world units between consecutive ring radii
+
+function createLayer() {
+  const index = layers.length + 1;
+  const radius = RING_SPACING * index;
+  const id = 'layer-' + layerIdCounter++;
+  const layer = { id, index, radius, groupIds: [] };
+  layers.push(layer);
+
+  const guide = document.createElementNS(svgNS, 'circle');
+  guide.setAttribute('class', 'layer-ring-guide');
+  guide.setAttribute('cx', MAP_CENTER.x);
+  guide.setAttribute('cy', MAP_CENTER.y);
+  guide.setAttribute('r', radius);
+  guidesLayer.appendChild(guide);
+  layer.guideEl = guide;
+
+  renderLayersPanel();
+  return id;
+}
+
+function addGroupToLayer(layerId) {
+  const layer = layers.find(l => l.id === layerId);
+  if (!layer) return;
+  const groupId = createGroupAt(MAP_CENTER.x + layer.radius, MAP_CENTER.y);
+  groups[groupId].layerId = layerId;
+  layer.groupIds.push(groupId);
+  redistributeLayer(layer);
+  renderLayersPanel();
+}
+
+// ─── RING ORDERING (clockwise / counter-clockwise) ─────────────────────────
+
+function moveGroupOnRing(groupId, direction) {
+  const group = groups[groupId];
+  if (!group || !group.layerId) return;
+  const layer = layers.find(l => l.id === group.layerId);
+  if (!layer) return;
+  const count = layer.groupIds.length;
+  if (count < 2) return;
+
+  const idx = layer.groupIds.indexOf(groupId);
+  if (idx === -1) return;
+  const targetIdx = (idx + direction + count) % count;
+
+  [layer.groupIds[idx], layer.groupIds[targetIdx]] = [layer.groupIds[targetIdx], layer.groupIds[idx]];
+  redistributeLayer(layer);
+}
+
+// Builds/refreshes the pair of rotate arrows below a group. Hidden for the
+// central group and for rings that only have one group on them.
+const ORDER_BTN_RADIUS = 18;
+const ORDER_BTN_OFFSET_X = 40;
+const ORDER_BTN_OFFSET_Y = 40;
+
+// Small reorder arrows on each individual outline node (smaller than the
+// group-level ones, since they sit right under a 32-unit-radius slot).
+const NODE_ORDER_BTN_RADIUS = 12;
+const NODE_ORDER_BTN_OFFSET_X = 16;
+const NODE_ORDER_BTN_GAP = 16; // gap between a node's edge and its reorder arrows
+
+const PROJECT_RECT_WIDTH = 130;
+const PROJECT_RECT_HEIGHT = 56;
+const PROJECT_RECT_RX = 14;
+const PROJECT_BAND_HEIGHT_RATIO = 0.4; // the colored band's share of the card's height
+const PROJECT_DEFAULT_ACCENT = '#3d2f6e'; // border + band color when no area is assigned
+const PROJECT_BAND_OPACITY = 0.82; // band is the same hue as the border, just lighter over the white card
+
+function updateGroupOrderControls(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.orderControlsEl;
+  container.innerHTML = '';
+
+  if (!group.layerId) return;
+  const layer = layers.find(l => l.id === group.layerId);
+  if (!layer || layer.groupIds.length < 2) return;
+
+  const y = group.cy + group.r + ORDER_BTN_OFFSET_Y;
+  container.appendChild(createOrderBtn(group.cx - ORDER_BTN_OFFSET_X, y, '↺', () => moveGroupOnRing(groupId, -1)));
+  container.appendChild(createOrderBtn(group.cx + ORDER_BTN_OFFSET_X, y, '↻', () => moveGroupOnRing(groupId, 1)));
+}
+
+function createOrderBtn(x, y, glyph, onClick, disabled = false, radius = ORDER_BTN_RADIUS, fontSize = 18) {
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'order-control' + (disabled ? ' disabled' : ''));
+
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'order-btn-bg');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y);
+  circle.setAttribute('r', radius);
+  g.appendChild(circle);
+
+  const text = document.createElementNS(svgNS, 'text');
+  text.setAttribute('class', 'order-btn-icon');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y);
+  text.style.fontSize = fontSize + 'px';
+  text.textContent = glyph;
+  g.appendChild(text);
+
+  if (!disabled) {
+    g.addEventListener('click', e => {
+      e.stopPropagation();
+      onClick();
+    });
+  }
+
+  return g;
+}
+
+const DELETE_BTN_RADIUS = 11;
+
+function createDeleteBtn(x, y, onClick) {
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'delete-btn');
+
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'delete-btn-bg');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y);
+  circle.setAttribute('r', DELETE_BTN_RADIUS);
+  g.appendChild(circle);
+
+  const text = document.createElementNS(svgNS, 'text');
+  text.setAttribute('class', 'delete-btn-icon');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y);
+  text.textContent = '×';
+  g.appendChild(text);
+
+  g.addEventListener('click', e => {
+    e.stopPropagation();
+    onClick();
+  });
+
+  return g;
+}
+
+// Shared in-canvas confirmation popup for destructive actions (deleting a
+// node or a whole group). Used instead of window.confirm(), since native
+// dialogs get silently blocked in some sandboxed preview environments.
+const deleteConfirm = document.getElementById('deleteConfirm');
+const deleteConfirmText = document.getElementById('deleteConfirmText');
+let deleteConfirmTarget = null; // { type: 'node'|'group', groupId, slotIndex? }
+
+function openDeleteConfirmAt(worldX, worldY, message, target) {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+
+  deleteConfirmTarget = target;
+  deleteConfirmText.textContent = message;
+  document.getElementById('deleteConfirmOkBtn').textContent = 'Ta bort';
+  const pos = worldToScreen(worldX, worldY);
+  deleteConfirm.style.left = pos.x + 'px';
+  deleteConfirm.style.top = pos.y + 'px';
+  deleteConfirm.classList.add('open');
+}
+
+function cancelDeleteConfirm() {
+  deleteConfirmTarget = null;
+  deleteConfirm.classList.remove('open');
+}
+
+function confirmDelete() {
+  if (!deleteConfirmTarget) return;
+  const target = deleteConfirmTarget;
+  cancelDeleteConfirm();
+
+  if (target.type === 'node') {
+    performDeleteNode(target.groupId, target.slotIndex);
+  } else if (target.type === 'group') {
+    performDeleteGroup(target.groupId);
+  } else if (target.type === 'loadMap') {
+    performSelectedMapLoad();
+  }
+}
+
+// ─── DELETE NODE ────────────────────────────────────────────────────────────
+
+function requestDeleteNode(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot || !slot.type) return;
+  const message = (slot.type === 'project' || slot.type === 'role')
+    ? 'Ta bort noden från kartan? Länken tas bort, men posten finns kvar i databasen. Eventuella linjer till den tas också bort.'
+    : 'Ta bort noden? Eventuella kopplingar till den tas också bort.';
+  openDeleteConfirmAt(slot.x, slot.y, message, { type: 'node', groupId, slotIndex });
+}
+
+// Clears a filled node back to empty, and removes any connections attached
+// to it (a dangling connection pointing at an empty "+" wouldn't make sense).
+function performDeleteNode(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot || !slot.type) return;
+
+  connections = connections.filter(conn => {
+    const touchesThisSlot =
+      (conn.from.groupId === groupId && conn.from.slotIndex === slotIndex) ||
+      (conn.to.groupId === groupId && conn.to.slotIndex === slotIndex);
+    if (touchesThisSlot) conn.el.remove();
+    return !touchesThisSlot;
+  });
+
+  slot.type = null;
+  slot.projectId = undefined;
+  slot.roleId = undefined;
+  renderSlot(groupId, slot);
+}
+
+// ─── DELETE GROUP ───────────────────────────────────────────────────────────
+
+function requestDeleteGroup(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  openDeleteConfirmAt(
+    group.cx, group.cy,
+    'Ta bort gruppen? Alla noder och kopplingar i den tas också bort.',
+    { type: 'group', groupId }
+  );
+}
+
+// Removes a group entirely: its DOM, its label path (lives in <defs>, so
+// not a child of the group), any connections touching any of its slots,
+// its spot on a ring (redistributing whatever's left on that ring), and —
+// if it was the central group — resets that tracking so "+" works again.
+function performDeleteGroup(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+
+  connections = connections.filter(conn => {
+    const touchesThisGroup = conn.from.groupId === groupId || conn.to.groupId === groupId;
+    if (touchesThisGroup) conn.el.remove();
+    return !touchesThisGroup;
+  });
+
+  if (group.labelPathEl) group.labelPathEl.remove();
+  group.el.remove();
+
+  if (group.layerId) {
+    const layer = layers.find(l => l.id === group.layerId);
+    if (layer) {
+      layer.groupIds = layer.groupIds.filter(id => id !== groupId);
+      redistributeLayer(layer);
+      renderLayersPanel();
+    }
+  }
+
+  if (centralGroupId === groupId) {
+    centralGroupId = null;
+    document.getElementById('coreStatus').textContent = 'Ej skapad';
+  }
+
+  delete groups[groupId];
+}
+
+// ─── EXPORT / SAVE ──────────────────────────────────────────────────────────
+// Serializes the current map into one real, deployable SVG file. Only real
+// content is written out (group circles, labels, filled nodes, connector
+// lines) — none of the builder's own chrome (arrows, +/− buttons, empty "+"
+// placeholders). Round-trip metadata (ring membership, label angle, node
+// order) rides along as data-* attributes the live app simply ignores.
+
+const EXPORT_MARGIN = 200; // world units of padding around the map's bounding box
+
+function exportMapToSvgString() {
+  const groupList = Object.values(groups);
+
+  // Bounding box across every group's circle, so nothing gets clipped.
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  groupList.forEach(g => {
+    minX = Math.min(minX, g.cx - g.r);
+    minY = Math.min(minY, g.cy - g.r);
+    maxX = Math.max(maxX, g.cx + g.r);
+    maxY = Math.max(maxY, g.cy + g.r);
+  });
+  if (!groupList.length) { minX = 0; minY = 0; maxX = BASE_W; maxY = BASE_H; }
+  const vbX = minX - EXPORT_MARGIN, vbY = minY - EXPORT_MARGIN;
+  const vbW = (maxX - minX) + EXPORT_MARGIN * 2, vbH = (maxY - minY) + EXPORT_MARGIN * 2;
+
+  let defs = '';
+  let groupsMarkup = '';
+  let nodesMarkup = '';
+  let connectorsMarkup = '';
+
+  groupList.forEach(group => {
+    const gapRad = getLabelGapRadians(group);
+    const labelAngle = group.labelAngle ?? -Math.PI / 2;
+
+    // Group circle (decorative in the live app; data-* is builder-only).
+    const layer = group.layerId ? layers.find(l => l.id === group.layerId) : null;
+    const groupArea = group.areaId ? areaCatalog[group.areaId] : null;
+    const groupStroke = groupArea ? groupArea.color : '#fff';
+    const groupAreaClass = group.areaId ? ` area-${escapeHtml(group.areaId)}` : '';
+    groupsMarkup += `<circle class="map-group-outline${groupAreaClass}" cx="${group.cx}" cy="${group.cy}" r="${group.r}" `
+      + `fill="rgba(10,10,26,0.65)" stroke="${groupStroke}" stroke-width="${GROUP_OUTLINE_WIDTH}" `
+      + `data-role="group" data-group-id="${escapeHtml(group.id)}" `
+      + `data-label="${escapeHtml(group.label || '')}" data-label-angle="${labelAngle}" `
+      + `data-layer-id="${escapeHtml(group.layerId || '')}" data-layer-index="${layer ? layer.index : ''}" `
+      + `data-area-id="${escapeHtml(group.areaId || '')}" `
+      + `data-slot-order="${group.slotAngleOrder.join(',')}" />\n`;
+
+    // Curved label, if any — same top-of-ring arc technique as the builder.
+    if (group.label) {
+      const pathId = `export-label-path-${group.id}`;
+      const r = group.r + LABEL_RADIUS_OFFSET;
+      const startAngle = labelAngle - Math.PI / 2;
+      const endAngle = labelAngle + Math.PI / 2;
+      const p1x = group.cx + r * Math.cos(startAngle), p1y = group.cy + r * Math.sin(startAngle);
+      const p2x = group.cx + r * Math.cos(endAngle), p2y = group.cy + r * Math.sin(endAngle);
+      defs += `<path id="${pathId}" fill="none" d="M ${p1x} ${p1y} A ${r} ${r} 0 0 1 ${p2x} ${p2y}" />\n`;
+      groupsMarkup += `<text class="map-group-label" font-family="Century Gothic, sans-serif" font-weight="700" font-size="30" fill="#fff" letter-spacing="0.06em">`
+        + `<textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeHtml(group.label)}</textPath></text>\n`;
+    }
+
+    // Filled nodes only — empty "+" placeholders never get exported.
+    group.slots.forEach(slot => {
+      if (!slot.type) return;
+
+      if (slot.type === 'project') {
+        const project = projectCatalog[slot.projectId];
+        const title = project ? project.title : '';
+        const url = project ? project.url : '';
+        const projectArea = project && project.area ? areaCatalog[project.area] : null;
+        const accentColor = projectArea ? projectArea.color : PROJECT_DEFAULT_ACCENT;
+        const projectAreaClass = project && project.area ? ` area-${escapeHtml(project.area)}` : '';
+        const nodeId = `project-${slot.projectId}`;
+        const rectX = slot.x - PROJECT_RECT_WIDTH / 2, rectY = slot.y - PROJECT_RECT_HEIGHT / 2;
+        const bandHeight = PROJECT_RECT_HEIGHT * PROJECT_BAND_HEIGHT_RATIO;
+        const bandY = rectY + (PROJECT_RECT_HEIGHT - bandHeight) / 2;
+        const rectMarkup = `<rect id="${escapeHtml(nodeId)}" class="map-project-card${projectAreaClass}" x="${rectX}" y="${rectY}" width="${PROJECT_RECT_WIDTH}" height="${PROJECT_RECT_HEIGHT}" `
+          + `rx="${PROJECT_RECT_RX}" fill="#fff" stroke="${accentColor}" stroke-width="5" `
+          + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
+          + `<rect class="map-project-band${projectAreaClass}" x="${rectX}" y="${bandY}" width="${PROJECT_RECT_WIDTH}" height="${bandHeight}" `
+          + `fill="${accentColor}" fill-opacity="${PROJECT_BAND_OPACITY}" pointer-events="none" />\n`
+          + `<text class="map-project-title${projectAreaClass}" x="${slot.x}" y="${slot.y}" font-family="Century Gothic, sans-serif" font-weight="700" font-size="13" fill="#fff" `
+          + `text-anchor="middle" dominant-baseline="central" pointer-events="none">${escapeHtml(title)}</text>\n`;
+        nodesMarkup += url
+          ? `<a data-url="${escapeHtml(url)}">${rectMarkup}</a>\n`
+          : rectMarkup;
+      } else if (slot.type === 'role') {
+        const role = roleCatalog[slot.roleId];
+        const url = role ? role.url : '';
+        const roleArea = role && role.area ? areaCatalog[role.area] : null;
+        const roleFill = roleArea ? roleArea.color : 'rgba(240,168,58,0.35)';
+        const roleFillOpacity = roleArea ? ' fill-opacity="0.35"' : '';
+        const roleAreaClass = role && role.area ? ` area-${escapeHtml(role.area)}` : '';
+        const nodeId = `role-${slot.roleId}`;
+        const circleMarkup = `<circle id="${escapeHtml(nodeId)}" class="map-role${roleAreaClass}" cx="${slot.x}" cy="${slot.y}" r="${SLOT_RADIUS}" `
+          + `fill="${roleFill}"${roleFillOpacity} stroke="#f3bb63" stroke-width="2" `
+          + `data-role="node" data-group-id="${escapeHtml(group.id)}" data-slot-index="${slot.index}" />\n`
+          + `<text class="map-role-icon${roleAreaClass}" x="${slot.x}" y="${slot.y}" font-size="26" text-anchor="middle" dominant-baseline="central" pointer-events="none">${TYPE_ICON.role}</text>\n`;
+        nodesMarkup += url
+          ? `<a data-url="${escapeHtml(url)}">${circleMarkup}</a>\n`
+          : circleMarkup;
+      }
+    });
+  });
+
+  connections.forEach(conn => {
+    const fromSlot = getSlot(conn.from.groupId, conn.from.slotIndex);
+    const toSlot = getSlot(conn.to.groupId, conn.to.slotIndex);
+    if (!fromSlot || !toSlot) return;
+    const connArea = conn.areaId ? areaCatalog[conn.areaId] : null;
+    const connStroke = connArea ? connArea.color : 'rgba(255,255,255,0.4)';
+    const connAreaClass = conn.areaId ? ` area-${escapeHtml(conn.areaId)}` : '';
+    connectorsMarkup += `<line class="connector${connAreaClass}" x1="${fromSlot.x}" y1="${fromSlot.y}" x2="${toSlot.x}" y2="${toSlot.y}" `
+      + `stroke="${connStroke}" stroke-width="${CONNECTOR_WIDTH}" `
+      + `data-from-group="${escapeHtml(conn.from.groupId)}" data-from-slot="${conn.from.slotIndex}" `
+      + `data-to-group="${escapeHtml(conn.to.groupId)}" data-to-slot="${conn.to.slotIndex}" `
+      + `data-area-id="${escapeHtml(conn.areaId || '')}" />\n`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n`
+    + `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" `
+    + `viewBox="${vbX} ${vbY} ${vbW} ${vbH}">\n`
+    + `<defs>\n${defs}</defs>\n`
+    + `<g id="connector-layer">\n${connectorsMarkup}</g>\n`
+    + `<g id="group-layer">\n${groupsMarkup}</g>\n`
+    + `<g id="node-layer">\n${nodesMarkup}</g>\n`
+    + `</svg>\n`;
+}
+
+// ─── DISPLAY MODE (preview) ─────────────────────────────────────────────────
+// Renders exactly what exportMapToSvgString() produces — no empty
+// placeholders, no builder chrome — with basic hover/click on nodes so you
+// can sanity-check the finished map without leaving the builder.
+
+let previewOpen = false;
+
+function togglePreviewMode() {
+  if (previewOpen) exitPreviewMode();
+  else enterPreviewMode();
+}
+
+function enterPreviewMode() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  previewOpen = true;
+  document.getElementById('builderToolbar').style.display = 'none';
+  document.getElementById('previewToggleBtn').textContent = 'Tillbaka till redigering';
+  document.getElementById('headerHint').textContent = 'Klicka på en nod för att se titel/URL';
+  document.querySelector('.layers-panel').style.display = 'none';
+  document.querySelector('.zoom-controls').style.display = 'none';
+  document.getElementById('zoomReadout').style.display = 'none';
+
+  const host = document.getElementById('previewSvgHost');
+  host.innerHTML = exportMapToSvgString();
+  wirePreviewInteractivity(host);
+  applyPreviewCss();
+  closePreviewInfoPanel();
+
+  document.getElementById('previewLayer').classList.add('open');
+}
+
+function exitPreviewMode() {
+  previewOpen = false;
+  document.getElementById('previewLayer').classList.remove('open');
+  document.getElementById('builderToolbar').style.display = '';
+  document.getElementById('previewToggleBtn').textContent = 'Förhandsgranska';
+  document.getElementById('headerHint').textContent = 'Dra för att panorera · Scrolla för att zooma';
+  document.querySelector('.layers-panel').style.display = '';
+  document.querySelector('.zoom-controls').style.display = '';
+  document.getElementById('zoomReadout').style.display = '';
+}
+
+// Text elements in the export already have pointer-events:none, so clicks
+// on a card land on the underlying shape regardless of whether it's wrapped
+// in an <a data-url> or not — one listener per shape covers both cases.
+function wirePreviewInteractivity(host) {
+  const svg = host.querySelector('svg');
+  if (!svg) return;
+  Array.from(svg.querySelectorAll('[data-role="node"]')).forEach(nodeEl => {
+    nodeEl.style.cursor = 'pointer';
+    nodeEl.addEventListener('mouseenter', () => nodeEl.setAttribute('opacity', '0.8'));
+    nodeEl.addEventListener('mouseleave', () => nodeEl.removeAttribute('opacity'));
+    nodeEl.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      showPreviewNodeInfo(nodeEl);
+    });
+  });
+}
+
+// ─── PREVIEW CSS ─────────────────────────────────────────────────────────────
+// Purely a preview-time overlay — never part of exportMapToSvgString() or
+// anything that gets saved. Same class names the export already produces,
+// so whatever ends up looking right here can be copied straight into
+// index.html's stylesheet as-is.
+
+const DEFAULT_MAP_CSS = `/* Kartans stil — samma klasser som exporten producerar.
+   Det som ser bra ut här kan klistras in direkt i index.html. */
+
+.map-group-outline {
+  stroke-width: 2.5px;
+}
+
+.map-group-label {
+  font-size: 30px;
+  letter-spacing: 0.06em;
+}
+
+.connector {
+  stroke-width: 2.5px;
+}
+
+.map-project-card {
+  /* fylls annars av projektets område */
+}
+
+.map-project-band {
+  /* fylls annars av projektets område, ljusare nyans */
+}
+
+.map-project-title {
+  font-size: 13px;
+}
+
+.map-role {
+  /* fylls annars av rollens område */
+}
+
+.map-role-icon {
+  font-size: 26px;
+}
+`;
+
+const previewCssInput = document.getElementById('previewCssInput');
+previewCssInput.value = DEFAULT_MAP_CSS;
+previewCssInput.addEventListener('input', applyPreviewCss);
+previewCssInput.addEventListener('keydown', e => e.stopPropagation());
+
+function applyPreviewCss() {
+  const svg = document.querySelector('#previewSvgHost svg');
+  if (!svg) return;
+  let styleEl = svg.querySelector('#previewCustomStyle');
+  if (!styleEl) {
+    styleEl = document.createElementNS(svgNS, 'style');
+    styleEl.setAttribute('id', 'previewCustomStyle');
+    svg.insertBefore(styleEl, svg.firstChild);
+  }
+  styleEl.textContent = previewCssInput.value;
+}
+
+function showPreviewNodeInfo(nodeEl) {
+  const rawId = nodeEl.getAttribute('id') || '';
+  let title = rawId, description = '', url = '';
+
+  if (rawId.startsWith('project-')) {
+    const entry = projectCatalog[rawId.slice('project-'.length)];
+    if (entry) { title = entry.title; url = entry.url || ''; }
+  } else if (rawId.startsWith('role-')) {
+    const entry = roleCatalog[rawId.slice('role-'.length)];
+    if (entry) { title = entry.title; description = entry.description || ''; url = entry.url || ''; }
+  }
+
+  document.getElementById('previewInfoTitle').textContent = title || '(namnlös)';
+  const descEl = document.getElementById('previewInfoDescription');
+  descEl.textContent = description;
+  descEl.style.display = description ? '' : 'none';
+  const linkEl = document.getElementById('previewInfoLink');
+  if (url) {
+    linkEl.href = url;
+    linkEl.style.display = '';
+  } else {
+    linkEl.style.display = 'none';
+  }
+  document.getElementById('previewInfoPanel').classList.add('open');
+}
+
+function closePreviewInfoPanel() {
+  document.getElementById('previewInfoPanel').classList.remove('open');
+}
+
+// ─── AREA CATALOG (create in database, via header button) ──────────────────
+
+const areaEditor = document.getElementById('areaEditor');
+const areaNameInput = document.getElementById('areaNameInput');
+const areaColorInput = document.getElementById('areaColorInput');
+const areaEditorError = document.getElementById('areaEditorError');
+
+function openAreaCatalogEditor() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  closeAreaPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  areaEditor.style.left = centerX + 'px';
+  areaEditor.style.top = centerY + 'px';
+  areaEditor.classList.add('open');
+
+  areaNameInput.value = '';
+  areaColorInput.value = '#3a6df0';
+  areaEditorError.textContent = '';
+  requestAnimationFrame(() => areaNameInput.focus());
+}
+
+function cancelAreaCatalogEditor() {
+  areaEditor.classList.remove('open');
+}
+
+function confirmAreaCatalogEditor() {
+  const name = areaNameInput.value.trim();
+  const color = areaColorInput.value;
+
+  if (!name) {
+    areaEditorError.textContent = 'Namn krävs.';
+    areaNameInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    areaEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const id = slugify(name, 'omrade');
+  if (areaCatalog[id]) {
+    areaEditorError.textContent = 'Ett område med det namnet finns redan.';
+    return;
+  }
+
+  const entry = { id, name, color };
+  projectDb.ref('mapAreas/' + id).set(entry)
+    .then(() => {
+      areaCatalog[id] = entry; // optimistic
+      onAreaCatalogUpdated();
+      cancelAreaCatalogEditor();
+    })
+    .catch(err => {
+      areaEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[areaCatalog] save failed:', err);
+    });
+}
+
+areaNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); confirmAreaCatalogEditor(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelAreaCatalogEditor(); }
+  e.stopPropagation();
+});
+
+// ─── SKILL CATALOG (create in database, via header button) ─────────────────
+// Skills are the building blocks roles will eventually be made of — a
+// title plus a link to a video, folder, or slide deck. With hundreds of
+// these expected, IDs are auto-generated from the title (no separate ID
+// field to fill in), and a duplicate title just gets a numeric suffix
+// rather than blocking — friction that matters little at 5 entries becomes
+// real friction at 500.
+
+const skillEditor = document.getElementById('skillEditor');
+const skillTitleInput = document.getElementById('skillTitleInput');
+const skillUrlInput = document.getElementById('skillUrlInput');
+const skillEditorError = document.getElementById('skillEditorError');
+
+function openSkillCatalogEditor() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  skillEditor.style.left = centerX + 'px';
+  skillEditor.style.top = centerY + 'px';
+  skillEditor.classList.add('open');
+
+  skillTitleInput.value = '';
+  skillUrlInput.value = '';
+  skillEditorError.textContent = '';
+  requestAnimationFrame(() => skillTitleInput.focus());
+}
+
+function cancelSkillCatalogEditor() {
+  skillEditor.classList.remove('open');
+}
+
+// Appends -2, -3, etc. until the id is free, rather than erroring out.
+function uniqueSkillId(baseId) {
+  if (!skillCatalog[baseId]) return baseId;
+  let n = 2;
+  while (skillCatalog[baseId + '-' + n]) n++;
+  return baseId + '-' + n;
+}
+
+function confirmSkillCatalogEditor() {
+  const title = skillTitleInput.value.trim();
+  const url = skillUrlInput.value.trim();
+
+  if (!title) {
+    skillEditorError.textContent = 'Titel krävs.';
+    skillTitleInput.focus();
+    return;
+  }
+  if (!url) {
+    skillEditorError.textContent = 'URL krävs.';
+    skillUrlInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    skillEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const id = uniqueSkillId(slugify(title, 'fardighet'));
+  const entry = { id, title, url };
+  projectDb.ref('mapSkills/' + id).set(entry)
+    .then(() => {
+      skillCatalog[id] = entry; // optimistic
+      cancelSkillCatalogEditor();
+    })
+    .catch(err => {
+      skillEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[skillCatalog] save failed:', err);
+    });
+}
+
+[skillTitleInput, skillUrlInput].forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmSkillCatalogEditor(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelSkillCatalogEditor(); }
+    e.stopPropagation();
+  });
+});
+
+// ─── AREA PICKER (assign an existing area to a group or connection) ────────
+
+const areaPicker = document.getElementById('areaPicker');
+const areaPickerFilter = document.getElementById('areaPickerFilter');
+const areaPickerList = document.getElementById('areaPickerList');
+let areaPickerTarget = null; // { type: 'group'|'connection', id }
+
+function openAreaPickerForGroup(groupId) {
+  closeSlotMenu();
+  cancelConnection();
+
+  areaPickerTarget = { type: 'group', id: groupId };
+  const group = groups[groupId];
+  const y = group.cy + group.r + AREA_SWATCH_BTN_OFFSET_Y;
+  const pos = worldToScreen(group.cx, y);
+  areaPicker.style.left = pos.x + 'px';
+  areaPicker.style.top = pos.y + 'px';
+  areaPicker.classList.add('open');
+
+  areaPickerFilter.value = '';
+  renderAreaPickerList('');
+  requestAnimationFrame(() => areaPickerFilter.focus());
+}
+
+function openAreaPickerForConnection(connectionId) {
+  closeSlotMenu();
+  cancelConnection();
+
+  const conn = connections.find(c => c.id === connectionId);
+  if (!conn) return;
+
+  areaPickerTarget = { type: 'connection', id: connectionId };
+  const midX = (parseFloat(conn.visLineEl.getAttribute('x1')) + parseFloat(conn.visLineEl.getAttribute('x2'))) / 2;
+  const midY = (parseFloat(conn.visLineEl.getAttribute('y1')) + parseFloat(conn.visLineEl.getAttribute('y2'))) / 2;
+  const pos = worldToScreen(midX, midY);
+  areaPicker.style.left = pos.x + 'px';
+  areaPicker.style.top = pos.y + 'px';
+  areaPicker.classList.add('open');
+
+  areaPickerFilter.value = '';
+  renderAreaPickerList('');
+  requestAnimationFrame(() => areaPickerFilter.focus());
+}
+
+function closeAreaPicker() {
+  areaPickerTarget = null;
+  areaPicker.classList.remove('open');
+}
+
+function renderAreaPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(areaCatalog).filter(a => !q || a.name.toLowerCase().includes(q));
+
+  areaPickerList.innerHTML = '';
+
+  const clearItem = document.createElement('div');
+  clearItem.className = 'picker-item';
+  clearItem.textContent = 'Inget område';
+  clearItem.addEventListener('click', () => selectAreaForPickerTarget(null));
+  areaPickerList.appendChild(clearItem);
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(areaCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga områden i databasen ännu. Skapa ett via "+ Område" i menyn.';
+    const empty = document.createElement('div');
+    empty.className = 'picker-empty';
+    empty.textContent = emptyMsg;
+    areaPickerList.appendChild(empty);
+    return;
+  }
+
+  entries.forEach(a => {
+    const item = document.createElement('div');
+    item.className = 'picker-item';
+    item.style.display = 'flex';
+    item.style.alignItems = 'center';
+    item.style.gap = '8px';
+    item.innerHTML = `<span style="width:12px;height:12px;border-radius:50%;background:${escapeHtml(a.color)};flex-shrink:0;display:inline-block;"></span>${escapeHtml(a.name)}`;
+    item.addEventListener('click', () => selectAreaForPickerTarget(a.id));
+    areaPickerList.appendChild(item);
+  });
+}
+
+function selectAreaForPickerTarget(areaId) {
+  if (!areaPickerTarget) return;
+  const target = areaPickerTarget;
+  closeAreaPicker();
+
+  if (target.type === 'group') {
+    const group = groups[target.id];
+    if (!group) return;
+    group.areaId = areaId;
+    updateGroupAreaControl(target.id);
+    applyGroupOutlineStyle(target.id);
+  } else if (target.type === 'connection') {
+    const conn = connections.find(c => c.id === target.id);
+    if (!conn) return;
+    conn.areaId = areaId;
+    applyConnectionStyle(conn);
+  }
+}
+
+areaPickerFilter.addEventListener('input', () => renderAreaPickerList(areaPickerFilter.value));
+areaPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeAreaPicker(); }
+  e.stopPropagation();
+});
+
+
+const mapSaveDialog = document.getElementById('mapSaveDialog');
+const mapSaveNameInput = document.getElementById('mapSaveNameInput');
+const mapSaveError = document.getElementById('mapSaveError');
+
+// Turns a display name into a Firebase-safe key (RTDB keys can't contain
+// '.', '#', '$', '[', ']', or '/').
+function slugify(name, fallback) {
+  return name.trim().toLowerCase()
+    .replace(/[.#$\[\]/]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || fallback;
+}
+
+function slugifyMapName(name) {
+  return slugify(name, 'karta');
+}
+
+function openMapSaveDialog() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  mapSaveDialog.style.left = centerX + 'px';
+  mapSaveDialog.style.top = centerY + 'px';
+  mapSaveDialog.classList.add('open');
+
+  mapSaveNameInput.value = currentMapName || '';
+  mapSaveError.textContent = '';
+  requestAnimationFrame(() => { mapSaveNameInput.focus(); mapSaveNameInput.select(); });
+}
+
+function cancelMapSaveDialog() {
+  mapSaveDialog.classList.remove('open');
+}
+
+function confirmMapSaveDialog() {
+  const name = mapSaveNameInput.value.trim();
+  if (!name) {
+    mapSaveError.textContent = 'Namn krävs.';
+    mapSaveNameInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    mapSaveError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const key = slugifyMapName(name);
+  cancelMapSaveDialog();
+
+  const statusEl = document.getElementById('saveStatus');
+  statusEl.textContent = 'Sparar…';
+  const svgString = exportMapToSvgString();
+  const entry = { name, svg: svgString, savedAt: firebase.database.ServerValue.TIMESTAMP };
+
+  projectDb.ref('maps/' + key).set(entry)
+    .then(() => {
+      mapCatalog[key] = { name, svg: svgString, savedAt: Date.now() }; // optimistic
+      currentMapKey = key;
+      currentMapName = name;
+      const restUrl = firebaseConfig.databaseURL + '/maps/' + key + '/svg.json';
+      statusEl.innerHTML = `Sparad som "${escapeHtml(name)}" ✓ — <a href="${escapeHtml(restUrl)}" target="_blank" style="color:#7fb8ff;">visa rådata</a>`;
+    })
+    .catch(err => {
+      statusEl.textContent = 'Kunde inte spara. Se konsolen.';
+      console.error('[confirmMapSaveDialog] failed:', err);
+    });
+}
+
+mapSaveNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); confirmMapSaveDialog(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelMapSaveDialog(); }
+  e.stopPropagation();
+});
+
+// ─── LOAD (pick from saved maps) ────────────────────────────────────────────
+// Reverses the export: fetches a chosen saved SVG from Firebase and rebuilds
+// the full builder state (groups, rings, node placements, connections) from
+// the data-* attributes embedded in it.
+
+const mapLoadPicker = document.getElementById('mapLoadPicker');
+const mapLoadPickerFilter = document.getElementById('mapLoadPickerFilter');
+const mapLoadPickerList = document.getElementById('mapLoadPickerList');
+let mapLoadPickerOpen = false;
+let pendingMapLoad = null; // { key, entry } while the overwrite-confirm is up
+
+function openMapLoadPicker() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  cancelDeleteConfirm();
+
+  mapLoadPickerOpen = true;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  mapLoadPicker.style.left = centerX + 'px';
+  mapLoadPicker.style.top = centerY + 'px';
+  mapLoadPicker.classList.add('open');
+
+  mapLoadPickerFilter.value = '';
+  renderMapLoadPickerList('');
+  requestAnimationFrame(() => mapLoadPickerFilter.focus());
+}
+
+function closeMapLoadPicker() {
+  mapLoadPickerOpen = false;
+  mapLoadPicker.classList.remove('open');
+}
+
+function renderMapLoadPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.entries(mapCatalog).filter(([key, m]) =>
+    !q || (m.name || key).toLowerCase().includes(q)
+  );
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(mapCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga sparade kartor ännu.';
+    mapLoadPickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  mapLoadPickerList.innerHTML = '';
+  entries
+    .sort((a, b) => (b[1].savedAt || 0) - (a[1].savedAt || 0)) // most recent first
+    .forEach(([key, m]) => {
+      const item = document.createElement('div');
+      item.className = 'picker-item';
+      item.innerHTML = `${escapeHtml(m.name || key)}<span class="picker-item-id">${escapeHtml(key)}</span>`;
+      item.addEventListener('click', () => selectMapToLoad(key));
+      mapLoadPickerList.appendChild(item);
+    });
+}
+
+mapLoadPickerFilter.addEventListener('input', () => renderMapLoadPickerList(mapLoadPickerFilter.value));
+mapLoadPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeMapLoadPicker(); }
+  e.stopPropagation();
+});
+
+function selectMapToLoad(key) {
+  closeMapLoadPicker();
+  const entry = mapCatalog[key];
+  if (!entry) return;
+
+  pendingMapLoad = { key, entry };
+  if (!Object.keys(groups).length) {
+    performSelectedMapLoad();
+    return;
+  }
+
+  deleteConfirmTarget = { type: 'loadMap' };
+  deleteConfirmText.textContent = `Läsa in "${entry.name || key}"? Den nuvarande, osparade kartan skrivs över.`;
+  document.getElementById('deleteConfirmOkBtn').textContent = 'Läs in';
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  deleteConfirm.style.left = centerX + 'px';
+  deleteConfirm.style.top = centerY + 'px';
+  deleteConfirm.classList.add('open');
+}
+
+function performSelectedMapLoad() {
+  if (!pendingMapLoad) return;
+  const { key, entry } = pendingMapLoad;
+  pendingMapLoad = null;
+
+  importMapFromSvgString(entry.svg);
+  currentMapKey = key;
+  currentMapName = entry.name || key;
+  document.getElementById('saveStatus').textContent = `Inläst: "${currentMapName}" ✓`;
+}
+
+function importMapFromSvgString(svgString) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, 'image/svg+xml');
+  if (doc.querySelector('parsererror')) {
+    console.error('[importMap] Could not parse the saved SVG.');
+    return;
+  }
+
+  // ── Wipe current state ──
+  nodesLayer.innerHTML = '';
+  connectorsLayer.innerHTML = '';
+  guidesLayer.innerHTML = '';
+  Array.from(svgDefs.querySelectorAll('path[id^="label-path-"]')).forEach(el => el.remove());
+
+  groups = {};
+  layers = [];
+  connections = [];
+  centralGroupId = null;
+  groupIdCounter = 1;
+  layerIdCounter = 1;
+  connectionIdCounter = 1;
+  document.getElementById('coreStatus').textContent = 'Ej skapad';
+
+  // ── Groups ──
+  const layerBuckets = {}; // layerId -> { index, groupIds: [] }
+
+  Array.from(doc.querySelectorAll('[data-role="group"]')).forEach(el => {
+    const id = el.getAttribute('data-group-id');
+    const cx = parseFloat(el.getAttribute('cx'));
+    const cy = parseFloat(el.getAttribute('cy'));
+    createGroupAt(cx, cy, id); // reuses the original id, so references still resolve
+
+    const group = groups[id];
+    group.r = parseFloat(el.getAttribute('r'));
+    group.label = el.getAttribute('data-label') || '';
+    group.labelAngle = parseFloat(el.getAttribute('data-label-angle'));
+    const slotOrderRaw = el.getAttribute('data-slot-order') || '1,2,3,4,5,6,7,8';
+    group.slotAngleOrder = slotOrderRaw.split(',').map(Number);
+    group.areaId = el.getAttribute('data-area-id') || null;
+
+    const layerId = el.getAttribute('data-layer-id') || '';
+    if (!layerId) {
+      centralGroupId = id;
+    } else {
+      const layerIndex = parseInt(el.getAttribute('data-layer-index') || '1', 10);
+      if (!layerBuckets[layerId]) layerBuckets[layerId] = { index: layerIndex, groupIds: [] };
+      layerBuckets[layerId].groupIds.push(id);
+      group.layerId = layerId;
+    }
+  });
+
+  if (centralGroupId) document.getElementById('coreStatus').textContent = 'Skapad';
+
+  // ── Rings, ordered by angle around the map center for sensible ↺↻ behaviour ──
+  Object.entries(layerBuckets).forEach(([layerId, bucket]) => {
+    bucket.groupIds.sort((a, b) => {
+      const angleA = Math.atan2(groups[a].cy - MAP_CENTER.y, groups[a].cx - MAP_CENTER.x);
+      const angleB = Math.atan2(groups[b].cy - MAP_CENTER.y, groups[b].cx - MAP_CENTER.x);
+      return angleA - angleB;
+    });
+    layers.push({ id: layerId, index: bucket.index, radius: RING_SPACING * bucket.index, groupIds: bucket.groupIds });
+  });
+  layers.sort((a, b) => a.index - b.index);
+  layers.forEach(layer => {
+    const guide = document.createElementNS(svgNS, 'circle');
+    guide.setAttribute('class', 'layer-ring-guide');
+    guide.setAttribute('cx', MAP_CENTER.x);
+    guide.setAttribute('cy', MAP_CENTER.y);
+    guide.setAttribute('r', layer.radius);
+    guidesLayer.appendChild(guide);
+    layer.guideEl = guide;
+  });
+
+  // Recompute every group's slots/label/controls now that r, label, labelAngle
+  // and slotAngleOrder are all in place.
+  Object.keys(groups).forEach(id => applyGroupLayout(id));
+
+  // ── Filled nodes ──
+  Array.from(doc.querySelectorAll('[data-role="node"]')).forEach(el => {
+    const groupId = el.getAttribute('data-group-id');
+    const slotIndex = parseInt(el.getAttribute('data-slot-index'), 10);
+    const group = groups[groupId];
+    if (!group) return;
+    const slot = group.slots[slotIndex];
+    if (!slot) return;
+
+    const rawId = el.getAttribute('id') || '';
+    if (rawId.startsWith('project-')) {
+      slot.type = 'project';
+      slot.projectId = rawId.slice('project-'.length);
+    } else if (rawId.startsWith('role-')) {
+      slot.type = 'role';
+      slot.roleId = rawId.slice('role-'.length);
+    }
+    renderSlot(groupId, slot);
+  });
+
+  // ── Connections ──
+  Array.from(doc.querySelectorAll('line.connector')).forEach(el => {
+    const from = { groupId: el.getAttribute('data-from-group'), slotIndex: parseInt(el.getAttribute('data-from-slot'), 10) };
+    const to = { groupId: el.getAttribute('data-to-group'), slotIndex: parseInt(el.getAttribute('data-to-slot'), 10) };
+    const fromSlot = getSlot(from.groupId, from.slotIndex);
+    const toSlot = getSlot(to.groupId, to.slotIndex);
+    if (!fromSlot || !toSlot) return;
+
+    const id = 'connection-' + connectionIdCounter++;
+    const { g, hitLine, visLine } = createConnectorElements(fromSlot.x, fromSlot.y, toSlot.x, toSlot.y, id);
+    const conn = {
+      id, from, to, el: g, hitLineEl: hitLine, visLineEl: visLine,
+      areaId: el.getAttribute('data-area-id') || null,
+    };
+    connections.push(conn);
+    applyConnectionStyle(conn);
+  });
+
+  // ── Keep future id generation collision-free ──
+  Object.keys(groups).forEach(id => {
+    const n = parseInt(id.replace('group-', ''), 10);
+    if (!isNaN(n) && n >= groupIdCounter) groupIdCounter = n + 1;
+  });
+  layers.forEach(layer => {
+    const n = parseInt(layer.id.replace('layer-', ''), 10);
+    if (!isNaN(n) && n >= layerIdCounter) layerIdCounter = n + 1;
+  });
+
+  renderLayersPanel();
+}
+
+// ─── GROUP SCALE (+/-) ──────────────────────────────────────────────────────
+// Sits one row below the order arrows, on every group (central or ringed).
+
+const SCALE_STEP = 50;          // world units — 100px change in diameter per click
+const MIN_GROUP_RADIUS = 100;   // 200px diameter floor
+const MAX_GROUP_RADIUS = 600;   // 1200px diameter ceiling
+const SCALE_BTN_OFFSET_Y = 80;  // one row below the order arrows
+
+function scaleGroup(groupId, deltaRadius) {
+  const group = groups[groupId];
+  if (!group) return;
+  const newR = Math.min(MAX_GROUP_RADIUS, Math.max(MIN_GROUP_RADIUS, group.r + deltaRadius));
+  if (newR === group.r) return;
+  group.r = newR;
+  moveGroupTo(groupId, group.cx, group.cy); // recomputes slots, label, order/scale controls, connections
+}
+
+function updateGroupScaleControls(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.scaleControlsEl;
+  container.innerHTML = '';
+
+  const y = group.cy + group.r + SCALE_BTN_OFFSET_Y;
+  const atMin = group.r <= MIN_GROUP_RADIUS;
+  const atMax = group.r >= MAX_GROUP_RADIUS;
+
+  container.appendChild(createOrderBtn(group.cx - ORDER_BTN_OFFSET_X, y, '−', () => scaleGroup(groupId, -SCALE_STEP), atMin));
+  container.appendChild(createOrderBtn(group.cx + ORDER_BTN_OFFSET_X, y, '+', () => scaleGroup(groupId, SCALE_STEP), atMax));
+}
+
+// ─── LABEL POSITION (rotate clockwise / counter-clockwise) ─────────────────
+// A third row, only shown once a group has a label — nudges the label (and
+// the slot gap that follows it) one step around the ring's circumference.
+
+const LABEL_ROTATE_STEP_DEGREES = 45; // matches the ring's natural 8-slot grid
+const LABEL_ROTATE_BTN_OFFSET_Y = 120; // one row below the scale controls
+
+function rotateGroupLabel(groupId, direction) {
+  const group = groups[groupId];
+  if (!group || !group.label) return;
+  const step = LABEL_ROTATE_STEP_DEGREES * Math.PI / 180;
+  group.labelAngle = (group.labelAngle ?? -Math.PI / 2) + direction * step;
+  moveGroupTo(groupId, group.cx, group.cy); // recomputes label path + nudged slot gap
+}
+
+function updateGroupLabelRotateControls(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.labelRotateControlsEl;
+  container.innerHTML = '';
+
+  if (!group.label) return; // nothing to rotate if there's no label yet
+
+  const y = group.cy + group.r + LABEL_ROTATE_BTN_OFFSET_Y;
+  container.appendChild(createOrderBtn(group.cx - ORDER_BTN_OFFSET_X, y, '‹', () => rotateGroupLabel(groupId, -1)));
+  container.appendChild(createOrderBtn(group.cx + ORDER_BTN_OFFSET_X, y, '›', () => rotateGroupLabel(groupId, 1)));
+}
+
+// ─── DELETE GROUP (control button) ─────────────────────────────────────────
+// A single button one row below the label-rotate arrows — always shown,
+// on every group including the central one.
+
+const GROUP_DELETE_BTN_OFFSET_Y = 160;
+
+function updateGroupDeleteControl(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.deleteControlEl;
+  container.innerHTML = '';
+
+  const y = group.cy + group.r + GROUP_DELETE_BTN_OFFSET_Y;
+  container.appendChild(createDeleteBtn(group.cx, y, () => requestDeleteGroup(groupId)));
+}
+
+// ─── AREA ASSIGNMENT (group) ────────────────────────────────────────────────
+// One more row below delete — a single swatch button showing the group's
+// current area color (or a neutral outline when unassigned).
+
+const AREA_SWATCH_BTN_RADIUS = 16;
+const AREA_SWATCH_BTN_OFFSET_Y = 200; // one row below the delete button
+const DEFAULT_GROUP_STROKE = '#fff';
+
+// Line widths are global, not per-object — same rationale as colors: these
+// are just attribute defaults, and index.html's CSS (.map-group-outline,
+// .connector) can override them for the whole map at once.
+const GROUP_OUTLINE_WIDTH = 2.5;
+const CONNECTOR_WIDTH = 2.5;
+
+function updateGroupAreaControl(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const container = group.areaControlEl;
+  container.innerHTML = '';
+
+  const area = group.areaId ? areaCatalog[group.areaId] : null;
+  const y = group.cy + group.r + AREA_SWATCH_BTN_OFFSET_Y;
+
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'area-swatch-btn');
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'area-swatch-bg');
+  circle.setAttribute('cx', group.cx);
+  circle.setAttribute('cy', y);
+  circle.setAttribute('r', AREA_SWATCH_BTN_RADIUS);
+  circle.setAttribute('fill', area ? area.color : 'rgba(255,255,255,0.06)');
+  g.appendChild(circle);
+  g.addEventListener('click', e => {
+    e.stopPropagation();
+    openAreaPickerForGroup(groupId);
+  });
+  container.appendChild(g);
+}
+
+// Applies the group's area color to its outline circle's stroke — fill
+// stays the constant dark translucent background for content readability.
+function applyGroupOutlineStyle(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+  const area = group.areaId ? areaCatalog[group.areaId] : null;
+  group.circleEl.style.stroke = area ? area.color : DEFAULT_GROUP_STROKE;
+  group.circleEl.style.strokeWidth = GROUP_OUTLINE_WIDTH + 'px';
+}
+
+// Spaces every group on a ring evenly around its circumference,
+// starting at 12 o'clock — same approach as the main app's student rings.
+function redistributeLayer(layer) {
+  const count = layer.groupIds.length;
+  if (!count) return;
+  const angleStep = (2 * Math.PI) / count;
+  layer.groupIds.forEach((groupId, i) => {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const cx = MAP_CENTER.x + layer.radius * Math.cos(angle);
+    const cy = MAP_CENTER.y + layer.radius * Math.sin(angle);
+    moveGroupTo(groupId, cx, cy);
+  });
+}
+
+function renderLayersPanel() {
+  const list = document.getElementById('layersList');
+  const empty = document.getElementById('layersEmpty');
+  list.innerHTML = '';
+  empty.style.display = layers.length ? 'none' : 'block';
+
+  layers.forEach(layer => {
+    const row = document.createElement('div');
+    row.className = 'layer-row';
+    row.innerHTML = `
+      <span class="layer-name">Lager ${layer.index}</span>
+      <span class="layer-count">${layer.groupIds.length} grupp${layer.groupIds.length === 1 ? '' : 'er'}</span>
+      <button class="layer-add-btn">+ Grupp</button>
+    `;
+    row.querySelector('.layer-add-btn').addEventListener('click', () => addGroupToLayer(layer.id));
+    list.appendChild(row);
+  });
+}
+
+// Returns 9 positions: index 0 = center, 1..8 spaced around the outline.
+// When gapRad > 0, a wedge of that angular width is left open — centered at
+// gapCenter (defaults to 12 o'clock) — so a curved label can sit there
+// without a node behind it. gapCenter rotates with the label position.
+function buildSlotPositions(cx, cy, r, gapRad = 0, gapCenter = -Math.PI / 2) {
+  const positions = [{ x: cx, y: cy, isCenter: true }];
+  const available = (2 * Math.PI) - gapRad;
+  const angleStep = available / SLOT_COUNT;
+  const buffer = gapRad > 0 ? angleStep / 2 : 0; // small symmetric margin either side of the gap
+  const start = gapCenter + gapRad / 2 + buffer;
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const angle = start + i * angleStep;
+    positions.push({
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+      isCenter: false,
+    });
+  }
+  return positions;
+}
+
+function getLabelGapRadians(group) {
+  return (group.label && group.label.trim()) ? (LABEL_GAP_DEGREES * Math.PI / 180) : 0;
+}
+
+// ─── GROUP LABEL (in-canvas editor) ─────────────────────────────────────────
+
+const labelEditor = document.getElementById('labelEditor');
+const labelEditorInput = document.getElementById('labelEditorInput');
+let labelEditorTarget = null; // groupId currently being edited
+
+function openGroupLabelEditor(groupId) {
+  const group = groups[groupId];
+  if (!group) return;
+
+  closeSlotMenu();
+  cancelConnection();
+
+  labelEditorTarget = groupId;
+  const pos = worldToScreen(group.cx, group.cy);
+  labelEditor.style.left = pos.x + 'px';
+  labelEditor.style.top = pos.y + 'px';
+  labelEditor.classList.add('open');
+
+  labelEditorInput.value = group.label || '';
+  requestAnimationFrame(() => { labelEditorInput.focus(); labelEditorInput.select(); });
+}
+
+function commitGroupLabelEditor() {
+  if (!labelEditorTarget) return;
+  const groupId = labelEditorTarget;
+  const group = groups[groupId];
+  const next = labelEditorInput.value.trim();
+  closeGroupLabelEditor();
+  if (!group || next === (group.label || '')) return; // nothing changed
+
+  group.label = next;
+  updateGroupLabelPath(groupId);
+  renderGroupLabelText(groupId);
+  moveGroupTo(groupId, group.cx, group.cy); // recompute slot nudging around the new gap
+}
+
+function cancelGroupLabelEditor() {
+  closeGroupLabelEditor();
+}
+
+function closeGroupLabelEditor() {
+  labelEditorTarget = null;
+  labelEditor.classList.remove('open');
+}
+
+labelEditorInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); commitGroupLabelEditor(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelGroupLabelEditor(); }
+  e.stopPropagation();
+});
+labelEditorInput.addEventListener('blur', () => commitGroupLabelEditor());
+
+// ─── PROJECT CATALOG (create in database, via header button) ───────────────
+// Not tied to any node — this just adds a new entry to /mapProjects. Placing
+// a project on the map happens separately, via the picker below.
+
+const projectEditor = document.getElementById('projectEditor');
+const projectTitleInput = document.getElementById('projectTitleInput');
+const projectUrlInput = document.getElementById('projectUrlInput');
+const projectIdInput = document.getElementById('projectIdInput');
+const projectEditorError = document.getElementById('projectEditorError');
+let projectCatalogEditorOpen = false;
+
+function openProjectCatalogEditor() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  projectCatalogEditorOpen = true;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  projectEditor.style.left = centerX + 'px';
+  projectEditor.style.top = centerY + 'px';
+  projectEditor.classList.add('open');
+
+  projectTitleInput.value = '';
+  projectUrlInput.value = '';
+  projectIdInput.value = '';
+  document.getElementById('projectAreaSelect').value = '';
+  projectEditorError.textContent = '';
+  requestAnimationFrame(() => projectTitleInput.focus());
+}
+
+function cancelProjectCatalogEditor() {
+  projectCatalogEditorOpen = false;
+  projectEditor.classList.remove('open');
+}
+
+function submitProjectCatalogEditor() {
+  const title = projectTitleInput.value.trim();
+  const id = projectIdInput.value.trim();
+  const url = projectUrlInput.value.trim();
+
+  if (!title) {
+    projectEditorError.textContent = 'Titel krävs.';
+    projectTitleInput.focus();
+    return;
+  }
+  if (!id) {
+    projectEditorError.textContent = 'ID krävs.';
+    projectIdInput.focus();
+    return;
+  }
+  if (projectCatalog[id]) {
+    projectEditorError.textContent = 'Det här ID:t finns redan — välj ett annat.';
+    projectIdInput.focus();
+    return;
+  }
+  if (!projectDb) {
+    projectEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const entry = { title, url, id, area: document.getElementById('projectAreaSelect').value };
+  projectDb.ref('mapProjects/' + id).set(entry)
+    .then(() => {
+      projectCatalog[id] = entry; // optimistic, the live listener will also confirm this
+      cancelProjectCatalogEditor();
+    })
+    .catch(err => {
+      projectEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[projectCatalog] save failed:', err);
+    });
+}
+
+[projectTitleInput, projectUrlInput, projectIdInput].forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitProjectCatalogEditor(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelProjectCatalogEditor(); }
+    e.stopPropagation();
+  });
+});
+
+// ─── PROJECT PICKER (link an existing catalog project to a node) ───────────
+
+const projectPicker = document.getElementById('projectPicker');
+const projectPickerFilter = document.getElementById('projectPickerFilter');
+const projectPickerList = document.getElementById('projectPickerList');
+let projectPickerTarget = null; // { groupId, slotIndex }
+
+function openProjectPicker(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  closeSlotMenu();
+  cancelConnection();
+
+  projectPickerTarget = { groupId, slotIndex };
+  const pos = worldToScreen(slot.x, slot.y);
+  projectPicker.style.left = pos.x + 'px';
+  projectPicker.style.top = pos.y + 'px';
+  projectPicker.classList.add('open');
+
+  projectPickerFilter.value = '';
+  renderProjectPickerList('');
+  requestAnimationFrame(() => projectPickerFilter.focus());
+}
+
+function closeProjectPicker() {
+  projectPickerTarget = null;
+  projectPicker.classList.remove('open');
+}
+
+function renderProjectPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(projectCatalog).filter(p =>
+    !q || p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+  );
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(projectCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga projekt i databasen ännu. Skapa ett via "+ Projekt" i menyn.';
+    projectPickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  projectPickerList.innerHTML = '';
+  entries.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'picker-item';
+    item.innerHTML = `${escapeHtml(p.title)}<span class="picker-item-id">${escapeHtml(p.id)}</span>`;
+    item.addEventListener('click', () => selectProjectForSlot(p.id));
+    projectPickerList.appendChild(item);
+  });
+}
+
+function selectProjectForSlot(projectId) {
+  if (!projectPickerTarget) return;
+  const { groupId, slotIndex } = projectPickerTarget;
+  closeProjectPicker();
+
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  slot.type = 'project';
+  slot.projectId = projectId;
+  renderSlot(groupId, slot);
+}
+
+projectPickerFilter.addEventListener('input', () => renderProjectPickerList(projectPickerFilter.value));
+projectPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeProjectPicker(); }
+  e.stopPropagation();
+});
+
+// ─── ROLE SKILLS (attach skills from the catalog while creating a role) ────
+// A role holds a list of skill ids. roleEditorSkills tracks the in-progress
+// selection while the role form is open; it's written into the role entry
+// on submit.
+
+let roleEditorSkills = [];
+let roleEditorEditingId = null; // null = creating new; otherwise, the role id being edited
+
+function renderRoleSkillChips() {
+  const container = document.getElementById('roleSkillChips');
+  container.innerHTML = '';
+  roleEditorSkills.forEach(skillId => {
+    const skill = skillCatalog[skillId];
+    const chip = document.createElement('div');
+    chip.className = 'skill-chip';
+    chip.innerHTML = `<span>${escapeHtml(skill ? skill.title : skillId)}</span>`;
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'skill-chip-remove';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', () => {
+      roleEditorSkills = roleEditorSkills.filter(id => id !== skillId);
+      renderRoleSkillChips();
+    });
+    chip.appendChild(removeBtn);
+    container.appendChild(chip);
+  });
+}
+
+const skillPicker = document.getElementById('skillPicker');
+const skillPickerFilter = document.getElementById('skillPickerFilter');
+const skillPickerList = document.getElementById('skillPickerList');
+let skillPickerOpen = false;
+
+// Deliberately does NOT close the role editor — this picker layers on top
+// of it, and selecting (or cancelling) returns to the still-open form.
+function openSkillPickerForRole() {
+  skillPickerOpen = true;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  skillPicker.style.left = centerX + 'px';
+  skillPicker.style.top = centerY + 'px';
+  skillPicker.classList.add('open');
+
+  skillPickerFilter.value = '';
+  renderSkillPickerList('');
+  requestAnimationFrame(() => skillPickerFilter.focus());
+}
+
+function closeSkillPicker() {
+  skillPickerOpen = false;
+  skillPicker.classList.remove('open');
+}
+
+function renderSkillPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(skillCatalog).filter(s =>
+    !roleEditorSkills.includes(s.id) && (!q || s.title.toLowerCase().includes(q))
+  );
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(skillCatalog).length
+      ? 'Inga fler färdigheter hittades.'
+      : 'Inga färdigheter i databasen ännu. Skapa en via "+ Färdighet" i menyn.';
+    skillPickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  skillPickerList.innerHTML = '';
+  entries.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'picker-item';
+    item.textContent = s.title;
+    item.addEventListener('click', () => selectSkillForRole(s.id));
+    skillPickerList.appendChild(item);
+  });
+}
+
+function selectSkillForRole(skillId) {
+  if (!roleEditorSkills.includes(skillId)) roleEditorSkills.push(skillId);
+  closeSkillPicker();
+  renderRoleSkillChips();
+}
+
+skillPickerFilter.addEventListener('input', () => renderSkillPickerList(skillPickerFilter.value));
+skillPickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeSkillPicker(); }
+  e.stopPropagation();
+});
+
+// ─── ROLE CATALOG (create in database, via header button) ──────────────────
+// Not tied to any node — this just adds a new entry to /mapRoles. Placing a
+// role on the map happens separately, via the picker below.
+
+const roleEditor = document.getElementById('roleEditor');
+const roleTitleInput = document.getElementById('roleTitleInput');
+const roleDescriptionInput = document.getElementById('roleDescriptionInput');
+const roleUrlInput = document.getElementById('roleUrlInput');
+const roleIdInput = document.getElementById('roleIdInput');
+const roleEditorError = document.getElementById('roleEditorError');
+
+function openRoleCatalogEditor() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  roleEditorEditingId = null;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  roleEditor.style.left = centerX + 'px';
+  roleEditor.style.top = centerY + 'px';
+  roleEditor.classList.add('open');
+
+  roleTitleInput.value = '';
+  roleDescriptionInput.value = '';
+  roleUrlInput.value = '';
+  roleIdInput.value = '';
+  roleIdInput.disabled = false;
+  document.getElementById('roleAreaSelect').value = '';
+  roleEditorSkills = [];
+  renderRoleSkillChips();
+  roleEditorError.textContent = '';
+  document.getElementById('roleEditorSubmitBtn').textContent = 'Skapa roll';
+  requestAnimationFrame(() => roleTitleInput.focus());
+}
+
+// Loads an existing role's data into the same form, in edit mode: the ID
+// field locks (changing it would orphan the old database entry and break
+// any node on the map still pointing at it), and submitting updates the
+// existing record instead of checking for a fresh, unique id.
+function openRoleEditorForEdit(roleId) {
+  const roleData = roleCatalog[roleId];
+  if (!roleData) return;
+
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  roleEditorEditingId = roleId;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  roleEditor.style.left = centerX + 'px';
+  roleEditor.style.top = centerY + 'px';
+  roleEditor.classList.add('open');
+
+  roleTitleInput.value = roleData.title || '';
+  roleDescriptionInput.value = roleData.description || '';
+  roleUrlInput.value = roleData.url || '';
+  roleIdInput.value = roleData.id;
+  roleIdInput.disabled = true;
+  document.getElementById('roleAreaSelect').value = roleData.area || '';
+  roleEditorSkills = [...(roleData.skills || [])];
+  renderRoleSkillChips();
+  roleEditorError.textContent = '';
+  document.getElementById('roleEditorSubmitBtn').textContent = 'Spara ändringar';
+  requestAnimationFrame(() => roleTitleInput.focus());
+}
+
+function cancelRoleCatalogEditor() {
+  roleEditor.classList.remove('open');
+}
+
+function submitRoleCatalogEditor() {
+  const title = roleTitleInput.value.trim();
+  const description = roleDescriptionInput.value.trim();
+  const url = roleUrlInput.value.trim();
+
+  if (!title) {
+    roleEditorError.textContent = 'Titel krävs.';
+    roleTitleInput.focus();
+    return;
+  }
+
+  let id;
+  if (roleEditorEditingId) {
+    id = roleEditorEditingId; // locked — reuse the existing entry's key
+  } else {
+    id = roleIdInput.value.trim();
+    if (!id) {
+      roleEditorError.textContent = 'ID krävs.';
+      roleIdInput.focus();
+      return;
+    }
+    if (roleCatalog[id]) {
+      roleEditorError.textContent = 'Det här ID:t finns redan — välj ett annat.';
+      roleIdInput.focus();
+      return;
+    }
+  }
+  if (!projectDb) {
+    roleEditorError.textContent = 'Databasen är inte redo än — försök igen om en stund.';
+    return;
+  }
+
+  const entry = { title, description, url, id, area: document.getElementById('roleAreaSelect').value, skills: [...roleEditorSkills] };
+  projectDb.ref('mapRoles/' + id).set(entry)
+    .then(() => {
+      roleCatalog[id] = entry; // optimistic, the live listener will also confirm this
+      cancelRoleCatalogEditor();
+    })
+    .catch(err => {
+      roleEditorError.textContent = 'Kunde inte spara. Försök igen.';
+      console.error('[roleCatalog] save failed:', err);
+    });
+}
+
+[roleTitleInput, roleUrlInput, roleIdInput].forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitRoleCatalogEditor(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelRoleCatalogEditor(); }
+    e.stopPropagation();
+  });
+});
+// The description is a textarea — Enter should add a newline, not submit.
+roleDescriptionInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); cancelRoleCatalogEditor(); }
+  e.stopPropagation();
+});
+
+// ─── ROLE PICKER (link an existing catalog role to a node, or browse/edit) ──
+
+const rolePicker = document.getElementById('rolePicker');
+const rolePickerFilter = document.getElementById('rolePickerFilter');
+const rolePickerList = document.getElementById('rolePickerList');
+let rolePickerTarget = null; // { groupId, slotIndex }, or null when just browsing
+
+function openRolePicker(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  closeSlotMenu();
+  cancelConnection();
+
+  rolePickerTarget = { groupId, slotIndex };
+  const pos = worldToScreen(slot.x, slot.y);
+  rolePicker.style.left = pos.x + 'px';
+  rolePicker.style.top = pos.y + 'px';
+  rolePicker.classList.add('open');
+
+  rolePickerFilter.value = '';
+  renderRolePickerList('');
+  requestAnimationFrame(() => rolePickerFilter.focus());
+}
+
+// Opens the same picker with no placement target — for browsing/editing
+// roles directly, without needing to click an empty node first.
+function openRolePickerForBrowsing() {
+  closeSlotMenu();
+  cancelConnection();
+  cancelGroupLabelEditor();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+
+  rolePickerTarget = null;
+  const centerX = area.clientWidth / 2;
+  const centerY = area.clientHeight / 2;
+  rolePicker.style.left = centerX + 'px';
+  rolePicker.style.top = centerY + 'px';
+  rolePicker.classList.add('open');
+
+  rolePickerFilter.value = '';
+  renderRolePickerList('');
+  requestAnimationFrame(() => rolePickerFilter.focus());
+}
+
+function closeRolePicker() {
+  rolePickerTarget = null;
+  rolePicker.classList.remove('open');
+}
+
+function renderRolePickerList(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.values(roleCatalog).filter(r =>
+    !q || (r.title || '').toLowerCase().includes(q) || r.id.toLowerCase().includes(q)
+  );
+
+  if (!entries.length) {
+    const emptyMsg = Object.keys(roleCatalog).length
+      ? 'Inga träffar.'
+      : 'Inga roller i databasen ännu. Skapa en via "+ Roll" i menyn.';
+    rolePickerList.innerHTML = `<div class="picker-empty">${escapeHtml(emptyMsg)}</div>`;
+    return;
+  }
+
+  rolePickerList.innerHTML = '';
+  entries.forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'picker-item picker-item-editable';
+
+    const label = document.createElement('div');
+    label.className = 'picker-item-label';
+    label.innerHTML = `${escapeHtml(r.title || r.id)}<span class="picker-item-id">${escapeHtml(r.id)}</span>`;
+    // With a placement target, clicking the label places the role. When
+    // just browsing (no target), clicking it opens the same edit form the
+    // pencil does — there's nothing else useful for a click to do here.
+    label.addEventListener('click', () => {
+      if (rolePickerTarget) selectRoleForSlot(r.id);
+      else openRoleEditorForEdit(r.id);
+    });
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'picker-edit-btn';
+    editBtn.textContent = '✎';
+    editBtn.title = 'Redigera';
+    editBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      openRoleEditorForEdit(r.id);
+    });
+
+    item.appendChild(label);
+    item.appendChild(editBtn);
+    rolePickerList.appendChild(item);
+  });
+}
+
+function selectRoleForSlot(roleId) {
+  if (!rolePickerTarget) return;
+  const { groupId, slotIndex } = rolePickerTarget;
+  closeRolePicker();
+
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  slot.type = 'role';
+  slot.roleId = roleId;
+  renderSlot(groupId, slot);
+}
+
+rolePickerFilter.addEventListener('input', () => renderRolePickerList(rolePickerFilter.value));
+rolePickerFilter.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeRolePicker(); }
+  e.stopPropagation();
+});
+
+// Builds/updates the invisible arc path (living in <defs>) that the label
+// text curves along. Centered on group.labelAngle — defaults to the top of
+// the ring, but rotates with it when the label position is nudged.
+function updateGroupLabelPath(groupId) {
+  const group = groups[groupId];
+  if (!group.labelPathEl) {
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('id', `label-path-${groupId}`);
+    path.setAttribute('fill', 'none');
+    svgDefs.appendChild(path);
+    group.labelPathEl = path;
+  }
+  const r = group.r + LABEL_RADIUS_OFFSET;
+  const labelAngle = group.labelAngle ?? -Math.PI / 2;
+  const startAngle = labelAngle - Math.PI / 2;
+  const endAngle = labelAngle + Math.PI / 2;
+  const p1x = group.cx + r * Math.cos(startAngle);
+  const p1y = group.cy + r * Math.sin(startAngle);
+  const p2x = group.cx + r * Math.cos(endAngle);
+  const p2y = group.cy + r * Math.sin(endAngle);
+  const d = `M ${p1x} ${p1y} A ${r} ${r} 0 0 1 ${p2x} ${p2y}`;
+  group.labelPathEl.setAttribute('d', d);
+}
+
+function renderGroupLabelText(groupId) {
+  const group = groups[groupId];
+  if (!group.labelTextEl) {
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('class', 'group-label');
+    const textPath = document.createElementNS(svgNS, 'textPath');
+    textPath.setAttribute('startOffset', '50%');
+    textPath.setAttribute('text-anchor', 'middle');
+    text.appendChild(textPath);
+    group.el.appendChild(text);
+    group.labelTextEl = text;
+    group.labelTextPathEl = textPath;
+  }
+  group.labelTextPathEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#label-path-${groupId}`);
+  group.labelTextPathEl.setAttribute('href', `#label-path-${groupId}`);
+  group.labelTextPathEl.textContent = group.label || '';
+  group.labelTextEl.style.display = group.label ? '' : 'none';
+}
+
+function getSlot(groupId, slotIndex) {
+  const group = groups[groupId];
+  if (!group) return null;
+  return group.slots[slotIndex] || null;
+}
+
+// Rebuilds a slot's visual contents based on its current state
+// (empty / filled / connecting).
+function renderSlot(groupId, slot) {
+  const g = slot.el;
+  g.innerHTML = '';
+  g.setAttribute('class', 'node-slot'
+    + (slot.type ? ` is-filled type-${slot.type}` : '')
+    + (connectingFrom && connectingFrom.groupId === groupId && connectingFrom.slotIndex === slot.index ? ' is-connecting' : ''));
+
+  let visualHalfHeight = SLOT_RADIUS;
+  let visualHalfWidth = SLOT_RADIUS;
+
+  if (slot.type === 'project') {
+    visualHalfHeight = PROJECT_RECT_HEIGHT / 2;
+    visualHalfWidth = PROJECT_RECT_WIDTH / 2;
+
+    const catalogEntry = projectCatalog[slot.projectId];
+    const projectArea = catalogEntry && catalogEntry.area ? areaCatalog[catalogEntry.area] : null;
+    const accentColor = projectArea ? projectArea.color : PROJECT_DEFAULT_ACCENT;
+
+    const cardX = slot.x - PROJECT_RECT_WIDTH / 2, cardY = slot.y - PROJECT_RECT_HEIGHT / 2;
+    const bandHeight = PROJECT_RECT_HEIGHT * PROJECT_BAND_HEIGHT_RATIO;
+    const bandY = cardY + (PROJECT_RECT_HEIGHT - bandHeight) / 2;
+
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('class', 'project-card');
+    rect.setAttribute('x', cardX);
+    rect.setAttribute('y', cardY);
+    rect.setAttribute('width', PROJECT_RECT_WIDTH);
+    rect.setAttribute('height', PROJECT_RECT_HEIGHT);
+    rect.setAttribute('rx', PROJECT_RECT_RX);
+    rect.style.fill = '#fff';
+    rect.style.stroke = accentColor;
+    g.appendChild(rect);
+
+    const band = document.createElementNS(svgNS, 'rect');
+    band.setAttribute('class', 'project-card-band');
+    band.setAttribute('x', cardX);
+    band.setAttribute('y', bandY);
+    band.setAttribute('width', PROJECT_RECT_WIDTH);
+    band.setAttribute('height', bandHeight);
+    band.style.fill = accentColor;
+    band.style.fillOpacity = PROJECT_BAND_OPACITY;
+    g.appendChild(band);
+
+    const title = document.createElementNS(svgNS, 'text');
+    title.setAttribute('class', 'project-card-title');
+    title.setAttribute('x', slot.x);
+    title.setAttribute('y', slot.y);
+    title.textContent = catalogEntry ? catalogEntry.title : '…';
+    g.appendChild(title);
+  } else {
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('class', 'slot-outline');
+    circle.setAttribute('cx', slot.x);
+    circle.setAttribute('cy', slot.y);
+    circle.setAttribute('r', SLOT_RADIUS);
+    if (slot.type === 'role') {
+      const catalogEntry = roleCatalog[slot.roleId];
+      const roleArea = catalogEntry && catalogEntry.area ? areaCatalog[catalogEntry.area] : null;
+      if (roleArea) {
+        circle.style.fill = roleArea.color;
+        circle.style.fillOpacity = '0.35';
+      } else {
+        circle.style.fill = 'rgba(240,168,58,0.35)';
+      }
+    }
+    g.appendChild(circle);
+
+    if (slot.type) {
+      const icon = document.createElementNS(svgNS, 'text');
+      icon.setAttribute('class', 'slot-icon');
+      icon.setAttribute('x', slot.x);
+      icon.setAttribute('y', slot.y);
+      icon.textContent = TYPE_ICON[slot.type];
+      g.appendChild(icon);
+    } else {
+      const plus = document.createElementNS(svgNS, 'text');
+      plus.setAttribute('class', 'slot-plus');
+      plus.setAttribute('x', slot.x);
+      plus.setAttribute('y', slot.y);
+      plus.textContent = '+';
+      g.appendChild(plus);
+    }
+  }
+
+  // Delete button — only on filled nodes, top-right corner of whichever
+  // shape is showing (works for both the center slot and outline slots).
+  if (slot.type) {
+    const dx = slot.x + visualHalfWidth * 0.78;
+    const dy = slot.y - visualHalfHeight * 0.78;
+    g.appendChild(createDeleteBtn(dx, dy, () => requestDeleteNode(groupId, slot.index)));
+  }
+
+  // Reorder arrows — only the 8 outline nodes have an order; the lone
+  // center slot doesn't. Offset from whichever shape is currently showing.
+  if (!slot.isCenter) {
+    const y = slot.y + visualHalfHeight + NODE_ORDER_BTN_GAP;
+    g.appendChild(createOrderBtn(slot.x - NODE_ORDER_BTN_OFFSET_X, y, '↺', () => moveNodeOnRing(groupId, slot.index, -1), false, NODE_ORDER_BTN_RADIUS, 12));
+    g.appendChild(createOrderBtn(slot.x + NODE_ORDER_BTN_OFFSET_X, y, '↻', () => moveNodeOnRing(groupId, slot.index, 1), false, NODE_ORDER_BTN_RADIUS, 12));
+  }
+}
+
+function onSlotClick(groupId, slotIndex) {
+  const slot = getSlot(groupId, slotIndex);
+  if (!slot) return;
+
+  if (connectingFrom) {
+    if (connectingFrom.groupId === groupId && connectingFrom.slotIndex === slotIndex) {
+      cancelConnection();
+    } else {
+      completeConnection(connectingFrom, { groupId, slotIndex });
+    }
+    return;
+  }
+
+  if (slot.type) {
+    // Filled node clicked — editing existing nodes is a later step.
+    console.log('Node clicked (editing not implemented yet):', groupId, slotIndex, slot.type);
+    return;
+  }
+
+  openSlotMenu(groupId, slotIndex, slot.x, slot.y);
+}
+
+// ─── SUBMENU: create project / create role / create connection ────────────
+
+function worldToScreen(x, y) {
+  const pt = svg.createSVGPoint();
+  pt.x = x; pt.y = y;
+  const screenPt = pt.matrixTransform(svg.getScreenCTM());
+  const areaRect = area.getBoundingClientRect();
+  return { x: screenPt.x - areaRect.left, y: screenPt.y - areaRect.top };
+}
+
+function openSlotMenu(groupId, slotIndex, worldX, worldY) {
+  menuTarget = { groupId, slotIndex };
+  const pos = worldToScreen(worldX, worldY);
+  slotMenu.style.left = pos.x + 'px';
+  slotMenu.style.top = pos.y + 'px';
+  slotMenu.classList.add('open');
+}
+
+function closeSlotMenu() {
+  menuTarget = null;
+  slotMenu.classList.remove('open');
+}
+
+function handleMenuChoice(choice) {
+  if (!menuTarget) return;
+  const { groupId, slotIndex } = menuTarget;
+  closeSlotMenu();
+
+  if (choice === 'project') {
+    openProjectPicker(groupId, slotIndex);
+  } else if (choice === 'role') {
+    openRolePicker(groupId, slotIndex);
+  } else if (choice === 'connection') {
+    startConnection(groupId, slotIndex);
+  }
+}
+
+// ─── CONNECTIONS ────────────────────────────────────────────────────────────
+
+function startConnection(groupId, slotIndex) {
+  connectingFrom = { groupId, slotIndex };
+  renderSlot(groupId, getSlot(groupId, slotIndex));
+}
+
+function cancelConnection() {
+  if (!connectingFrom) return;
+  const { groupId, slotIndex } = connectingFrom;
+  connectingFrom = null;
+  const slot = getSlot(groupId, slotIndex);
+  if (slot) renderSlot(groupId, slot);
+}
+
+// Builds a connector's DOM: an invisible wide "hit" line (for reliable
+// clicking) layered with the thin visible line. Shared by connection
+// creation and import, so both stay in sync.
+function createConnectorElements(x1, y1, x2, y2, connectionId) {
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'connector-group');
+
+  const hitLine = document.createElementNS(svgNS, 'line');
+  hitLine.setAttribute('class', 'connector-hit');
+  hitLine.setAttribute('x1', x1); hitLine.setAttribute('y1', y1);
+  hitLine.setAttribute('x2', x2); hitLine.setAttribute('y2', y2);
+  hitLine.addEventListener('click', e => {
+    e.stopPropagation();
+    openAreaPickerForConnection(connectionId);
+  });
+
+  const visLine = document.createElementNS(svgNS, 'line');
+  visLine.setAttribute('class', 'connector-line');
+  visLine.setAttribute('x1', x1); visLine.setAttribute('y1', y1);
+  visLine.setAttribute('x2', x2); visLine.setAttribute('y2', y2);
+  visLine.style.pointerEvents = 'none';
+
+  g.appendChild(hitLine);
+  g.appendChild(visLine);
+  connectorsLayer.appendChild(g);
+
+  return { g, hitLine, visLine };
+}
+
+// Applies a connection's area color (if any) and width to its visible line.
+function applyConnectionStyle(conn) {
+  const connArea = conn.areaId ? areaCatalog[conn.areaId] : null;
+  conn.visLineEl.style.stroke = connArea ? connArea.color : 'rgba(255,255,255,0.4)';
+  conn.visLineEl.style.strokeWidth = CONNECTOR_WIDTH + 'px';
+}
+
+function completeConnection(from, to) {
+  const fromSlot = getSlot(from.groupId, from.slotIndex);
+  const toSlot = getSlot(to.groupId, to.slotIndex);
+  connectingFrom = null;
+  if (fromSlot) renderSlot(from.groupId, fromSlot);
+  if (!fromSlot || !toSlot) return;
+
+  const id = 'connection-' + connectionIdCounter++;
+  const { g, hitLine, visLine } = createConnectorElements(fromSlot.x, fromSlot.y, toSlot.x, toSlot.y, id);
+  const conn = { id, from, to, el: g, hitLineEl: hitLine, visLineEl: visLine, areaId: null };
+  connections.push(conn);
+  applyConnectionStyle(conn);
+}
+
+// Clicking empty canvas: close the menu / cancel an in-progress connection.
+area.addEventListener('click', e => {
+  if (previewOpen) return;
+  if (e.target.closest('.node-slot') || e.target.closest('.slot-menu') || e.target.closest('.zoom-btn') || e.target.closest('.add-btn') || e.target.closest('.layers-panel') || e.target.closest('.label-editor') || e.target.closest('.project-editor') || e.target.closest('.project-picker') || e.target.closest('.delete-confirm')) return;
+  if (skillPickerOpen) { closeSkillPicker(); return; }
+  closeSlotMenu();
+  cancelConnection();
+  cancelProjectCatalogEditor();
+  closeProjectPicker();
+  cancelRoleCatalogEditor();
+  closeRolePicker();
+  cancelAreaCatalogEditor();
+  closeAreaPicker();
+  cancelSkillCatalogEditor();
+  closeSkillPicker();
+  cancelMapSaveDialog();
+  closeMapLoadPicker();
+  cancelDeleteConfirm();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (previewOpen) { exitPreviewMode(); return; }
+    if (skillPickerOpen) { closeSkillPicker(); return; }
+    closeSlotMenu(); cancelConnection(); cancelGroupLabelEditor(); cancelProjectCatalogEditor(); closeProjectPicker(); cancelRoleCatalogEditor(); closeRolePicker(); cancelAreaCatalogEditor(); closeAreaPicker(); cancelSkillCatalogEditor(); closeSkillPicker(); cancelMapSaveDialog(); closeMapLoadPicker(); cancelDeleteConfirm();
+  }
+});
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+
+resetView();
 </script>
+
 </body>
 </html>
