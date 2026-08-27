@@ -2920,7 +2920,8 @@ function renderRoleSkillChips() {
     const removeBtn = document.createElement('button');
     removeBtn.className = 'skill-chip-remove';
     removeBtn.textContent = '×';
-    removeBtn.addEventListener('click', () => {
+    removeBtn.addEventListener('click', e => {
+      e.stopPropagation();
       roleEditorSkills = roleEditorSkills.filter(id => id !== skillId);
       renderRoleSkillChips();
     });
