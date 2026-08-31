@@ -1308,9 +1308,9 @@ async function loadMap() {
   setTimeout(() => { svg.style.transition = ''; }, 600);
 
   // ── Animate zoom into the fixed initial project node ──
-  const focusEl = 'project-photoshop-collage' ? svg.getElementById('project-photoshop-collage') : null;
-  if (focusEl) {
-    try {
+  try {
+    const focusEl = svg.getElementById('project-photoshop-collage');
+    if (focusEl) {
       const bbox    = focusEl.getBBox();
       const centerX = bbox.x + bbox.width  / 2;
       const centerY = bbox.y + bbox.height / 2;
@@ -1336,11 +1336,13 @@ async function loadMap() {
         if (t < 1) requestAnimationFrame(animateInitialZoom);
       }
       requestAnimationFrame(animateInitialZoom);
-    } catch(e) {
-      zoom(5.0, 800, 500); // fallback if getBBox fails
+    } else {
+      console.warn('[initial zoom] Node "project-photoshop-collage" not found in map.svg');
+      zoom(5.0, 800, 500); // fallback
     }
-  } else {
-    zoom(5.0, 800, 500); // fallback if node not found
+  } catch(e) {
+    console.warn('[initial zoom] Failed:', e.message);
+    zoom(5.0, 800, 500); // fallback
   }
 
   // Hide loader
@@ -1351,7 +1353,6 @@ async function loadMap() {
   // Load students from Google Sheet and place on map
   await loadStudentPositions(svg);
 }
-
 
 // ─── PANEL LOGIC ──────────────────────────────────────────────────────────────
 
