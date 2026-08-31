@@ -1300,7 +1300,7 @@ async function loadMap() {
   requestAnimationFrame(() => { svg.style.opacity = '1'; });
   setTimeout(() => { svg.style.transition = ''; }, 600);
 
-  // ── Start centered on a fixed project node (no animation) ──
+   // ── Start centered on a fixed project node (no animation) ──
   try {
     const focusEl = svg.getElementById('project-photoshop-collage');
     if (focusEl) {
@@ -1311,8 +1311,8 @@ async function loadMap() {
       const newW = origW * 0.10;
       const newH = newW * (origH / origW);
 
-      vx = centerX - newW * 0.10;
-      vy = centerY - newH * 0.20;
+      vx = centerX - newW / 2;
+      vy = centerY - newH / 2;
       vw = newW;
       vh = newH;
       applyViewBox(svg);
