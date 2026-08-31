@@ -1279,6 +1279,13 @@ function goToStudent(name) {
 
 // ─── SVG LOADER ───────────────────────────────────────────────────────────────
 
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// Add this near your other CONFIG constants at the top of the script:
+const INITIAL_FOCUS_NODE = 'project-example-id'; // <-- set this to the node id you want to open on load
+
+
+// ─── SVG LOADER ───────────────────────────────────────────────────────────────
+
 async function loadMap() {
   const res = await fetch('map.svg');
   const text = await res.text();
@@ -1294,13 +1301,47 @@ async function loadMap() {
   initMapInteractions(svg);
   buildEdgeMap(svg);
   initProjectSearch();
-  
 
   svg.style.opacity = '0';
   svg.style.transition = 'opacity 1s ease';
-  zoom(5.0, 900, 600);
   requestAnimationFrame(() => { svg.style.opacity = '1'; });
   setTimeout(() => { svg.style.transition = ''; }, 600);
+
+  // ── Animate zoom into the fixed initial project node ──
+  const focusEl = 'project-photoshop-collage' ? svg.getElementById('project-photoshop-collage') : null;
+  if (focusEl) {
+    try {
+      const bbox    = focusEl.getBBox();
+      const centerX = bbox.x + bbox.width  / 2;
+      const centerY = bbox.y + bbox.height / 2;
+
+      const newW = origW * 0.10;
+      const newH = newW * (origH / origW);
+
+      const targetVx = centerX - newW * 0.10;
+      const targetVy = centerY - newH * 0.20;
+
+      const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+      const duration = 800;
+      const startTime = performance.now();
+
+      function animateInitialZoom(now) {
+        const t    = Math.min((now - startTime) / duration, 1);
+        const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+        vx = startVx + (targetVx - startVx) * ease;
+        vy = startVy + (targetVy - startVy) * ease;
+        vw = startVw + (newW - startVw) * ease;
+        vh = startVh + (newH - startVh) * ease;
+        applyViewBox(svg);
+        if (t < 1) requestAnimationFrame(animateInitialZoom);
+      }
+      requestAnimationFrame(animateInitialZoom);
+    } catch(e) {
+      zoom(5.0, 800, 500); // fallback if getBBox fails
+    }
+  } else {
+    zoom(5.0, 800, 500); // fallback if node not found
+  }
 
   // Hide loader
   const loader = document.getElementById('mapLoader');
@@ -1309,38 +1350,6 @@ async function loadMap() {
 
   // Load students from Google Sheet and place on map
   await loadStudentPositions(svg);
-}
-
-
-function initMapInteractions(svg) {
-  svg.querySelectorAll('a').forEach(a => {
-    const href = a.getAttribute('href') || a.getAttribute('xlink:href') || '';
-    if (href) a.setAttribute('data-url', href);
-    a.removeAttribute('href');
-    a.removeAttribute('xlink:href');
-    a.style.cursor = 'pointer';
-  });
-
-  svg.addEventListener('click', e => {
-    // Ignore clicks on student icons (they handle their own click)
-    if (e.target.closest('.student-icon-group')) return;
-    let el = e.target;
-    while (el && el !== svg) {
-      const name = el.getAttribute('id') || el.getAttribute('data-name');
-      if (name && (name.startsWith('project-') || name.startsWith('role-'))) {
-        let anchor = el;
-        while (anchor && anchor !== svg) {
-          if (anchor.getAttribute('data-url')) break;
-          anchor = anchor.parentElement;
-        }
-        const folderUrl = anchor?.getAttribute('data-url') || '';
-        openPanel(name, el, folderUrl);
-        return;
-      }
-      el = el.parentElement;
-    }
-    closePanel();
-  });
 }
 
 
