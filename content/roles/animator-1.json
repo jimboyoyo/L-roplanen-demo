@@ -1,0 +1,25 @@
+{
+  "id": "role-animatör-1",
+  "title": "Animatör Nivå 1",
+  "type": "Roll",
+  "yrkesinfo": "En animatör skapar rörelse och liv i bilder, figurer och miljöer genom att få dem att röra sig på ett naturligt och trovärdigt sätt. Animatören kan arbeta med allt från tecknade filmer och 3D-animationer till datorspel, reklam och specialeffekter.",
+  "exercises": [
+    {
+      "title": "Grunderna i Adobe Animate",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQDyhXgbwk0nTqyD1cK4BfhzAYOr_cXqgfB3Ug4pR5YRSLg?e=avcgSd"
+    },
+    {
+      "title": "Animationens grund: Timing & Spacing",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQBlu54gb_iNQrlVYh-CTm6OAZ15b7Gpa-FM_1Diut0abzU?e=thZSdr"
+    },
+    {
+      "title": "Animationens Historia 1",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQBjPaxfVgFhT6QBQnxtfkDaAUsFoVRqiwZt1KYJ9PA0NlE?e=z6Chu5"
+    }
+  ],
+  "outro": "Se dessa två videor när du är klar, och sedan kan du fortsätta på kartan!",
+  "outroVideos": [
+    "https://www.youtube.com/watch?v=RDa8gHpBK5s",
+    "https://www.youtube.com/watch?v=RatBeKwe4oI"
+  ]
+}
