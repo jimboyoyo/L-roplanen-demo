@@ -1300,7 +1300,7 @@ async function loadMap() {
   requestAnimationFrame(() => { svg.style.opacity = '1'; });
   setTimeout(() => { svg.style.transition = ''; }, 600);
 
-   // ── Start centered on a fixed project node (no animation) ──
+  // ── Start centered on a fixed project node (no animation) ──
   try {
     const focusEl = svg.getElementById('project-photoshop-collage');
     if (focusEl) {
@@ -1318,7 +1318,7 @@ async function loadMap() {
       applyViewBox(svg);
     } else {
       console.warn('[initial zoom] Node "project-photoshop-collage" not found in map.svg');
-      zoom(3.0, 800, 500);
+      zoom(5.0, 800, 500);
     }
   } catch(e) {
     console.warn('[initial zoom] Failed:', e.message);
