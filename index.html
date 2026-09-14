@@ -610,6 +610,51 @@ function nameToKey(name) {
   return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 }
 
+// ─── PPTX EMBED DETECTION ──────────────────────────────────────────────────
+// A role's JSON file can contain a "pptxEmbed" field holding the full
+// SharePoint "Embed" snippet (the whole <iframe src="..." ...></iframe>
+// string, copied straight from SharePoint's Embed dialog). extractIframeSrc()
+// pulls just the src URL out of that snippet so we can build our own
+// responsive iframe in the panel. isPptxEmbedCode() is kept as a small
+// guard in case a plain string ever needs to be checked before extraction.
+
+function isPptxEmbedCode(str) {
+  return !!str && str.trim().startsWith('<iframe');
+}
+
+function extractIframeSrc(str) {
+  const match = str.match(/src=["']([^"']+)["']/i);
+  return match ? match[1] : null;
+}
+
+function nodeLabel(id) {
+  return id
+    .replace(/^(project-|role-)/, '')
+    .replace(/(-\d+)-\d+$/, '$1')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function renderPptxEmbed(url, title) {
+  currentPdfUrl = null;
+  document.getElementById('printBtn').style.display = 'none';
+  if (title) document.getElementById('panelTitle').textContent = title;
+  document.getElementById('panelSubtitle').textContent = '';
+
+  const body = document.getElementById('panelBody');
+  body.style.padding = '0';
+  body.style.overflow = 'hidden';
+  body.style.background = '#fff';
+
+  body.innerHTML = `
+    <div style="position:relative; padding-bottom:60.5%; height:0; overflow:hidden;">
+      <iframe src="${url}"
+        style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;"
+        allowfullscreen>
+      </iframe>
+    </div>`;
+}
+
  let firebaseSheetRows = [];
 
 function listenToFirebase(svg, sheetRows) {
@@ -1294,36 +1339,13 @@ async function loadMap() {
   initMapInteractions(svg);
   buildEdgeMap(svg);
   initProjectSearch();
+  
 
   svg.style.opacity = '0';
   svg.style.transition = 'opacity 1s ease';
+  zoom(5.0, 800, 500);
   requestAnimationFrame(() => { svg.style.opacity = '1'; });
   setTimeout(() => { svg.style.transition = ''; }, 600);
-
-  // ── Start centered on a fixed project node (no animation) ──
-  try {
-    const focusEl = svg.getElementById('project-photoshop-collage');
-    if (focusEl) {
-      const bbox    = focusEl.getBBox();
-      const centerX = bbox.x + bbox.width  / 2;
-      const centerY = bbox.y + bbox.height / 2;
-
-      const newW = origW * 0.10;
-      const newH = newW * (origH / origW);
-
-      vx = centerX - newW / 2;
-      vy = centerY - newH / 2;
-      vw = newW;
-      vh = newH;
-      applyViewBox(svg);
-    } else {
-      console.warn('[initial zoom] Node "project-photoshop-collage" not found in map.svg');
-      zoom(5.0, 800, 500);
-    }
-  } catch(e) {
-    console.warn('[initial zoom] Failed:', e.message);
-    zoom(5.0, 800, 500);
-  }
 
   // Hide loader
   const loader = document.getElementById('mapLoader');
@@ -1573,7 +1595,7 @@ async function openStudentPanel(studentName) {
   const finishedProjects = studentData.finished?.projects || [];
   const finishedRoles    = studentData.finished?.roles    || [];
 
-  function nodeLabel(id) {
+  function nodeLabelLocal(id) {
     return id.replace(/^(project-|role-)/, '').replace(/-/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase());
   }
@@ -1588,7 +1610,7 @@ async function openStudentPanel(studentName) {
         onerror="this.style.opacity='0.15'">
       <div>
         <div style="font-size:18px;font-weight:700;color:#111;">${studentName}</div>
-        <div style="font-size:12px;color:#aaa;margin-top:3px;">${currentNode ? nodeLabel(currentNode) : 'Ingen uppgift tilldelad'}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:3px;">${currentNode ? nodeLabelLocal(currentNode) : 'Ingen uppgift tilldelad'}</div>
       </div>
     </div>
   `;
@@ -1596,7 +1618,7 @@ async function openStudentPanel(studentName) {
   // ── Current assignment ───────────────────────────────────────────────────
   html += `<div class="section-label">Aktuell uppgift</div>`;
   html += `<div style="font-size:15px;font-weight:700;color:#111;margin-bottom:12px;">
-    ${currentNode ? nodeLabel(currentNode) : '<span style="color:#bbb;font-weight:400;">Ingen uppgift tilldelad</span>'}
+    ${currentNode ? nodeLabelLocal(currentNode) : '<span style="color:#bbb;font-weight:400;">Ingen uppgift tilldelad</span>'}
   </div>`;
 
   // ── Teacher controls ─────────────────────────────────────────────────────
@@ -1609,7 +1631,7 @@ async function openStudentPanel(studentName) {
           type="text"
           placeholder="Sök projekt eller roll…"
           autocomplete="off"
-          value="${currentNode ? nodeLabel(currentNode) : ''}"
+          value="${currentNode ? nodeLabelLocal(currentNode) : ''}"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;outline:none;box-sizing:border-box;"
           oninput="filterAssignNodes(this.value)"
           onfocus="filterAssignNodes(this.value)"
@@ -1650,7 +1672,7 @@ async function openStudentPanel(studentName) {
     ${finishedProjects.length
       ? finishedProjects.map(id => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
-            <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
+            <span style="font-size:12px;color:#333;">${nodeLabelLocal(id)}</span>
             ${isTeacherUser ? `<button
               onclick="removeFinished('${key}', '${studentName}', 'projects', '${id}')"
               style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
@@ -1667,7 +1689,7 @@ async function openStudentPanel(studentName) {
     ${finishedRoles.length
       ? finishedRoles.map(id => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
-            <span style="font-size:12px;color:#333;">${nodeLabel(id)}</span>
+            <span style="font-size:12px;color:#333;">${nodeLabelLocal(id)}</span>
             ${isTeacherUser ? `<button
               onclick="removeFinished('${key}', '${studentName}', 'roles', '${id}')"
               style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;transition:color 0.15s;"
@@ -1703,13 +1725,13 @@ function filterAssignNodes(query) {
     });
   }
 
-  function nodeLabel(id) {
+  function nodeLabelLocal(id) {
     return id.replace(/^(project-|role-)/, '').replace(/-/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase());
   }
 
   const q    = query.trim().toLowerCase();
-  const hits = allNodes.filter(id => !q || nodeLabel(id).toLowerCase().includes(q));
+  const hits = allNodes.filter(id => !q || nodeLabelLocal(id).toLowerCase().includes(q));
 
   if (!hits.length) {
     dropdown.innerHTML = `<div style="padding:9px 12px;font-size:12px;color:#bbb;font-family:inherit;">Inga träffar</div>`;
@@ -1720,10 +1742,10 @@ function filterAssignNodes(query) {
   dropdown.innerHTML = hits.map(id => `
     <div
       style="padding:9px 12px;font-size:13px;color:#111;cursor:pointer;font-family:inherit;border-bottom:1px solid #f0f0f0;"
-      onmousedown="selectAssignNode('${id}', '${nodeLabel(id)}')"
+      onmousedown="selectAssignNode('${id}', '${nodeLabelLocal(id)}')"
       onmouseover="this.style.background='#f7f7f9'"
       onmouseout="this.style.background='#fff'"
-    >${nodeLabel(id)}</div>
+    >${nodeLabelLocal(id)}</div>
   `).join('');
   dropdown.style.display = 'block';
 
@@ -1839,14 +1861,14 @@ function openClassOverview() {
     return '';
   }
 
-  function nodeLabel(nodeId) {
+  function nodeLabelLocal(nodeId) {
     return nodeId
       .replace(/^(project-|role-)/, '')
       .replace(/-/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  const sortedNodes = Object.keys(byNode).sort((a, b) => nodeLabel(a).localeCompare(nodeLabel(b)));
+  const sortedNodes = Object.keys(byNode).sort((a, b) => nodeLabelLocal(a).localeCompare(nodeLabelLocal(b)));
 
   const list = document.createElement('div');
   list.className = 'overview-list';
@@ -1863,7 +1885,7 @@ function openClassOverview() {
 
     const nameEl = document.createElement('div');
     nameEl.className = 'overview-name';
-    nameEl.textContent = nodeLabel(nodeId);
+    nameEl.textContent = nodeLabelLocal(nodeId);
     nameEl.style.cursor = 'pointer';
     nameEl.addEventListener('click', () => {
       const el = svg?.getElementById(nodeId);
@@ -1968,6 +1990,20 @@ function renderRole(d) {
   document.getElementById('printBtn').style.display = 'none';
   document.getElementById('panelTitle').textContent = d.title;
   document.getElementById('panelSubtitle').textContent = 'Roll';
+
+  // ── pptxEmbed check ──────────────────────────────────────────────────────
+  // If this role's JSON contains a "pptxEmbed" field (the full <iframe ...>
+  // snippet copied from SharePoint's Embed dialog), render that instead of
+  // the normal yrkesinfo/exercises content.
+  if (d.pptxEmbed) {
+    const src = extractIframeSrc(d.pptxEmbed);
+    if (src) {
+      renderPptxEmbed(src, d.title);
+      return;
+    }
+    // If the src couldn't be parsed out, fall through to normal rendering below.
+  }
+
   const body = document.getElementById('panelBody');
   body.style.padding = ''; body.style.overflow = ''; body.style.background = '';
   let html = '';
