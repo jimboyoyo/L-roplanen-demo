@@ -617,7 +617,7 @@ function nameToKey(name) {
 // PowerPoint embed instead of fetching its JSON content.
 
 function isPptxEmbedCode(str) {
-  return !!str && str.trim().startsWith('<iframe');
+  return !!str && str.trim().startsWith('<a xlink:href="&lt;iframe src');
 }
 
 function extractIframeSrc(str) {
