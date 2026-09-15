@@ -1,5 +1,17 @@
 {
  "id": "role-fotograf-4",
   "title": "Fotograf Nivå 4",
+  "yrkesinfo": "En fotograf arbetar med...",
+  "exercises": [
+    {
+      "title": "Övning 1",
+      "description": "beskrivning",
+      "video1": "https://youtu.be/abc123",
+      "pptx": [
+        "<iframe src=\"https://.../grundkurs...\"></iframe>",
+        "<iframe src=\"https://.../fördjupning...\"></iframe>"
+      ]
+    }
+  ],
   "pptxEmbed": "<iframe src=\"https://orebrokommun-my.sharepoint.com/personal/jim_bernstrom_orebro_se/_layouts/15/Doc.aspx?sourcedoc={97b6e1cb-a1eb-43c1-af6d-39de7df93df5}&amp;action=embedview&amp;wdAr=1.7777777777777777\" width=\"476px\" height=\"288px\" frameborder=\"0\" title=\"PowerPoint Viewer\">This is an embedded <a target=\"_blank\" href=\"https://office.com\">Microsoft Office</a> presentation, powered by <a target=\"_blank\" href=\"https://office.com/webapps\">Office</a>.</iframe>"
 }
