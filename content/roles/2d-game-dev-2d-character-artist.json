@@ -1,0 +1,12 @@
+{
+  "title": "2D Character Artist",
+  "yrkesinfo": "En 2D Character Artist jobbar med att skapa grafiken till karaktärer i 2D-miljöer. Som sådan behöver du både tekniskt kunnande om hur en karaktär fungerar i ett 2D-spel, kunskap om animation, och bildskapande.",
+  "exercises": [
+    {
+      "title": "Schmup Player Asset Creation",
+      "description": "Lär dig hur du planerar för en karaktär!",
+      "exercise_file_1": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/EUkDQOEM7IxGi_gGbQ_DrGcB16cMZ0AnyG8NiJaYxE6-5Q?e=seS7KC"
+    }
+  ],
+  "outro": "Gör en skiss med penna och papper över en enkel 2D-karaktär, i Top Down, som kan röra sig i fyra riktningar. Den ska dessutom ha en specialförmåga, tex avfyra projektil. Hur många bildrutor kommer krävas totalt? Hur stor upplösning kommer din figur att ha?"
+}
