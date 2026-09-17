@@ -450,12 +450,16 @@
   .hof-card {
     display: flex;
     align-items: center;
+    justify-content: center;
   }
   .hof-card img {
-    width: 100%;
+    width: auto;
     height: auto;
+    max-width: 100%;
+    max-height: 140px;
     object-fit: contain;
     display: block;
+    margin: 0 auto;
   }
   .hof-card img.broken { opacity: 0.15; }
 </style>
@@ -498,15 +502,15 @@
 <div class="shell">
 
   <div class="help-corner" id="helpCorner">
+    <div class="help-queue-list" id="helpQueueList">
+      <div class="help-queue-title">Kö för hjälp</div>
+      <div id="helpQueueItems"></div>
+    </div>
     <div class="help-popup" id="helpPopup">
       <label>Ditt namn</label>
       <input type="text" id="helpNameInput" placeholder="Skriv ditt namn…" maxlength="30" />
       <button class="help-popup-submit" onclick="submitHelpRequest()">Räck upp handen</button>
       <div class="help-already" id="helpAlready"></div>
-    </div>
-    <div class="help-queue-list" id="helpQueueList">
-      <div class="help-queue-title">Kö för hjälp</div>
-      <div id="helpQueueItems"></div>
     </div>
   </div>
 
