@@ -1,0 +1,13 @@
+{
+  "title": "Blender Guru Donut Tutorial",
+  "yrkesinfo": "BlenderGuru är en populär youtubekanal med fokus på att lära ut Blender. Varje gång Blender släpper en stor uppdatering gör han en ny videoserie där han förklarar grunderna i Blender och Blenders arbetsflöde, genom att göra en munk. Videoserien har alltid varit mycket lärorik och en bra och detaljerad översikt över hur du jobbar i Blender.",
+  "exercises": [
+    {
+      "title": "Gör din egen munk!",
+      "description": "Följ BlenderGurus senaste videoserie!",
+	"video1": "https://www.youtube.com/watch?v=-tbSCMbJA6o"
+    },
+    
+  ],
+  "outro": "Med munken som kvitto på din nyvunna kunskap är du fri att utforska resten av projekten på kartan!"
+}
