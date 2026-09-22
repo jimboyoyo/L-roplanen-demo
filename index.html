@@ -692,7 +692,9 @@ function listenToFirebase(svg, sheetRows) {
 // ─── CSV PARSER ───────────────────────────────────────────────────────────────
 
 function parseCSV(text) {
-  // Returns array of { name, nodeId } skipping the header row
+  // Returns array of { name, nodeId } skipping the header row.
+  // Only rows with BOTH a name and a nodeId count as "current" students —
+  // this is the list used for the student dropdown / map placement.
   return text
     .trim()
     .split('\n')
@@ -702,6 +704,21 @@ function parseCSV(text) {
       return { name: cols[0], nodeId: cols[1] };
     })
     .filter(r => r.name && r.nodeId); // skip empty rows
+}
+
+// Returns EVERY name in the roster, regardless of whether they have a
+// nodeId (i.e. includes former/inactive students with no current project).
+// Used by Hall of Fame, which should show current + past students alike.
+function parseAllStudentNames(text) {
+  return text
+    .trim()
+    .split('\n')
+    .slice(1)                          // skip header
+    .map(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      return cols[0];
+    })
+    .filter(Boolean); // skip rows with no name at all
 }
 
 
@@ -864,6 +881,10 @@ const GLIDE_DURATION = 1_200;    // ms for the travel animation
 const FADE_DURATION  = 800;      // ms for fade-out when a student is removed
 const GLIDE_EASE = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
 
+// Full roster from the sheet, including students with no current nodeId
+// (used by Hall of Fame; NOT filtered like the dropdown/map list is).
+let allStudentNames = [];
+
 // Tracks current target position of each student: { name → { cx, cy, size } }
 let currentPositions = {};
 // Tracks active animation frames so we can cancel mid-glide
@@ -910,7 +931,10 @@ async function loadStudentPositions(svg) {
     const csv = await res.text();
     const sheetRows = parseCSV(csv);
 
-    // Populate dropdown from sheet
+    // Full roster (current + former students) for Hall of Fame
+    allStudentNames = parseAllStudentNames(csv);
+
+    // Populate dropdown from sheet — current students only
     const names = sheetRows.map(a => a.name);
     initStudentDropdown(names);
 
@@ -1768,10 +1792,13 @@ function openHallOfFame() {
   body.style.overflow = '';
   body.style.background = '';
 
-  const select = document.getElementById('studentSelect');
-  const names  = Array.from(select.options)
-    .filter(o => o.value)
-    .map(o => ({ display: o.textContent, key: o.value }));
+  // Hall of Fame shows EVERYONE who's ever been in the roster — current
+  // students as well as former ones with no active project — unlike the
+  // dropdown, which only lists current students.
+  const names = allStudentNames.map(name => ({
+    display: name,
+    key: name.trim().toLowerCase(),
+  }));
 
   if (!names.length) {
     body.innerHTML = `<div class="empty-state"><div class="empty-icon">🏆</div>Inga elever i listan ännu.</div>`;
