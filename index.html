@@ -1347,7 +1347,7 @@ function goToProjectView(nodeId) {
     const centerX = bbox.x + bbox.width  / 2;
     const centerY = bbox.y + bbox.height / 2;
 
-    const newW = origW * 0.20;
+    const newW = origW * 0.20;  // fraction of full map width shown — smaller = more zoomed in
     const newH = newW * (origH / origW);
 
     const targetVx = centerX - newW * 0.10;
@@ -1394,7 +1394,6 @@ async function loadMap() {
 
   svg.style.opacity = '0';
   svg.style.transition = 'opacity 1s ease';
-  zoom(5.0, 800, 500);
   requestAnimationFrame(() => { svg.style.opacity = '1'; });
   setTimeout(() => { svg.style.transition = ''; }, 600);
 
@@ -1403,12 +1402,14 @@ async function loadMap() {
   loader.classList.add('hidden');
   setTimeout(() => loader.remove(), 400);
 
-  // Load students from Google Sheet and place on map
-  await loadStudentPositions(svg);
+  // Load students and find out who's logged in in parallel, then move the
+  // camera exactly once — straight from the full map to the right spot —
+  // instead of jumping to an arbitrary point first and re-zooming after.
+  const [, loginInfo] = await Promise.all([
+    loadStudentPositions(svg),
+    window.loginReadyPromise
+  ]);
 
-  // Once we know who's logged in, either zoom to that student (same as
-  // picking them from the dropdown) or centre the view for everyone else.
-  const loginInfo = await window.loginReadyPromise;
   const key = loginInfo?.name ? loginInfo.name.trim().toLowerCase() : '';
   const isStudentLogin = loginInfo?.email && loginInfo.email.endsWith('@edu.orebro.se');
 
