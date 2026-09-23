@@ -597,6 +597,11 @@ const STUDENTS_DIR   = 'students/';  // folder where PNGs live
 const ICON_SIZE      = 60;           // diameter of each student avatar in SVG units
 const ICON_SPACING   = 10;           // gap between avatars on the ring
 
+// Resolved by the login gate (dismissOverlay) once we know who's logged in,
+// as { name, email }. loadMap() awaits this to decide where to point the
+// initial map view — zoom to a logged-in student, or centre the view otherwise.
+window.loginReadyPromise = new Promise(resolve => { window.loginReadyResolve = resolve; });
+
 
 
 function initStudentDropdown(names) {
@@ -1358,6 +1363,18 @@ async function loadMap() {
 
   // Load students from Google Sheet and place on map
   await loadStudentPositions(svg);
+
+  // Once we know who's logged in, either zoom to that student (same as
+  // picking them from the dropdown) or centre the view for everyone else.
+  const loginInfo = await window.loginReadyPromise;
+  const key = loginInfo?.name ? loginInfo.name.trim().toLowerCase() : '';
+  const isStudentLogin = loginInfo?.email && loginInfo.email.endsWith('@edu.orebro.se');
+
+  if (isStudentLogin && currentPositions[key]) {
+    goToStudent(loginInfo.name);
+  } else {
+    resetView();
+  }
 }
 
 
@@ -3029,6 +3046,9 @@ function dismissOverlay(name, email) {
   const overlay = document.getElementById('loginOverlay');
   overlay.classList.add('hidden');
   setTimeout(() => overlay.remove(), 400);
+
+  // Let loadMap() know who's logged in so it can zoom/centre appropriately.
+  window.loginReadyResolve?.({ name, email });
 }
 
   // Focus email field on load
