@@ -1331,6 +1331,48 @@ function goToStudent(name) {
 }
 
 
+// ── Fixed project a teacher's view zooms to on login (panel stays closed) ──
+const TEACHER_DEFAULT_PROJECT = 'project-explanation';
+
+// Zooms the map to a project/role node WITHOUT opening the side panel.
+// Uses the same centring math as openPanel/goToStudent.
+function goToProjectView(nodeId) {
+  const svg = getSvg();
+  if (!svg) return;
+  const el = svg.getElementById(nodeId);
+  if (!el) { console.warn(`[goToProjectView] Node "${nodeId}" not found`); return; }
+
+  try {
+    const bbox    = el.getBBox();
+    const centerX = bbox.x + bbox.width  / 2;
+    const centerY = bbox.y + bbox.height / 2;
+
+    const newW = origW * 0.10;
+    const newH = newW * (origH / origW);
+
+    const targetVx = centerX - newW * 0.10;
+    const targetVy = centerY - newH * 0.20;
+
+    const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+    const startTime = performance.now();
+
+    function animate(now) {
+      const t    = Math.min((now - startTime) / 400, 1);
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+      vx = startVx + (targetVx - startVx) * ease;
+      vy = startVy + (targetVy - startVy) * ease;
+      vw = startVw + (newW - startVw) * ease;
+      vh = startVh + (newH - startVh) * ease;
+      applyViewBox(svg);
+      if (t < 1) requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  } catch(e) {
+    console.warn('[goToProjectView] Could not compute bbox:', e.message);
+  }
+}
+
+
 // ─── SVG LOADER ───────────────────────────────────────────────────────────────
 
 async function loadMap() {
@@ -1372,6 +1414,10 @@ async function loadMap() {
 
   if (isStudentLogin && currentPositions[key]) {
     goToStudent(loginInfo.name);
+  } else if (!isStudentLogin) {
+    // Teacher (or other non-student) login: zoom to the fixed default
+    // project, but never open its side panel.
+    goToProjectView(TEACHER_DEFAULT_PROJECT);
   } else {
     resetView();
   }
