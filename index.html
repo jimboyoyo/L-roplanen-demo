@@ -450,12 +450,16 @@
   .hof-card {
     display: flex;
     align-items: center;
+    justify-content: center;
   }
   .hof-card img {
-    width: 100%;
+    width: auto;
     height: auto;
+    max-width: 100%;
+    max-height: 140px;
     object-fit: contain;
     display: block;
+    margin: 0 auto;
   }
   .hof-card img.broken { opacity: 0.15; }
 </style>
@@ -593,6 +597,11 @@ const STUDENTS_DIR   = 'students/';  // folder where PNGs live
 const ICON_SIZE      = 60;           // diameter of each student avatar in SVG units
 const ICON_SPACING   = 10;           // gap between avatars on the ring
 
+// Resolved by the login gate (dismissOverlay) once we know who's logged in,
+// as { name, email }. loadMap() awaits this to decide where to point the
+// initial map view — zoom to a logged-in student, or centre the view otherwise.
+window.loginReadyPromise = new Promise(resolve => { window.loginReadyResolve = resolve; });
+
 
 
 function initStudentDropdown(names) {
@@ -688,7 +697,9 @@ function listenToFirebase(svg, sheetRows) {
 // ─── CSV PARSER ───────────────────────────────────────────────────────────────
 
 function parseCSV(text) {
-  // Returns array of { name, nodeId } skipping the header row
+  // Returns array of { name, nodeId } skipping the header row.
+  // Only rows with BOTH a name and a nodeId count as "current" students —
+  // this is the list used for the student dropdown / map placement.
   return text
     .trim()
     .split('\n')
@@ -698,6 +709,21 @@ function parseCSV(text) {
       return { name: cols[0], nodeId: cols[1] };
     })
     .filter(r => r.name && r.nodeId); // skip empty rows
+}
+
+// Returns EVERY name in the roster, regardless of whether they have a
+// nodeId (i.e. includes former/inactive students with no current project).
+// Used by Hall of Fame, which should show current + past students alike.
+function parseAllStudentNames(text) {
+  return text
+    .trim()
+    .split('\n')
+    .slice(1)                          // skip header
+    .map(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      return cols[0];
+    })
+    .filter(Boolean); // skip rows with no name at all
 }
 
 
@@ -860,6 +886,10 @@ const GLIDE_DURATION = 1_200;    // ms for the travel animation
 const FADE_DURATION  = 800;      // ms for fade-out when a student is removed
 const GLIDE_EASE = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
 
+// Full roster from the sheet, including students with no current nodeId
+// (used by Hall of Fame; NOT filtered like the dropdown/map list is).
+let allStudentNames = [];
+
 // Tracks current target position of each student: { name → { cx, cy, size } }
 let currentPositions = {};
 // Tracks active animation frames so we can cancel mid-glide
@@ -906,7 +936,10 @@ async function loadStudentPositions(svg) {
     const csv = await res.text();
     const sheetRows = parseCSV(csv);
 
-    // Populate dropdown from sheet
+    // Full roster (current + former students) for Hall of Fame
+    allStudentNames = parseAllStudentNames(csv);
+
+    // Populate dropdown from sheet — current students only
     const names = sheetRows.map(a => a.name);
     initStudentDropdown(names);
 
@@ -1298,6 +1331,48 @@ function goToStudent(name) {
 }
 
 
+// ── Fixed project a teacher's view zooms to on login (panel stays closed) ──
+const TEACHER_DEFAULT_PROJECT = 'project-explanation';
+
+// Zooms the map to a project/role node WITHOUT opening the side panel.
+// Uses the same centring math as openPanel/goToStudent.
+function goToProjectView(nodeId) {
+  const svg = getSvg();
+  if (!svg) return;
+  const el = svg.getElementById(nodeId);
+  if (!el) { console.warn(`[goToProjectView] Node "${nodeId}" not found`); return; }
+
+  try {
+    const bbox    = el.getBBox();
+    const centerX = bbox.x + bbox.width  / 2;
+    const centerY = bbox.y + bbox.height / 2;
+
+    const newW = origW * 0.20;  // fraction of full map width shown — smaller = more zoomed in
+    const newH = newW * (origH / origW);
+
+    const targetVx = centerX - newW * 0.10;
+    const targetVy = centerY - newH * 0.20;
+
+    const startVx = vx, startVy = vy, startVw = vw, startVh = vh;
+    const startTime = performance.now();
+
+    function animate(now) {
+      const t    = Math.min((now - startTime) / 400, 1);
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+      vx = startVx + (targetVx - startVx) * ease;
+      vy = startVy + (targetVy - startVy) * ease;
+      vw = startVw + (newW - startVw) * ease;
+      vh = startVh + (newH - startVh) * ease;
+      applyViewBox(svg);
+      if (t < 1) requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  } catch(e) {
+    console.warn('[goToProjectView] Could not compute bbox:', e.message);
+  }
+}
+
+
 // ─── SVG LOADER ───────────────────────────────────────────────────────────────
 
 async function loadMap() {
@@ -1319,7 +1394,6 @@ async function loadMap() {
 
   svg.style.opacity = '0';
   svg.style.transition = 'opacity 1s ease';
-  zoom(5.0, 800, 500);
   requestAnimationFrame(() => { svg.style.opacity = '1'; });
   setTimeout(() => { svg.style.transition = ''; }, 600);
 
@@ -1328,8 +1402,26 @@ async function loadMap() {
   loader.classList.add('hidden');
   setTimeout(() => loader.remove(), 400);
 
-  // Load students from Google Sheet and place on map
-  await loadStudentPositions(svg);
+  // Load students and find out who's logged in in parallel, then move the
+  // camera exactly once — straight from the full map to the right spot —
+  // instead of jumping to an arbitrary point first and re-zooming after.
+  const [, loginInfo] = await Promise.all([
+    loadStudentPositions(svg),
+    window.loginReadyPromise
+  ]);
+
+  const key = loginInfo?.name ? loginInfo.name.trim().toLowerCase() : '';
+  const isStudentLogin = loginInfo?.email && loginInfo.email.endsWith('@edu.orebro.se');
+
+  if (isStudentLogin && currentPositions[key]) {
+    goToStudent(loginInfo.name);
+  } else if (!isStudentLogin) {
+    // Teacher (or other non-student) login: zoom to the fixed default
+    // project, but never open its side panel.
+    goToProjectView(TEACHER_DEFAULT_PROJECT);
+  } else {
+    resetView();
+  }
 }
 
 
@@ -1764,10 +1856,13 @@ function openHallOfFame() {
   body.style.overflow = '';
   body.style.background = '';
 
-  const select = document.getElementById('studentSelect');
-  const names  = Array.from(select.options)
-    .filter(o => o.value)
-    .map(o => ({ display: o.textContent, key: o.value }));
+  // Hall of Fame shows EVERYONE who's ever been in the roster — current
+  // students as well as former ones with no active project — unlike the
+  // dropdown, which only lists current students.
+  const names = allStudentNames.map(name => ({
+    display: name,
+    key: name.trim().toLowerCase(),
+  }));
 
   if (!names.length) {
     body.innerHTML = `<div class="empty-state"><div class="empty-icon">🏆</div>Inga elever i listan ännu.</div>`;
@@ -2998,6 +3093,9 @@ function dismissOverlay(name, email) {
   const overlay = document.getElementById('loginOverlay');
   overlay.classList.add('hidden');
   setTimeout(() => overlay.remove(), 400);
+
+  // Let loadMap() know who's logged in so it can zoom/centre appropriately.
+  window.loginReadyResolve?.({ name, email });
 }
 
   // Focus email field on load
