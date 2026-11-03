@@ -1,0 +1,26 @@
+{
+  "id": "role-animator-2",
+  "title": "Animatör Nivå 2",
+  "type": "Roll",
+  "exercises": [
+    {
+      "title": "Animationens Historia 2",
+      "description": "Fortsättningen på animationens tidiga utveckling.",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/r/personal/jim_bernstrom_orebro_se/Documents/Projektstruktur/2.%20Skills/Animation/Animationens%20Historia/Animationens%20historia%202.pptx?d=w36a43b08f8114d48a2d82594c77709e7&csf=1&web=1&e=9RPL2Q"
+    },
+    {
+      "title": "Timing Charts",
+      "description": "Planera din animation så blir det enklare!",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQAzp8z9M_LPTIjeGDF0W-OVAR0tD5w6uAWMQ3qtAoQ3YeY?e=2RLjAC"
+    },
+    {
+      "title": "Animationsprincip: Squash and Stretch",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:p:/g/personal/jim_bernstrom_orebro_se/IQBBiBq_xu1oQ4opw4DFyr3OAVhPr2OJzT4iOg7Vp4JwNZs?e=cPWbvO"
+    },
+    {
+      "title": "Klippa i Premiere Pro",
+      "folderUrl": "https://orebrokommun-my.sharepoint.com/:f:/r/personal/jim_bernstrom_orebro_se/Documents/Projektstruktur/2.%20Skills/Adobe%20Premiere/Klippare%20Niv%C3%A5%201/1.%20Premiere_%20Import,%20Klipp,%20Export?d=we0d1543507b54c789358f866b9413c9c&csf=1&web=1&e=8jgTC7"
+    }
+  ],
+  "outro": "Nu kan du ge dig vidare på animations-äventyret!"
+}
