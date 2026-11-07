@@ -198,6 +198,14 @@ function makeRoleBadge(roleId, x, y, d) {
 
 function makeFlag(slot, S) {
   const size = FLAG_SIZE * S * slot.scale;
+  const wrap = document.createElementNS(SVG_NS, 'g');
+  wrap.setAttribute('class', 'student-flag');
+  // Pole base at (0,0); fan rotation is applied around it.
+  wrap.setAttribute('transform', `translate(${slot.x},${slot.y}) rotate(${slot.angle})`);
+
+  const img = document.createElementNS(SVG_NS, 'image');
+  img.setAttribute('href', `${BADGES_DIR}flag.png`);
+  // Draw with the box's bottom-left corner at the pole base.
   const img  = document.createElementNS(SVG_NS, 'image');
   img.setAttribute('class', 'student-flag');
   img.setAttribute('href', `${BADGES_DIR}flag.png`);
@@ -207,6 +215,33 @@ function makeFlag(slot, S) {
   img.setAttribute('width', size);
   img.setAttribute('height', size);
   img.setAttribute('preserveAspectRatio', 'xMinYMax meet');
+
+  // Fallback while flag.png doesn't exist yet: a simple pennant with the number.
+  img.addEventListener('error', () => {
+    img.remove();
+    const pole = document.createElementNS(SVG_NS, 'line');
+    pole.setAttribute('x1', 0); pole.setAttribute('y1', 0);
+    pole.setAttribute('x2', 0); pole.setAttribute('y2', -size);
+    pole.setAttribute('stroke', '#8a8f98'); pole.setAttribute('stroke-width', size * 0.05);
+    const cloth = document.createElementNS(SVG_NS, 'polygon');
+    cloth.setAttribute('points', `0,${-size} ${size * 0.85},${-size * 0.8} 0,${-size * 0.55}`);
+    cloth.setAttribute('fill', '#43b581');
+    cloth.setAttribute('stroke', '#fff'); cloth.setAttribute('stroke-width', size * 0.03);
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', size * 0.27); t.setAttribute('y', -size * 0.76);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('dominant-baseline', 'central');
+    t.setAttribute('font-size', size * 0.3);
+    t.setAttribute('font-family', "'Century Gothic', CenturyGothic, sans-serif");
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', '#fff');
+    t.setAttribute('pointer-events', 'none');
+    t.textContent = String(FLAG_EVERY);
+    wrap.appendChild(pole); wrap.appendChild(cloth); wrap.appendChild(t);
+  });
+
+  wrap.appendChild(img);
+  return wrap;
   img.setAttribute('transform', `translate(${slot.x},${slot.y}) rotate(${slot.angle})`);
   img.addEventListener('error', () => img.remove());
   return img;
