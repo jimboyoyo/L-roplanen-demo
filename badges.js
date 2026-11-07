@@ -206,10 +206,6 @@ function makeFlag(slot, S) {
   const img = document.createElementNS(SVG_NS, 'image');
   img.setAttribute('href', `${BADGES_DIR}flag.png`);
   // Draw with the box's bottom-left corner at the pole base.
-  const img  = document.createElementNS(SVG_NS, 'image');
-  img.setAttribute('class', 'student-flag');
-  img.setAttribute('href', `${BADGES_DIR}flag.png`);
-  // Draw with the box's bottom-left corner at the pole base, then rotate around it.
   img.setAttribute('x', 0);
   img.setAttribute('y', -size);
   img.setAttribute('width', size);
@@ -242,9 +238,6 @@ function makeFlag(slot, S) {
 
   wrap.appendChild(img);
   return wrap;
-  img.setAttribute('transform', `translate(${slot.x},${slot.y}) rotate(${slot.angle})`);
-  img.addEventListener('error', () => img.remove());
-  return img;
 }
 
 function attachStudentHandlers(svg, g, name, nodeId) {
