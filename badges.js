@@ -21,13 +21,14 @@ const SVG_NS       = 'http://www.w3.org/2000/svg';
 const FLAG_EVERY    = 3;      // one flag per N finished projects
 const FLAG_FAN_MAX  = 8;      // flags per fan; extra flags start a 2nd, smaller fan
 const FLAG_SIZE     = 0.55;   // flag box (square) size
-const FLAG_BASE_X   = 0.35;   // pole base, relative to avatar centre
-const FLAG_BASE_Y   = -0.30;
+const FLAG_BASE_X   = 0.30;   // pole base, relative to avatar centre (beside the head)
+const FLAG_BASE_Y   = -0.12;
 const FLAG_ANGLE0   = -12;    // degrees, first flag
 const FLAG_ANGLE_DT = 7;      // degrees added per extra flag
 const ROLE_BADGE    = 0.34;   // role badge diameter
-const ROLE_RING_R0  = 0.72;   // radius of first role ring
-const ROLE_RING_DR  = 0.36;   // gap between role rings
+const ROLE_RING_R0  = 0.52;   // radius of first role ring (badges almost touch the avatar)
+const ROLE_RING_DR  = 0.31;   // distance between role rings
+const ROLE_Y_STRETCH = 1.22;  // rings are ellipses: avatars are portraits, taller than wide
 const ROLE_ARC_START = 10  * Math.PI / 180;   // roles fill clockwise from the right,
 const ROLE_ARC_END   = 270 * Math.PI / 180;   // leaving the top-right free for flags
 
@@ -66,11 +67,11 @@ function roleSlots(count, S) {
   for (let ring = 0; slots.length < count; ring++) {
     const r   = (ROLE_RING_R0 + ring * ROLE_RING_DR) * S;
     const arc = (ROLE_ARC_END - ROLE_ARC_START);
-    const n   = Math.max(1, Math.floor(arc * r / (b * 1.1)));
+    const n   = Math.max(1, Math.floor(arc * r * (1 + ROLE_Y_STRETCH) / 2 / (b * 1.1)));
     const step = n > 1 ? arc / (n - 1) : 0;
     for (let i = 0; i < n && slots.length < count; i++) {
       const a = ROLE_ARC_START + i * step;
-      slots.push({ x: r * Math.cos(a), y: r * Math.sin(a), ring });
+      slots.push({ x: r * Math.cos(a), y: r * ROLE_Y_STRETCH * Math.sin(a), ring });
     }
   }
   return slots;
@@ -83,8 +84,8 @@ function flagSlots(count, S) {
     const layer = Math.floor(i / FLAG_FAN_MAX);
     const pos   = i % FLAG_FAN_MAX;
     slots.push({
-      x: (FLAG_BASE_X + layer * 0.12) * S,
-      y: (FLAG_BASE_Y - layer * 0.12) * S,
+      x: (FLAG_BASE_X + layer * 0.08) * S,
+      y: (FLAG_BASE_Y - layer * 0.08) * S,
       angle: FLAG_ANGLE0 + pos * FLAG_ANGLE_DT + layer * 3,
       scale: Math.pow(0.8, layer),
     });
@@ -99,11 +100,11 @@ function collageRadius(S, v) {
   if (v.roles.length) {
     const slots = roleSlots(v.roles.length, S);
     const rings = slots[slots.length - 1].ring + 1;
-    r = Math.max(r, (ROLE_RING_R0 + (rings - 1) * ROLE_RING_DR) * S + ROLE_BADGE * S / 2);
+    r = Math.max(r, (ROLE_RING_R0 + (rings - 1) * ROLE_RING_DR) * S * ROLE_Y_STRETCH + ROLE_BADGE * S / 2);
   }
   if (v.flags) {
     const layers = Math.ceil(v.flags / FLAG_FAN_MAX);
-    r = Math.max(r, (0.46 + FLAG_SIZE + 0.17 * (layers - 1)) * S);
+    r = Math.max(r, (Math.hypot(FLAG_BASE_X, FLAG_BASE_Y) + FLAG_SIZE * 0.95 + 0.11 * (layers - 1)) * S);
   }
   return r;
 }
