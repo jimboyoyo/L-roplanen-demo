@@ -21,9 +21,9 @@ const SVG_NS       = 'http://www.w3.org/2000/svg';
 const FLAG_EVERY    = 3;      // one flag per N finished projects
 const FLAG_FAN_MAX  = 8;      // flags per fan; extra flags start a 2nd, smaller fan
 const FLAG_SIZE     = 0.55;   // flag box (square) size
-const FLAG_BASE_X   = 0.30;   // pole base, relative to avatar centre (beside the head)
-const FLAG_BASE_Y   = -0.12;
-const FLAG_ANGLE0   = -12;    // degrees, first flag
+const FLAG_BASE_X   = 0.20;   // pole base, relative to avatar centre (hidden behind the avatar)
+const FLAG_BASE_Y   = -0.08;
+const FLAG_ANGLE0   = 8;      // degrees (clockwise), first flag
 const FLAG_ANGLE_DT = 7;      // degrees added per extra flag
 const ROLE_BADGE    = 0.34;   // role badge diameter
 const ROLE_RING_R0  = 0.52;   // radius of first role ring (badges almost touch the avatar)
@@ -265,7 +265,10 @@ function buildStudentGroup(svg, name, nodeId, S, v) {
     g.appendChild(makeRoleBadge(roleId, slots[i].x, slots[i].y, ROLE_BADGE * S));
   });
 
-  // 2. avatar (plain PNG, no baked-in badges)
+  // 2. flags (behind the avatar: the pole base is hidden, the flag sticks up; newest on top)
+  flagSlots(v.flags, S).forEach(slot => g.appendChild(makeFlag(slot, S)));
+
+  // 3. avatar (plain PNG, no baked-in badges)
   const avatar = document.createElementNS(SVG_NS, 'image');
   avatar.setAttribute('href', `${STUDENTS_DIR}${nameToKey(name)}.png`);
   avatar.setAttribute('x', -S / 2);
@@ -274,9 +277,6 @@ function buildStudentGroup(svg, name, nodeId, S, v) {
   avatar.setAttribute('height', S);
   avatar.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   g.appendChild(avatar);
-
-  // 3. flags (in front; newest on top)
-  flagSlots(v.flags, S).forEach(slot => g.appendChild(makeFlag(slot, S)));
 
   attachStudentHandlers(svg, g, name, nodeId);
   return g;
