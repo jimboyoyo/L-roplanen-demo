@@ -4,6 +4,7 @@
 // Draws, around each student's PLAIN avatar (students/<name>.png):
 //   • a ring of round role badges  (from finished.roles, in earning order)
 //   • a fan of flags               (one flag per 3 finished projects)
+//   • a pile of gold plates        (one per 10 screenshots, from a column in the Dashboard sheet)
 //
 // LOAD ORDER: add  <script src="badges.js"></script>  right before </body>,
 // i.e. AFTER the main script. The functions below deliberately re-declare
@@ -34,6 +35,19 @@ const ROLE_Y_STRETCH = 1.22;  // rings are ellipses: avatars are portraits, tall
 // award row sits.
 const ROLE_SECTORS_FULL      = [[10, 270]];
 const ROLE_SECTORS_NO_BOTTOM = [[10, 45], [135, 270]];
+
+// Gold plates (screenshots): a pile at the lower right that grows upwards.
+// Column in the published Dashboard sheet: "Guldplåtar" (= number of plates), or
+// "Screenshots" / "Skärmdumpar" (= raw count, every SCREENSHOT_EVERY gives one plate).
+const SCREENSHOT_EVERY  = 10;
+const PLATE_SIZE        = 0.46;   // plate box (square; art fitted inside without stretching)
+const PLATE_STEP        = 0.085;  // each plate sits this much higher than the one below
+const PLATE_PILE_MAX    = 14;     // plates drawn; more than that gives a "x N" label
+const PLATE_X           = 0.80;   // pile centre, relative to avatar centre
+const PLATE_Y           = 0.40;   // centre of the lowest plate
+const PLATE_REFRESH_MS  = 5 * 60 * 1000;
+const ROLE_SECTORS_NO_PILE        = [[60, 270]];
+const ROLE_SECTORS_NO_BOTTOM_PILE = [[135, 270]];
 
 // Special awards: a row under the name label, centred, wrapping to more rows.
 const SPECIAL_SIZE    = 0.25;  // award box (square; art is fitted inside without stretching)
@@ -102,10 +116,46 @@ async function loadAwardCatalogue() {
 }
 
 
+// ─── Gold plates: counts from the Dashboard sheet ────────────────────────────
+
+let plateCounts = {};   // nameKey -> number of plates
+
+function parsePlateCounts(csv) {
+  const rows = parseCsvRows(csv.replace(/^\uFEFF/, ''));
+  if (!rows.length) return {};
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  let col = head.findIndex(h => /guld|plåt|plat/.test(h)), raw = false;
+  if (col < 0) { col = head.findIndex(h => /screenshot|skärmdump|skarmdump/.test(h)); raw = col >= 0; }
+  if (col < 0) return {};
+  const out = {};
+  rows.slice(1).forEach(r => {
+    const name = (r[0] || '').trim();
+    if (!name) return;
+    const n = Number(String(r[col] ?? '').trim().replace(',', '.'));
+    if (!Number.isFinite(n) || n < 0) return;
+    const plates = Math.min(999, Math.floor(raw ? n / SCREENSHOT_EVERY : n));
+    if (plates > 0) out[nameToKey(name)] = plates;
+  });
+  return out;
+}
+
+// Re-reads the sheet; returns true if any student's plate count changed.
+async function reloadPlateCounts() {
+  try {
+    const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
+    if (!res.ok) return false;
+    const next = parsePlateCounts(await res.text());
+    const changed = JSON.stringify(next) !== JSON.stringify(plateCounts);
+    plateCounts = next;
+    return changed;
+  } catch (e) { return false; }
+}
+
+
 // ─── Data → visuals ──────────────────────────────────────────────────────────
 
 // Everything visual is derived from data already in students.json.
-function studentVisual(studentData) {
+function studentVisual(studentData, key) {
   const d = studentData || {};
   const roles    = d.finished?.roles    || [];
   const projects = d.finished?.projects || [];
@@ -114,12 +164,12 @@ function studentVisual(studentData) {
     .map(([id, n]) => ({ id, count: Math.floor(Number(n)) || 0 }))
     .filter(x => x.count > 0)
     .sort((a, b) => awardOrder(a.id) - awardOrder(b.id) || a.id.localeCompare(b.id, 'sv'));
-  return { roles, flags: Math.floor(projects.length / FLAG_EVERY), specials };
+  return { roles, flags: Math.floor(projects.length / FLAG_EVERY), specials, plates: plateCounts[key] || 0 };
 }
 
 // Cheap "has anything changed?" signature so we only rebuild when needed.
 function visualSig(v) {
-  return v.flags + '|' + v.roles.join(',') + '|' + v.specials.map(x => x.id + ':' + x.count).join(',');
+  return v.flags + '|' + (v.plates || 0) + '|' + v.roles.join(',') + '|' + v.specials.map(x => x.id + ':' + x.count).join(',');
 }
 
 function buildAssignments(sheetRows, fbData) {
@@ -127,7 +177,7 @@ function buildAssignments(sheetRows, fbData) {
     .map(row => {
       const sd = fbData[nameToKey(row.name)] || {};
       return sd.currentNode
-        ? { name: row.name, nodeId: sd.currentNode, visual: studentVisual(sd) }
+        ? { name: row.name, nodeId: sd.currentNode, visual: studentVisual(sd, nameToKey(row.name)) }
         : null;
     })
     .filter(Boolean);
@@ -151,8 +201,10 @@ function anglesOverSectors(sectors, n) {
 }
 
 // Positions (relative to avatar centre) for n role badges.
-function roleSlots(count, S, reserveBottom) {
-  const sectors = reserveBottom ? ROLE_SECTORS_NO_BOTTOM : ROLE_SECTORS_FULL;
+function roleSlots(count, S, reserveBottom, reservePile) {
+  const sectors = reservePile
+    ? (reserveBottom ? ROLE_SECTORS_NO_BOTTOM_PILE : ROLE_SECTORS_NO_PILE)
+    : (reserveBottom ? ROLE_SECTORS_NO_BOTTOM : ROLE_SECTORS_FULL);
   const arcLen  = sectors.reduce((x, [a, b]) => x + (b - a), 0) * Math.PI / 180;
   const slots = [];
   const b = ROLE_BADGE * S;
@@ -202,18 +254,35 @@ function flagSlots(count, S) {
   return slots;
 }
 
+// Centres of the plates in a pile (relative to the avatar centre), lowest first.
+// A tall pile gets a smaller step so it never grows taller than about 1.2 avatars.
+function plateSlots(count, S) {
+  const n = Math.min(count, PLATE_PILE_MAX);
+  const step = Math.min(PLATE_STEP, 0.7 / Math.max(1, n - 1)) * S;
+  const slots = [];
+  for (let i = 0; i < n; i++) {
+    slots.push({ x: PLATE_X * S + (i % 2 ? 0.018 : -0.012) * S * (1 + (i % 3) * 0.4), y: PLATE_Y * S - i * step, size: PLATE_SIZE * S });
+  }
+  return slots;
+}
+
 // Radius of a circle that contains avatar + role rings + flags.
 // Used to space students around a node so collages don't overlap.
 function collageRadius(S, v) {
   let r = S / 2;
   if (v.roles.length) {
-    const slots = roleSlots(v.roles.length, S, v.specials.length > 0);
+    const slots = roleSlots(v.roles.length, S, v.specials.length > 0, v.plates > 0);
     const rings = slots[slots.length - 1].ring + 1;
     r = Math.max(r, (ROLE_RING_R0 + (rings - 1) * ROLE_RING_DR) * S * ROLE_Y_STRETCH + ROLE_BADGE * S / 2);
   }
   if (v.flags) {
     const layers = Math.ceil(v.flags / FLAG_FAN_MAX);
     r = Math.max(r, (Math.hypot(FLAG_BASE_X, FLAG_BASE_Y) + FLAG_SIZE * 0.95 + 0.11 * (layers - 1)) * S);
+  }
+  if (v.plates) {
+    const sl = plateSlots(v.plates, S), top = sl[sl.length - 1];
+    const right = (PLATE_X + PLATE_SIZE / 2 + 0.03) * S;
+    r = Math.max(r, Math.hypot(right, Math.max(Math.abs(top.y - top.size / 2), PLATE_Y * S + top.size / 2)));
   }
   if (v.specials.length) {
     const rows   = Math.ceil(v.specials.length / SPECIAL_PER_ROW);
@@ -320,6 +389,52 @@ function makeRoleBadge(roleId, x, y, d) {
   });
 
   g.appendChild(img);
+  return g;
+}
+
+// One gold plate. Art: badges/screenshot.png; until it exists, a drawn gold plate.
+function makePlate(slot) {
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', 'student-plate');
+  const img = document.createElementNS(SVG_NS, 'image');
+  img.setAttribute('href', `${BADGES_DIR}screenshot.png`);
+  img.setAttribute('x', slot.x - slot.size / 2);
+  img.setAttribute('y', slot.y - slot.size / 2);
+  img.setAttribute('width', slot.size);
+  img.setAttribute('height', slot.size);
+  img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  img.addEventListener('error', () => {
+    img.remove();
+    const rx = slot.size * 0.5, ry = slot.size * 0.17, rim = slot.size * 0.06;
+    const mk = (tag, attrs) => { const e = document.createElementNS(SVG_NS, tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
+    g.appendChild(mk('ellipse', { cx: slot.x, cy: slot.y + rim, rx, ry, fill: '#a87400' }));                               // the plate's edge
+    g.appendChild(mk('ellipse', { cx: slot.x, cy: slot.y, rx, ry, fill: '#f5b800', stroke: '#fff3b0', 'stroke-width': slot.size * 0.02 }));
+    g.appendChild(mk('ellipse', { cx: slot.x, cy: slot.y, rx: rx * 0.62, ry: ry * 0.62, fill: 'none', stroke: '#d99a00', 'stroke-width': slot.size * 0.025 }));
+  });
+  g.appendChild(img);
+  return g;
+}
+
+function makePlatePile(count, S) {
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', 'plate-pile');
+  g.setAttribute('data-plates', count);
+  const title = document.createElementNS(SVG_NS, 'title');
+  title.textContent = `${count} guldplåt${count === 1 ? '' : 'ar'} (${count * SCREENSHOT_EVERY} screenshots)`;
+  g.appendChild(title);
+  const slots = plateSlots(count, S);
+  slots.forEach(sl => g.appendChild(makePlate(sl)));
+  if (count > slots.length) {
+    const top = slots[slots.length - 1];
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', top.x + top.size * 0.5); t.setAttribute('y', top.y - top.size * 0.2);
+    t.setAttribute('font-size', S * 0.22); t.setAttribute('font-weight', '800');
+    t.setAttribute('font-family', "'Century Gothic', CenturyGothic, sans-serif");
+    t.setAttribute('fill', '#f5b800'); t.setAttribute('stroke', '#000'); t.setAttribute('stroke-width', S * 0.015);
+    t.setAttribute('paint-order', 'stroke'); t.setAttribute('pointer-events', 'none');
+    t.textContent = '×' + count;
+    g.appendChild(t);
+  }
   return g;
 }
 
@@ -450,13 +565,16 @@ function buildStudentGroup(svg, name, nodeId, S, v) {
   g.style.cursor = 'pointer';
 
   // 1. role badges (behind the avatar)
-  const slots = roleSlots(v.roles.length, S, v.specials.length > 0);
+  const slots = roleSlots(v.roles.length, S, v.specials.length > 0, v.plates > 0);
   v.roles.forEach((roleId, i) => {
     g.appendChild(makeRoleBadge(roleId, slots[i].x, slots[i].y, ROLE_BADGE * S));
   });
 
   // 2. flags (behind the avatar: the pole base is hidden, the flag sticks up; newest on top)
   flagSlots(v.flags, S).forEach(slot => g.appendChild(makeFlag(slot, S)));
+
+  // 2b. gold plates: a pile at the lower right (in front of the flags)
+  if (v.plates) g.appendChild(makePlatePile(v.plates, S));
 
   // 3. avatar (plain PNG, no baked-in badges)
   const avatar = document.createElementNS(SVG_NS, 'image');
@@ -633,6 +751,9 @@ function listenToFirebase(svg, sheetRows) {
 
   window.pollStudentsNow = pollOnce;      // called right after a teacher gives / removes an award
   setInterval(pollOnce, 10_000);
+  // The sheet only changes when the teacher edits it, so a slow refresh is plenty
+  window.refreshPlates = async () => { if (await reloadPlateCounts()) pollOnce(); };
+  setInterval(window.refreshPlates, PLATE_REFRESH_MS);
 }
 
 async function loadStudentPositions(svg) {
@@ -646,6 +767,7 @@ async function loadStudentPositions(svg) {
     initStudentDropdown(sheetRows.map(a => a.name));  // current students only
 
     await loadAwardCatalogue();                       // award names + pictures (Priser tab)
+    plateCounts = parsePlateCounts(csv);              // gold plates (a column in the same sheet)
 
     const fbRes  = await fetch(FB_STUDENTS_URL);
     const fbData = await fbRes.json() || {};
