@@ -663,7 +663,7 @@ async function loadStudentPositions(svg) {
 
 
 // ─── Teacher UI: toolbar in the panel header ─────────────────────────────────
-// Four compact buttons next to the student's name: Tilldela, Klar!, Ge pris, Lås upp Roll.
+// Four compact buttons next to the student's name: Tilldela, Klar!, Ge pris, Lås upp.
 // Each one that needs a choice opens a dropdown right under it.
 
 window.teacherToolbar = true;     // tells index.html to skip its old full-width teacher buttons
@@ -841,6 +841,7 @@ function addTeacherToolbar(studentName, st, refresh) {
   const key = nameToKey(studentName);
   const currentNode = st.currentNode || null;
   const finished = (() => { const r = st.finished?.roles; return Array.isArray(r) ? r : Object.values(r || {}); })();
+  const finishedProjects = (() => { const r = st.finished?.projects; return Array.isArray(r) ? r : Object.values(r || {}); })();
 
   const bar = document.createElement('div');
   bar.id = 'teacherToolbar';
@@ -881,15 +882,25 @@ function addTeacherToolbar(studentName, st, refresh) {
     onPick: async id => { await awardRequest('/student/award', { studentKey: key, badgeId: id }); await refresh(); },
   }));
 
-  // Lås upp Roll — give a finished role without assigning it first
-  bar.appendChild(toolbarDropdown('role', '🔓 Lås upp Roll', ['#3b82f6', '#fff'], {
-    width: 320, search: 'Sök roll…', error: 'Kunde inte låsa upp rollen. Försök igen.',
-    items: q => roleChoices(finished).filter(c => !c.done && (!q || c.label.toLowerCase().includes(q))).map(c => ({
-      id: c.id,
-      html: `${roleThumb(c.id)}<span style="font-size:13px;font-weight:600;color:#111;">${escHtml(c.label)}</span>`,
-    })),
-    empty: q => q ? 'Inga träffar' : 'Alla roller är redan upplåsta',
-    onPick: async id => { await awardRequest('/student/unlock-role', { studentKey: key, nodeId: id }); await refresh(); },
+  // Lås upp — give a finished project or role without assigning it first
+  bar.appendChild(toolbarDropdown('unlock', '🔓 Lås upp', ['#3b82f6', '#fff'], {
+    width: 340, search: 'Sök projekt eller roll…', error: 'Kunde inte låsa upp. Försök igen.',
+    items: q => {
+      const roles = roleChoices(finished).filter(c => !c.done).map(c => ({ id: c.id, label: c.label, kind: 'Roll' }));
+      const haveProjects = new Set(finishedProjects);
+      const projects = assignChoices().filter(c => c.kind === 'Projekt' && !haveProjects.has(c.id));
+      return [...projects, ...roles]
+        .filter(c => !q || c.label.toLowerCase().includes(q))
+        .sort((a, b) => a.label.localeCompare(b.label, 'sv', { numeric: true }))
+        .map(c => ({
+          id: c.id,
+          html: `${c.kind === 'Roll' ? roleThumb(c.id) : '<span style="width:28px;height:28px;flex-shrink:0;"></span>'}
+                 <span style="flex:1;font-size:13px;font-weight:600;color:#111;">${escHtml(c.label)}</span>
+                 <span style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:0.08em;">${c.kind}</span>`,
+        }));
+    },
+    empty: q => q ? 'Inga träffar' : 'Allt är redan upplåst',
+    onPick: async id => { await awardRequest('/student/unlock', { studentKey: key, nodeId: id }); await refresh(); },
   }));
 
   header.style.position = 'relative';
