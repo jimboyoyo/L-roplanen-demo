@@ -1688,7 +1688,8 @@ async function openStudentPanel(studentName) {
   </div>`;
 
   // ── Teacher controls ─────────────────────────────────────────────────────
-  if (isTeacherUser) {
+  // (badges.js shows these as a toolbar in the panel header; this old block is the fallback)
+  if (isTeacherUser && !window.teacherToolbar) {
     html += `<div class="section-label">Tilldela uppgift</div>`;
     html += `
       <div style="position:relative;margin-bottom:8px;">
