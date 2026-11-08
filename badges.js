@@ -271,6 +271,14 @@ function computeTargetPositions(svg, assignments) {
 
 // ─── Building one student's SVG group ────────────────────────────────────────
 
+// The map has several copies of some roles (role-photoshop-2, role-photoshop-2-2, ...).
+// They are the same role, so they share the base art. Same rule nodeLabel() uses.
+const roleBaseId = id => id.replace(/(-\d+)-\d+$/, '$1');
+function roleArtUrls(id) {
+  const base = roleBaseId(id);
+  return base === id ? [`${BADGES_DIR}${id}.png`] : [`${BADGES_DIR}${id}.png`, `${BADGES_DIR}${base}.png`];
+}
+
 function makeRoleBadge(roleId, x, y, d) {
   const g = document.createElementNS(SVG_NS, 'g');
   g.setAttribute('class', 'role-badge');
@@ -281,15 +289,18 @@ function makeRoleBadge(roleId, x, y, d) {
   g.appendChild(title);
 
   const img = document.createElementNS(SVG_NS, 'image');
-  img.setAttribute('href', `${BADGES_DIR}${roleId}.png`);
+  const art = roleArtUrls(roleId);
+  let artTry = 0;
+  img.setAttribute('href', art[0]);
   img.setAttribute('x', x - d / 2);
   img.setAttribute('y', y - d / 2);
   img.setAttribute('width', d);
   img.setAttribute('height', d);
   img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-  // Fallback while the art doesn't exist yet: green circle with the role's initial.
+  // Fallback while the art doesn't exist yet: the base role's art, then a green circle with the initial.
   img.addEventListener('error', () => {
+    if (++artTry < art.length) { img.setAttribute('href', art[artTry]); return; }
     img.remove();
     const c = document.createElementNS(SVG_NS, 'circle');
     c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', d / 2);
@@ -758,12 +769,108 @@ async function addAwardSection(studentName) {
   });
 }
 
+// Every role on the map once. Copies of the same role are merged (same label), the
+// student's already finished roles are marked, and the id we store is the base one.
+function roleChoices(finishedRoles) {
+  const svg = (typeof getSvg === 'function' && getSvg()) || document.querySelector('#mapCanvas svg');
+  const ids = new Set();
+  svg?.querySelectorAll('[id^="role-"]').forEach(el => ids.add(el.getAttribute('id')));
+  const byLabel = new Map();
+  ids.forEach(id => {
+    const label = nodeLabel(id);
+    if (!byLabel.has(label)) byLabel.set(label, { label, ids: [] });
+    byLabel.get(label).ids.push(id);
+  });
+  const have = new Set(finishedRoles);
+  return [...byLabel.values()]
+    .map(g => ({ label: g.label, id: g.ids.find(i => roleBaseId(i) === i) || g.ids[0], done: g.ids.some(i => have.has(i)) }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'sv', { numeric: true }));
+}
+
+async function addUnlockRoleSection(studentName) {
+  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
+  const body = document.getElementById('panelBody');
+  if (!isTeacherUser || !body || document.getElementById('unlockRoleSection')) return;
+
+  const key = nameToKey(studentName);
+  let finished = [];
+  try {
+    const r = await fetch(FB_STUDENTS_URL.replace('students.json', `students/${encodeURIComponent(key)}/finished/roles.json`));
+    const raw = await r.json();
+    finished = Array.isArray(raw) ? raw : Object.values(raw || {});
+  } catch (e) {}
+
+  const sec = document.createElement('div');
+  sec.id = 'unlockRoleSection';
+  sec.style.cssText = 'margin:4px 0 20px;';
+  sec.innerHTML = `
+    <div class="section-label">Roller</div>
+    <button class="role-toggle" style="width:100%;padding:9px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">🔓 Lås upp Roll</button>
+    <div class="role-picker" style="display:none;border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+      <input class="role-search" type="text" placeholder="Sök roll…" autocomplete="off"
+        style="width:100%;padding:9px 12px;border:none;border-bottom:1px solid #ddd;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;outline:none;box-sizing:border-box;">
+      <div class="role-list" style="max-height:260px;overflow-y:auto;"></div>
+    </div>`;
+
+  // Sits right after the Priser section (or before the finished lists if that is missing)
+  const awards = document.getElementById('awardSection');
+  if (awards) awards.after(sec);
+  else {
+    const grid = body.querySelector('div[style*="grid-template-columns"]');
+    if (grid) grid.parentNode.insertBefore(sec, grid); else body.appendChild(sec);
+  }
+
+  const picker = sec.querySelector('.role-picker');
+  const search = sec.querySelector('.role-search');
+  const list   = sec.querySelector('.role-list');
+
+  const thumb = id => {
+    const [first, second] = roleArtUrls(id);
+    return `<img src="${escHtml(first)}" ${second ? `data-alt="${escHtml(second)}"` : ''} alt=""
+      style="width:30px;height:30px;object-fit:contain;flex-shrink:0;"
+      onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt='';}else{this.style.visibility='hidden';}">`;
+  };
+  const render = () => {
+    const q = search.value.trim().toLowerCase();
+    const open = roleChoices(finished).filter(c => !c.done && (!q || c.label.toLowerCase().includes(q)));
+    list.innerHTML = open.length
+      ? open.map(c => `
+          <button class="role-pick" data-id="${escHtml(c.id)}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;background:#fff;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#111;"
+            onmouseover="this.style.background='#f7f7f9'" onmouseout="this.style.background='#fff'">
+            ${thumb(c.id)}<span>${escHtml(c.label)}</span>
+          </button>`).join('')
+      : `<div style="padding:12px;font-size:12px;color:#bbb;">${q ? 'Inga träffar' : 'Alla roller är redan upplåsta'}</div>`;
+  };
+
+  search.addEventListener('input', render);
+  sec.addEventListener('click', async e => {
+    const toggle = e.target.closest('.role-toggle');
+    const pick   = e.target.closest('.role-pick');
+    try {
+      if (toggle) {
+        if (picker.style.display === 'none') { render(); picker.style.display = 'block'; search.focus(); }
+        else picker.style.display = 'none';
+      } else if (pick) {
+        pick.disabled = true;
+        await awardRequest('/student/unlock-role', { studentKey: key, nodeId: pick.dataset.id });
+        await openStudentPanel(studentName);        // redraw the panel with the role in the finished list
+        window.pollStudentsNow?.();                 // and show the new badge on the map straight away
+      }
+    } catch (err) {
+      console.error('[unlock-role]', err);
+      alert('Kunde inte låsa upp rollen. Försök igen.');
+      if (pick) pick.disabled = false;
+    }
+  });
+}
+
 // Wrap the existing teacher panel so the award section is added after it has drawn itself.
 if (typeof openStudentPanel === 'function' && !openStudentPanel.__withAwards) {
   const _openStudentPanelOriginal = openStudentPanel;
   openStudentPanel = async function (studentName) {
     await _openStudentPanelOriginal(studentName);
     try { await addAwardSection(studentName); } catch (e) { console.warn('Award section failed:', e); }
+    try { await addUnlockRoleSection(studentName); } catch (e) { console.warn('Unlock-role section failed:', e); }
   };
   openStudentPanel.__withAwards = true;
 }
