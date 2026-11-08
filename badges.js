@@ -662,7 +662,11 @@ async function loadStudentPositions(svg) {
 }
 
 
-// ─── Teacher UI: "Ge pris" in the student panel ──────────────────────────────
+// ─── Teacher UI: toolbar in the panel header ─────────────────────────────────
+// Four compact buttons next to the student's name: Tilldela, Klar!, Ge pris, Lås upp Roll.
+// Each one that needs a choice opens a dropdown right under it.
+
+window.teacherToolbar = true;     // tells index.html to skip its old full-width teacher buttons
 
 const escHtml = x => String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -675,98 +679,6 @@ async function awardRequest(path, body) {
   });
   if (!res.ok) throw new Error('Worker ' + res.status);
   return res.json();
-}
-
-async function addAwardSection(studentName) {
-  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
-  const body = document.getElementById('panelBody');
-  if (!isTeacherUser || !body || document.getElementById('awardSection')) return;
-
-  const key = nameToKey(studentName);
-  let counts = {};
-  try {
-    const r = await fetch(FB_STUDENTS_URL.replace('students.json', `students/${encodeURIComponent(key)}/badges.json`));
-    counts = await r.json() || {};
-  } catch (e) {}
-
-  const mine = Object.entries(counts)
-    .map(([id, n]) => ({ id, count: Math.floor(Number(n)) || 0 }))
-    .filter(a => a.count > 0)
-    .sort((a, b) => awardOrder(a.id) - awardOrder(b.id) || a.id.localeCompare(b.id, 'sv'));
-
-  const thumb = id => {
-    const url = awardImageUrl(awardCatalogue.byId.get(id));
-    return url
-      ? `<img src="${escHtml(url)}" alt="" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;" onerror="this.style.visibility='hidden'">`
-      : `<span style="width:28px;height:28px;flex-shrink:0;"></span>`;
-  };
-
-  const sec = document.createElement('div');
-  sec.id = 'awardSection';
-  sec.style.cssText = 'margin:4px 0 20px;';
-  sec.innerHTML = `
-    <div class="section-label">Priser</div>
-    <button class="award-toggle" style="width:100%;padding:9px;background:#f5b800;border:none;border-radius:8px;color:#111;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">🏆 Ge pris</button>
-    <div class="award-picker" style="display:none;border:1px solid #ddd;border-radius:8px;max-height:260px;overflow-y:auto;margin-bottom:10px;"></div>
-    <div class="award-list">
-      ${mine.length ? mine.map(a => `
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #eee;">
-          ${thumb(a.id)}
-          <span style="font-size:12px;color:#333;flex:1;">${escHtml(a.id)}${a.count > 1 ? ` <b>x${a.count}</b>` : ''}</span>
-          <button class="award-remove" data-id="${escHtml(a.id)}" title="Ta bort en"
-            style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;"
-            onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#ccc'">×</button>
-        </div>`).join('')
-        : '<div style="font-size:12px;color:#bbb;">Inga priser ännu</div>'}
-    </div>`;
-
-  const grid = body.querySelector('div[style*="grid-template-columns"]');
-  if (grid) grid.parentNode.insertBefore(sec, grid); else body.appendChild(sec);
-
-  const picker = sec.querySelector('.award-picker');
-  const renderPicker = () => {
-    picker.innerHTML = awardCatalogue.list.length
-      ? awardCatalogue.list.map(a => `
-          <button class="award-pick" data-id="${escHtml(a.id)}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px;background:#fff;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:inherit;">
-            ${thumb(a.id)}
-            <span><span style="display:block;font-size:13px;font-weight:700;color:#111;">${escHtml(a.id)}</span>
-            <span style="display:block;font-size:11px;color:#888;">${escHtml(a.label)}</span></span>
-          </button>`).join('')
-      : '<div style="padding:12px;font-size:12px;color:#bbb;">Inga priser hittades i fliken Priser.</div>';
-  };
-
-  const done = async () => {
-    await openStudentPanel(studentName);          // redraw the panel (wrapped, so this section comes back)
-    window.pollStudentsNow?.();                   // and update the map straight away
-  };
-
-  sec.addEventListener('click', async e => {
-    const toggle = e.target.closest('.award-toggle');
-    const pick   = e.target.closest('.award-pick');
-    const remove = e.target.closest('.award-remove');
-    try {
-      if (toggle) {
-        if (picker.style.display === 'none') {
-          await loadAwardCatalogue();             // pick up rows added to the sheet since the page loaded
-          renderPicker();
-          picker.style.display = 'block';
-        } else picker.style.display = 'none';
-      } else if (pick) {
-        pick.disabled = true;
-        await awardRequest('/student/award', { studentKey: key, badgeId: pick.dataset.id });
-        await done();
-      } else if (remove) {
-        remove.disabled = true;
-        await awardRequest('/student/unaward', { studentKey: key, badgeId: remove.dataset.id });
-        await done();
-      }
-    } catch (err) {
-      console.error('[award]', err);
-      alert('Kunde inte spara priset. Försök igen.');
-      if (pick) pick.disabled = false;
-      if (remove) remove.disabled = false;
-    }
-  });
 }
 
 // Every role on the map once. Copies of the same role are merged (same label), the
@@ -787,90 +699,251 @@ function roleChoices(finishedRoles) {
     .sort((a, b) => a.label.localeCompare(b.label, 'sv', { numeric: true }));
 }
 
-async function addUnlockRoleSection(studentName) {
-  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
-  const body = document.getElementById('panelBody');
-  if (!isTeacherUser || !body || document.getElementById('unlockRoleSection')) return;
+// Every project and role node on the map, for "Tilldela".
+function assignChoices() {
+  const svg = (typeof getSvg === 'function' && getSvg()) || document.querySelector('#mapCanvas svg');
+  const out = [], seen = new Set();
+  svg?.querySelectorAll('[id^="project-"], [id^="role-"]').forEach(el => {
+    const id = el.getAttribute('id');
+    if (seen.has(id)) return;
+    seen.add(id);
+    out.push({
+      id,
+      kind: id.startsWith('role-') ? 'Roll' : 'Projekt',
+      label: id.replace(/^(project-|role-)/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    });
+  });
+  return out.sort((a, b) => a.label.localeCompare(b.label, 'sv', { numeric: true }));
+}
 
+const awardThumb = id => {
+  const url = awardImageUrl(awardCatalogue.byId.get(id));
+  return url
+    ? `<img src="${escHtml(url)}" alt="" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;" onerror="this.style.visibility='hidden'">`
+    : `<span style="width:28px;height:28px;flex-shrink:0;"></span>`;
+};
+const roleThumb = id => {
+  const [first, second] = roleArtUrls(id);
+  return `<img src="${escHtml(first)}" ${second ? `data-alt="${escHtml(second)}"` : ''} alt=""
+    style="width:28px;height:28px;object-fit:contain;flex-shrink:0;"
+    onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt='';}else{this.style.visibility='hidden';}">`;
+};
+
+const TB_BTN = 'padding:7px 12px;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;';
+const TB_ROW = 'display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 12px;background:#fff;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:inherit;';
+
+function closeToolbarPopovers(except) {
+  document.querySelectorAll('#teacherToolbar .tb-pop').forEach(p => { if (p !== except) p.style.display = 'none'; });
+}
+if (!window.__toolbarCloseHooks) {
+  window.__toolbarCloseHooks = true;
+  document.addEventListener('mousedown', e => { if (!e.target.closest('#teacherToolbar .tb-item')) closeToolbarPopovers(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeToolbarPopovers(); });
+}
+
+// A toolbar button with a dropdown under it.
+//   cfg.items(query) -> [{ id, html }]   (rows)      cfg.onOpen() optional, may be async
+//   cfg.search: show a search box         cfg.onPick(id)
+function toolbarDropdown(key, label, colors, cfg) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tb-item';
+  wrap.style.position = 'relative';
+  wrap.innerHTML = `
+    <button class="tb-btn" data-tb="${key}" style="${TB_BTN}background:${colors[0]};color:${colors[1]};">${label}</button>
+    <div class="tb-pop" data-tb="${key}" style="display:none;position:absolute;top:calc(100% + 6px);left:0;width:${cfg.width}px;max-width:calc(100vw - 32px);background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.22);z-index:60;overflow:hidden;">
+      ${cfg.search ? `<input class="tb-search" type="text" placeholder="${escHtml(cfg.search)}" autocomplete="off" style="width:100%;padding:9px 12px;border:none;border-bottom:1px solid #ddd;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;outline:none;box-sizing:border-box;">` : ''}
+      <div class="tb-list" style="max-height:min(52vh,340px);overflow-y:auto;"></div>
+    </div>`;
+  const btn = wrap.querySelector('.tb-btn'), pop = wrap.querySelector('.tb-pop'), list = wrap.querySelector('.tb-list'), search = wrap.querySelector('.tb-search');
+
+  const render = () => {
+    const rows = cfg.items((search?.value || '').trim().toLowerCase());
+    list.innerHTML = rows.length
+      ? rows.map(r => `<button class="tb-row" data-id="${escHtml(r.id)}" style="${TB_ROW}" onmouseover="this.style.background='#f7f7f9'" onmouseout="this.style.background='#fff'">${r.html}</button>`).join('')
+      : `<div style="padding:12px;font-size:12px;color:#bbb;">${escHtml(cfg.empty(search?.value))}</div>`;
+  };
+  const place = () => {            // keep the dropdown inside the panel
+    pop.style.left = '0'; pop.style.right = 'auto';
+    const pr = document.getElementById('panel').getBoundingClientRect();
+    pop.style.maxWidth = Math.max(200, pr.width - 16) + 'px';
+    const r = pop.getBoundingClientRect();
+    if (r.right > pr.right - 8) { pop.style.left = 'auto'; pop.style.right = '0'; }
+    const r2 = pop.getBoundingClientRect();
+    if (r2.left < pr.left + 8) { pop.style.right = 'auto'; pop.style.left = (pr.left + 8 - wrap.getBoundingClientRect().left) + 'px'; }
+  };
+
+  btn.addEventListener('click', async () => {
+    if (pop.style.display === 'block') { pop.style.display = 'none'; return; }
+    closeToolbarPopovers(pop);
+    if (cfg.onOpen) await cfg.onOpen();
+    if (search) search.value = '';
+    render();
+    pop.style.display = 'block';
+    place();
+    search?.focus();
+  });
+  search?.addEventListener('input', render);
+  list.addEventListener('click', async e => {
+    const row = e.target.closest('.tb-row');
+    if (!row) return;
+    row.disabled = true;
+    try { await cfg.onPick(row.dataset.id); }
+    catch (err) { console.error('[toolbar]', cfg.error, err); alert(cfg.error); row.disabled = false; }
+  });
+  return wrap;
+}
+
+// The read-only "Priser" list in the panel body, with a × to take one away.
+function addAwardList(studentName, st, refresh) {
+  const body = document.getElementById('panelBody');
   const key = nameToKey(studentName);
-  let finished = [];
-  try {
-    const r = await fetch(FB_STUDENTS_URL.replace('students.json', `students/${encodeURIComponent(key)}/finished/roles.json`));
-    const raw = await r.json();
-    finished = Array.isArray(raw) ? raw : Object.values(raw || {});
-  } catch (e) {}
+  const mine = Object.entries(st.badges || {})
+    .map(([id, n]) => ({ id, count: Math.floor(Number(n)) || 0 }))
+    .filter(a => a.count > 0)
+    .sort((a, b) => awardOrder(a.id) - awardOrder(b.id) || a.id.localeCompare(b.id, 'sv'));
 
   const sec = document.createElement('div');
-  sec.id = 'unlockRoleSection';
+  sec.id = 'awardSection';
   sec.style.cssText = 'margin:4px 0 20px;';
   sec.innerHTML = `
-    <div class="section-label">Roller</div>
-    <button class="role-toggle" style="width:100%;padding:9px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">🔓 Lås upp Roll</button>
-    <div class="role-picker" style="display:none;border:1px solid #ddd;border-radius:8px;overflow:hidden;">
-      <input class="role-search" type="text" placeholder="Sök roll…" autocomplete="off"
-        style="width:100%;padding:9px 12px;border:none;border-bottom:1px solid #ddd;font-family:inherit;font-size:13px;color:#111;background:#f7f7f9;outline:none;box-sizing:border-box;">
-      <div class="role-list" style="max-height:260px;overflow-y:auto;"></div>
-    </div>`;
+    <div class="section-label">Priser</div>
+    ${mine.length ? mine.map(a => `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #eee;">
+        ${awardThumb(a.id)}
+        <span style="font-size:12px;color:#333;flex:1;">${escHtml(a.id)}${a.count > 1 ? ` <b>x${a.count}</b>` : ''}</span>
+        <button class="award-remove" data-id="${escHtml(a.id)}" title="Ta bort en"
+          style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;"
+          onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#ccc'">×</button>
+      </div>`).join('')
+      : '<div style="font-size:12px;color:#bbb;">Inga priser ännu</div>'}`;
 
-  // Sits right after the Priser section (or before the finished lists if that is missing)
-  const awards = document.getElementById('awardSection');
-  if (awards) awards.after(sec);
-  else {
-    const grid = body.querySelector('div[style*="grid-template-columns"]');
-    if (grid) grid.parentNode.insertBefore(sec, grid); else body.appendChild(sec);
-  }
+  const grid = body.querySelector('div[style*="grid-template-columns"]');
+  if (grid) grid.parentNode.insertBefore(sec, grid); else body.appendChild(sec);
 
-  const picker = sec.querySelector('.role-picker');
-  const search = sec.querySelector('.role-search');
-  const list   = sec.querySelector('.role-list');
-
-  const thumb = id => {
-    const [first, second] = roleArtUrls(id);
-    return `<img src="${escHtml(first)}" ${second ? `data-alt="${escHtml(second)}"` : ''} alt=""
-      style="width:30px;height:30px;object-fit:contain;flex-shrink:0;"
-      onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt='';}else{this.style.visibility='hidden';}">`;
-  };
-  const render = () => {
-    const q = search.value.trim().toLowerCase();
-    const open = roleChoices(finished).filter(c => !c.done && (!q || c.label.toLowerCase().includes(q)));
-    list.innerHTML = open.length
-      ? open.map(c => `
-          <button class="role-pick" data-id="${escHtml(c.id)}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;background:#fff;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#111;"
-            onmouseover="this.style.background='#f7f7f9'" onmouseout="this.style.background='#fff'">
-            ${thumb(c.id)}<span>${escHtml(c.label)}</span>
-          </button>`).join('')
-      : `<div style="padding:12px;font-size:12px;color:#bbb;">${q ? 'Inga träffar' : 'Alla roller är redan upplåsta'}</div>`;
-  };
-
-  search.addEventListener('input', render);
   sec.addEventListener('click', async e => {
-    const toggle = e.target.closest('.role-toggle');
-    const pick   = e.target.closest('.role-pick');
+    const remove = e.target.closest('.award-remove');
+    if (!remove) return;
+    remove.disabled = true;
     try {
-      if (toggle) {
-        if (picker.style.display === 'none') { render(); picker.style.display = 'block'; search.focus(); }
-        else picker.style.display = 'none';
-      } else if (pick) {
-        pick.disabled = true;
-        await awardRequest('/student/unlock-role', { studentKey: key, nodeId: pick.dataset.id });
-        await openStudentPanel(studentName);        // redraw the panel with the role in the finished list
-        window.pollStudentsNow?.();                 // and show the new badge on the map straight away
-      }
+      await awardRequest('/student/unaward', { studentKey: key, badgeId: remove.dataset.id });
+      await refresh();
     } catch (err) {
-      console.error('[unlock-role]', err);
-      alert('Kunde inte låsa upp rollen. Försök igen.');
-      if (pick) pick.disabled = false;
+      console.error('[award]', err);
+      alert('Kunde inte ta bort priset. Försök igen.');
+      remove.disabled = false;
     }
   });
 }
 
-// Wrap the existing teacher panel so the award section is added after it has drawn itself.
+function addTeacherToolbar(studentName, st, refresh) {
+  const header = document.querySelector('#panel .panel-header');
+  if (!header) return;
+  const key = nameToKey(studentName);
+  const currentNode = st.currentNode || null;
+  const finished = (() => { const r = st.finished?.roles; return Array.isArray(r) ? r : Object.values(r || {}); })();
+
+  const bar = document.createElement('div');
+  bar.id = 'teacherToolbar';
+  bar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 16px;flex:1 1 auto;min-width:0;';
+
+  // Tilldela — pick a project or role to assign
+  bar.appendChild(toolbarDropdown('assign', 'Tilldela', ['#0a0a1a', '#fff'], {
+    width: 320, search: 'Sök projekt eller roll…', error: 'Kunde inte tilldela uppgift. Försök igen.',
+    items: q => assignChoices().filter(c => !q || c.label.toLowerCase().includes(q)).map(c => ({
+      id: c.id,
+      html: `<span style="flex:1;font-size:13px;font-weight:${c.id === currentNode ? 800 : 600};color:#111;">${escHtml(c.label)}${c.id === currentNode ? ' ✓' : ''}</span>
+             <span style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:0.08em;">${c.kind}</span>`,
+    })),
+    empty: () => 'Inga träffar',
+    onPick: async id => { await awardRequest('/student/assign', { studentKey: key, nodeId: id }); await refresh(); },
+  }));
+
+  // Klar! — only when there is something to finish (keeps the old confirm question)
+  if (currentNode) {
+    const done = document.createElement('button');
+    done.className = 'tb-btn'; done.dataset.tb = 'done';
+    done.style.cssText = TB_BTN + 'background:#2ecc71;color:#fff;';
+    done.textContent = '✓ Klar!';
+    done.addEventListener('click', async () => { closeToolbarPopovers(); await completeStudent(key, studentName); window.pollStudentsNow?.(); });
+    bar.appendChild(done);
+  }
+
+  // Ge pris — pick an award from the Priser tab
+  bar.appendChild(toolbarDropdown('award', '🏆 Ge pris', ['#f5b800', '#111'], {
+    width: 360, error: 'Kunde inte spara priset. Försök igen.',
+    onOpen: () => loadAwardCatalogue(),             // pick up rows added to the sheet since the page loaded
+    items: () => awardCatalogue.list.map(a => ({
+      id: a.id,
+      html: `${awardThumb(a.id)}<span><span style="display:block;font-size:13px;font-weight:700;color:#111;">${escHtml(a.id)}</span>
+             <span style="display:block;font-size:11px;color:#888;">${escHtml(a.label)}</span></span>`,
+    })),
+    empty: () => 'Inga priser hittades i fliken Priser.',
+    onPick: async id => { await awardRequest('/student/award', { studentKey: key, badgeId: id }); await refresh(); },
+  }));
+
+  // Lås upp Roll — give a finished role without assigning it first
+  bar.appendChild(toolbarDropdown('role', '🔓 Lås upp Roll', ['#3b82f6', '#fff'], {
+    width: 320, search: 'Sök roll…', error: 'Kunde inte låsa upp rollen. Försök igen.',
+    items: q => roleChoices(finished).filter(c => !c.done && (!q || c.label.toLowerCase().includes(q))).map(c => ({
+      id: c.id,
+      html: `${roleThumb(c.id)}<span style="font-size:13px;font-weight:600;color:#111;">${escHtml(c.label)}</span>`,
+    })),
+    empty: q => q ? 'Inga träffar' : 'Alla roller är redan upplåsta',
+    onPick: async id => { await awardRequest('/student/unlock-role', { studentKey: key, nodeId: id }); await refresh(); },
+  }));
+
+  header.style.position = 'relative';
+  header.style.zIndex = '30';                       // dropdowns must sit above the panel body
+  header.insertBefore(bar, header.children[1]);     // between the name and the icons on the right
+}
+
+async function addTeacherUi(studentName) {
+  const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
+  const body = document.getElementById('panelBody');
+  if (!isTeacherUser || !body) return;
+
+  const key = nameToKey(studentName);
+  let st = {};
+  try {
+    const r = await fetch(FB_STUDENTS_URL.replace('students.json', `students/${encodeURIComponent(key)}.json`));
+    st = await r.json() || {};
+  } catch (e) {}
+
+  // The panel may have moved on (another student, a node...) while we were fetching
+  if (document.getElementById('panelTitle')?.textContent !== studentName || document.getElementById('studentViewMarker')) return;
+
+  const marker = document.createElement('div');     // lets us notice when the panel stops showing a student
+  marker.id = 'studentViewMarker';
+  marker.style.display = 'none';
+  body.insertBefore(marker, body.firstChild);
+
+  const refresh = async () => { await openStudentPanel(studentName); window.pollStudentsNow?.(); };
+  addAwardList(studentName, st, refresh);
+  addTeacherToolbar(studentName, st, refresh);
+}
+
+// Whenever the panel body is replaced by anything that is not a student (a node, Hall of Fame...),
+// take the toolbar away again. It lives in the shared header, so nothing else would.
+(function watchPanel() {
+  const body = document.getElementById('panelBody');
+  if (!body || window.__toolbarObserver) return;
+  window.__toolbarObserver = new MutationObserver(() => {
+    const bar = document.getElementById('teacherToolbar');
+    if (bar && !document.getElementById('studentViewMarker')) {
+      bar.remove();
+      const header = document.querySelector('#panel .panel-header');
+      if (header) { header.style.position = ''; header.style.zIndex = ''; }
+    }
+  });
+  window.__toolbarObserver.observe(body, { childList: true });
+})();
+
+// Wrap the existing teacher panel so the toolbar is added after it has drawn itself.
 if (typeof openStudentPanel === 'function' && !openStudentPanel.__withAwards) {
   const _openStudentPanelOriginal = openStudentPanel;
   openStudentPanel = async function (studentName) {
     await _openStudentPanelOriginal(studentName);
-    try { await addAwardSection(studentName); } catch (e) { console.warn('Award section failed:', e); }
-    try { await addUnlockRoleSection(studentName); } catch (e) { console.warn('Unlock-role section failed:', e); }
+    try { await addTeacherUi(studentName); } catch (e) { console.warn('Teacher toolbar failed:', e); }
   };
   openStudentPanel.__withAwards = true;
 }
