@@ -919,8 +919,140 @@ async function addTeacherUi(studentName) {
 
   const refresh = async () => { await openStudentPanel(studentName); window.pollStudentsNow?.(); };
   addAwardList(studentName, st, refresh);
+  addRequestList(studentName, st, refresh);
   addTeacherToolbar(studentName, st, refresh);
 }
+
+// ── Completion requests ───────────────────────────────────────────────────────
+// Students press a ✓ on a project/role and it lands here: students/{key}/requests/{nodeId} = time.
+
+// Teacher: the pending requests of one student, each with Godkänn / Avslå. Shown above "Priser".
+function addRequestList(studentName, st, refresh) {
+  const body = document.getElementById('panelBody');
+  const key = nameToKey(studentName);
+  const pending = Object.entries(st.requests || {})
+    .filter(([id]) => /^(project|role)-/.test(id))
+    .map(([id, t]) => ({ id, t: Number(t) || 0 }))
+    .sort((a, b) => a.t - b.t);
+  if (!body || !pending.length) return;
+
+  const sec = document.createElement('div');
+  sec.id = 'requestSection';
+  sec.style.cssText = 'margin:4px 0 20px;padding:12px 14px;background:#fffaf0;border:1px solid #f1d58a;border-radius:10px;';
+  const when = t => t ? new Date(t).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }) : '';
+  sec.innerHTML = `
+    <div class="section-label" style="margin-top:0;">Förfrågningar</div>
+    ${pending.map(r => `
+      <div class="request-row" data-id="${escHtml(r.id)}" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f4e6bd;">
+        <span style="flex:1;min-width:0;">
+          <span style="display:block;font-size:13px;font-weight:700;color:#111;">${escHtml(nodeLabel(r.id))}</span>
+          <span style="display:block;font-size:10px;color:#a08a4a;text-transform:uppercase;letter-spacing:0.08em;">${r.id.startsWith('role-') ? 'Roll' : 'Projekt'}${r.t ? ' · ' + when(r.t) : ''}</span>
+        </span>
+        <button class="request-approve" style="background:#2ecc71;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">✓ Godkänn</button>
+        <button class="request-decline" style="background:#fff;color:#777;border:1px solid #ddd;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">✕ Avslå</button>
+      </div>`).join('')}`;
+
+  const anchor = document.getElementById('awardSection') || body.querySelector('div[style*="grid-template-columns"]');
+  if (anchor) anchor.parentNode.insertBefore(sec, anchor); else body.appendChild(sec);
+
+  sec.addEventListener('click', async e => {
+    const approve = e.target.closest('.request-approve'), decline = e.target.closest('.request-decline');
+    const row = e.target.closest('.request-row');
+    if (!row || !(approve || decline)) return;
+    row.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    try {
+      await awardRequest(approve ? '/student/approve-request' : '/student/decline-request', { studentKey: key, nodeId: row.dataset.id });
+      await refresh();
+    } catch (err) {
+      console.error('[request]', err);
+      alert('Kunde inte hantera förfrågan. Försök igen.');
+      row.querySelectorAll('button').forEach(b => { b.disabled = false; });
+    }
+  });
+}
+
+// Student: a small ✓ next to the folder/printer buttons on project and role panels.
+//   grey ring = ask the teacher to mark it finished · amber = request sent (click to withdraw) · green = finished
+const REQUEST_BTN_ID = 'requestDoneBtn';
+const removeRequestBtn = () => document.getElementById(REQUEST_BTN_ID)?.remove();
+const toPlainList = raw => Array.isArray(raw) ? raw : Object.values(raw || {});
+
+async function addRequestButton(name) {
+  removeRequestBtn();
+  const email = window.loggedInEmail || '';
+  const studentName = window.loggedInStudentName || sessionStorage.getItem('auth_name') || '';
+  if (!email.endsWith('@edu.orebro.se') || !studentName || !/^(project|role)-/.test(name)) return;
+  const folder = document.getElementById('panelFolderBtn');
+  if (!folder) return;
+
+  const isRole = name.startsWith('role-');
+  const nodeId = isRole ? roleBaseId(name) : name;       // copies of a role count as the same role
+  const label = nodeLabel(nodeId);
+
+  const btn = document.createElement('button');
+  btn.id = REQUEST_BTN_ID;
+  btn.dataset.node = nodeId;
+  btn.dataset.state = 'loading';
+  btn.textContent = '✓';
+  btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:50%;font-family:inherit;font-size:14px;font-weight:800;line-height:1;cursor:pointer;flex-shrink:0;border:1.5px solid #ddd;background:none;color:#ccc;';
+  folder.parentNode.insertBefore(btn, folder);
+
+  const paint = state => {
+    btn.dataset.state = state;
+    btn.disabled = state === 'done' || state === 'loading';
+    const look = {
+      loading: ['#ddd', 'none', '#ccc', 'default', ''],
+      idle:    ['#bbb', 'none', '#aaa', 'pointer', 'Jag är klar – be läraren markera detta som klart'],
+      pending: ['#f5b800', '#fff3cc', '#a07400', 'pointer', 'Förfrågan skickad – klicka för att ta tillbaka'],
+      done:    ['#2ecc71', '#2ecc71', '#fff', 'default', 'Klar!'],
+    }[state];
+    btn.style.borderColor = look[0]; btn.style.background = look[1]; btn.style.color = look[2]; btn.style.cursor = look[3];
+    btn.title = look[4];
+  };
+  paint('loading');
+
+  try {
+    const r = await fetch(FB_STUDENTS_URL.replace('students.json', `students/${encodeURIComponent(nameToKey(studentName))}.json`));
+    const st = await r.json() || {};
+    if (!btn.isConnected) return;                        // the panel moved on while we were fetching
+    const have = toPlainList(isRole ? st.finished?.roles : st.finished?.projects);
+    const finished = isRole ? have.some(i => roleBaseId(i) === nodeId) : have.includes(nodeId);
+    paint(finished ? 'done' : (st.requests && nodeId in st.requests) ? 'pending' : 'idle');
+  } catch (e) { paint('idle'); }
+
+  btn.addEventListener('click', async () => {
+    const state = btn.dataset.state;
+    if (state !== 'idle' && state !== 'pending') return;
+    const cancel = state === 'pending';
+    if (!confirm(cancel ? `Ta tillbaka förfrågan om "${label}"?` : `Fråga din lärare om "${label}" är klar?`)) return;
+    paint('loading');
+    try {
+      const res = await awardRequest('/student/request', { nodeId, cancel });
+      paint(res.alreadyFinished ? 'done' : cancel ? 'idle' : 'pending');
+    } catch (err) {
+      console.error('[request]', err);
+      alert('Kunde inte skicka förfrågan. Försök igen.');
+      paint(state);
+    }
+  });
+}
+
+// Hook into the panel functions that already exist
+if (typeof openPanel === 'function' && !openPanel.__withRequest) {
+  const _openPanelOriginal = openPanel;
+  openPanel = function (name, ...rest) {
+    const p = _openPanelOriginal.call(this, name, ...rest);
+    addRequestButton(name).catch(e => console.warn('Request button failed:', e));
+    return p;
+  };
+  openPanel.__withRequest = true;
+}
+['openHallOfFame', 'openClassOverview', 'closePanel'].forEach(fn => {
+  if (typeof window[fn] !== 'function' || window[fn].__noRequestBtn) return;
+  const orig = window[fn];
+  window[fn] = function (...a) { removeRequestBtn(); return orig.apply(this, a); };
+  window[fn].__noRequestBtn = true;
+});
 
 // Whenever the panel body is replaced by anything that is not a student (a node, Hall of Fame...),
 // take the toolbar away again. It lives in the shared header, so nothing else would.
@@ -942,6 +1074,7 @@ async function addTeacherUi(studentName) {
 if (typeof openStudentPanel === 'function' && !openStudentPanel.__withAwards) {
   const _openStudentPanelOriginal = openStudentPanel;
   openStudentPanel = async function (studentName) {
+    removeRequestBtn();
     await _openStudentPanelOriginal(studentName);
     try { await addTeacherUi(studentName); } catch (e) { console.warn('Teacher toolbar failed:', e); }
   };
