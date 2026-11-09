@@ -2262,7 +2262,6 @@ const firebaseConfig = {
 
 let helpDb = null;
 let helpPopupOpen = false;
-let helpMyToken = localStorage.getItem('help-token') || null;
 
 (function initFirebase() {
   const script1 = document.createElement('script');
@@ -2300,24 +2299,43 @@ function toggleHelpPopup() {
   }
 }
 
+// All writing to the queue goes through the Worker (the database only lets the page read it).
+// One entry per person: the Worker takes the key and the name from the login.
+const HELP_WORKER = 'https://aged-math-1ef5.jimbernstrom.workers.dev';
+const helpEsc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const helpOwnKey = () => nameToKey(window.loggedInStudentName || sessionStorage.getItem('auth_name') || '');
+
+async function helpCall(path, body) {
+  const token = sessionStorage.getItem('auth_token');
+  if (!token) throw new Error('not_logged_in');
+  const res = await fetch(HELP_WORKER + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, ...body })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+
 async function submitHelpRequest() {
-  const name = document.getElementById('helpNameInput').value.trim();
-  if (!name || !helpDb) return;
-  if (helpMyToken) {
-    const snap = await helpDb.ref('helpQueue/' + helpMyToken).get();
-    if (snap.exists()) { document.getElementById('helpAlready').textContent = 'Du är redan i kön!'; return; }
+  const msg = document.getElementById('helpAlready');
+  try {
+    const data = await helpCall('/help/add', {});
+    if (data.already) { msg.textContent = 'Du är redan i kön!'; return; }
+  } catch (e) {
+    msg.textContent = 'Något gick fel. Försök igen.';
+    return;
   }
-  helpMyToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  localStorage.setItem('help-token', helpMyToken);
-  await helpDb.ref('helpQueue/' + helpMyToken).set({ name, token: helpMyToken, ts: Date.now() });
   document.getElementById('helpNameInput').value = '';
   helpPopupOpen = false;
   document.getElementById('helpPopup').classList.remove('visible');
 }
 
-async function deleteHelpEntry(token) {
-  if (!helpDb) return;
-  await helpDb.ref('helpQueue/' + token).remove();
+async function deleteHelpEntry(entry) {
+  if (!entry) return;
+  try { await helpCall('/help/remove', { entry }); }
+  catch (e) { console.warn('Could not remove help entry:', e); }
 }
 
 function renderHelpQueue(queue) {
@@ -2325,14 +2343,14 @@ function renderHelpQueue(queue) {
   const items = document.getElementById('helpQueueItems');
   if (!queue.length) { list.classList.remove('visible'); return; }
   list.classList.add('visible');
+  const me = helpOwnKey();
+  const isTeacherNow = window.loggedInEmail && window.loggedInEmail.endsWith('@orebro.se');
   items.innerHTML = queue.map((entry, i) => {
-    const isMine = entry.token === helpMyToken;
-    const canDelete = isMine || (window.loggedInEmail && window.loggedInEmail.endsWith('@orebro.se'));
+    const canDelete = (me && entry.token === me) || isTeacherNow;
     return `<div class="help-queue-item">
       <span class="help-queue-num">${i+1}</span>
-      <span class="help-queue-name">${entry.name}</span>
-      <button class="help-queue-delete ${canDelete ? '' : 'locked'}" onclick="deleteHelpEntry('${entry.token}')" title="Ta bort">×</button>
-      
+      <span class="help-queue-name">${helpEsc(entry.name)}</span>
+      <button class="help-queue-delete ${canDelete ? '' : 'locked'}" data-entry="${helpEsc(entry.token)}" onclick="if (!this.classList.contains('locked')) deleteHelpEntry(this.dataset.entry)" title="Ta bort">×</button>
     </div>`;
   }).join('');
 }
