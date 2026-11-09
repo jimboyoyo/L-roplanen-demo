@@ -43,7 +43,7 @@ const SCREENSHOT_EVERY  = 10;
 const PLATE_SIZE        = 0.46;   // plate box (square; art fitted inside without stretching)
 const PLATE_STEP        = 0.085;  // each plate sits this much higher than the one below
 const PLATE_PILE_MAX    = 14;     // plates drawn; more than that gives a "x N" label
-const PLATE_X           = 0.80;   // pile centre, relative to avatar centre
+const PLATE_X           = 0.52;   // pile centre, relative to avatar centre (the art has transparent padding: its visible edge ends up ~0.1 closer)
 const PLATE_Y           = 0.40;   // centre of the lowest plate
 const PLATE_REFRESH_MS  = 5 * 60 * 1000;
 const ROLE_SECTORS_NO_PILE        = [[60, 270]];
@@ -405,7 +405,7 @@ function makePlate(slot) {
   img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   img.addEventListener('error', () => {
     img.remove();
-    const rx = slot.size * 0.5, ry = slot.size * 0.17, rim = slot.size * 0.06;
+    const rx = slot.size * 0.24, ry = slot.size * 0.09, rim = slot.size * 0.04;   // about the size of the visible plate in the real art
     const mk = (tag, attrs) => { const e = document.createElementNS(SVG_NS, tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
     g.appendChild(mk('ellipse', { cx: slot.x, cy: slot.y + rim, rx, ry, fill: '#a87400' }));                               // the plate's edge
     g.appendChild(mk('ellipse', { cx: slot.x, cy: slot.y, rx, ry, fill: '#f5b800', stroke: '#fff3b0', 'stroke-width': slot.size * 0.02 }));
