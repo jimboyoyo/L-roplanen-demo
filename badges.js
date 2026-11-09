@@ -1255,6 +1255,68 @@ window.refreshRequestCount = async function () {
   } catch (e) { /* offline: keep the old number */ }
 };
 
+// ── Activity feed: the latest happenings on the map, shown under the requests ──
+// The Worker writes events/{pushId} = { t, s: studentKey, k: kind, id?, n? } for every
+// assign / finish / new flag / award.
+const EVENTS_URL = FB_STUDENTS_URL.replace('students.json', 'events.json');
+const EVENTS_SHOWN = 15;     // what the list shows
+const EVENTS_FETCHED = 40;   // what we ask Firebase for, so skipped/old kinds can't eat into the 15
+const studentDisplayName = key => document.querySelector(`#studentSelect option[value="${key}"]`)?.textContent || key;
+
+function eventWhen(t) {
+  const d = new Date(t), now = new Date(), yest = new Date(now);
+  yest.setDate(now.getDate() - 1);
+  const hm = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) return `idag ${hm}`;
+  if (d.toDateString() === yest.toDateString()) return `igår ${hm}`;
+  return `${d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} ${hm}`;
+}
+
+// What happened, in words (without the student's name), plus a small icon.
+function eventText(ev) {
+  const label = ev.id ? escHtml(nodeLabel(ev.id)) : '';
+  const isRole = (ev.id || '').startsWith('role-');
+  switch (ev.k) {
+    case 'finish':  return isRole ? ['🔓', `låste upp <b>${label}</b>`] : ['✅', `blev klar med <b>${label}</b>`];
+    case 'flag':    return ['🚩', `fick en till flagga${ev.n > 1 ? ` <span style="color:#aaa;">(nu ${ev.n})</span>` : ''}`];
+    case 'award':   return ['🏆', `fick priset <b>${escHtml(ev.id || '')}</b>`];
+    case 'assign':  return ['▶️', `började på <b>${label}</b>`];
+    default:        return null;
+  }
+}
+
+async function fillEventFeed() {
+  const host = document.getElementById('eventFeed');
+  if (!host) return;
+  const head = '<div class="section-label" style="margin-top:0;">Senaste händelser</div>';
+  let events;
+  try {
+    const res = await fetch(`${EVENTS_URL}?orderBy=%22%24key%22&limitToLast=${EVENTS_FETCHED}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    events = Object.values(await res.json() || {});
+  } catch (e) {
+    if (document.getElementById('eventFeed') === host) host.innerHTML = head + '<div style="font-size:12px;color:#bbb;">Kunde inte hämta händelser.</div>';
+    return;
+  }
+  if (document.getElementById('eventFeed') !== host) return;          // the panel moved on
+  const rows = events
+    .filter(ev => ev && typeof ev.t === 'number' && eventText(ev))
+    .sort((a, b) => b.t - a.t)                                        // newest first
+    .slice(0, EVENTS_SHOWN);
+  host.innerHTML = head + (rows.length ? rows.map(ev => {
+    const [icon, text] = eventText(ev);
+    return `<div class="event-row" style="display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px solid #eee;">
+      <span style="width:20px;text-align:center;flex-shrink:0;">${icon}</span>
+      <span style="flex:1;min-width:0;font-size:13px;color:#333;"><b class="event-who" data-key="${escHtml(ev.s || '')}" title="Öppna eleven" style="cursor:pointer;color:#111;">${escHtml(studentDisplayName(ev.s))}</b> ${text}</span>
+      <span style="font-size:11px;color:#aaa;white-space:nowrap;">${eventWhen(ev.t)}</span>
+    </div>`;
+  }).join('') : '<div style="font-size:12px;color:#bbb;">Inga händelser ännu.</div>');
+  host.addEventListener('click', e => {
+    const who = e.target.closest('.event-who');
+    if (who?.dataset.key) openStudentPanel(studentDisplayName(who.dataset.key));
+  });
+}
+
 async function openRequestsPanel() {
   removeRequestBtn();
   document.getElementById('panel').classList.remove('closed');
@@ -1284,13 +1346,8 @@ async function openRequestsPanel() {
     .filter(x => x.list.length)
     .sort((a, b) => a.list[0].t - b.list[0].t);
 
-  if (!rows.length) {
-    body.innerHTML = `<div class="empty-state"><div class="empty-icon">✓</div>Inga förfrågningar just nu.</div>`;
-    return;
-  }
-
-  const displayName = key => document.querySelector(`#studentSelect option[value="${key}"]`)?.textContent || key;
-  body.innerHTML = `<div id="requestInbox">${rows.map(x => `
+  const displayName = studentDisplayName;
+  const requestsHtml = rows.length ? `<div id="requestInbox">${rows.map(x => `
     <div class="inbox-student" data-key="${escHtml(x.key)}" style="margin:0 0 18px;padding:12px 14px;background:#fffaf0;border:1px solid #f1d58a;border-radius:10px;">
       <div class="inbox-who" title="Öppna eleven" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:4px;">
         <img src="${escHtml(STUDENTS_DIR + x.key)}.png" alt="" onerror="this.style.visibility='hidden'" style="width:34px;height:34px;object-fit:contain;border-radius:50%;background:#fff;">
@@ -1298,9 +1355,13 @@ async function openRequestsPanel() {
         <span style="font-size:10px;color:#a08a4a;margin-left:auto;">${x.list.length} väntar</span>
       </div>
       ${x.list.map(r => requestRowHtml(r.id, r.t)).join('')}
-    </div>`).join('')}</div>`;
+    </div>`).join('')}</div>`
+    : `<div id="requestInbox" style="margin:0 0 22px;font-size:13px;color:#999;">✓ Inga förfrågningar just nu.</div>`;
+  body.innerHTML = requestsHtml + '<div id="eventFeed"><div class="section-label" style="margin-top:0;">Senaste händelser</div><div style="font-size:12px;color:#bbb;">Laddar...</div></div>';
+  fillEventFeed();
 
   const root = body.querySelector('#requestInbox');
+  if (!rows.length) return;
   root.addEventListener('click', async e => {
     const card = e.target.closest('.inbox-student');
     if (!card) return;
