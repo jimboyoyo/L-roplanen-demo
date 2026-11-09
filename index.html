@@ -1672,7 +1672,7 @@ async function openStudentPanel(studentName) {
   let html = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #eee;">
       <img src="${STUDENTS_DIR}${avatarFname}.png" alt="${studentName}"
-        style="height:80px;width:auto;display:block;"
+        style="display:block;flex-shrink:0;height:auto;width:auto;max-width:45%;max-height:260px;"
         onerror="this.style.opacity='0.15'">
       <div>
         <div style="font-size:18px;font-weight:700;color:#111;">${studentName}</div>
