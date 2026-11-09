@@ -546,11 +546,21 @@ function makeSpecial(award, slot) {
   return g;
 }
 
+// Who may open a student's side panel? Teachers: everyone. A student: only their own.
+// (Anyone not logged in as one of those gets nothing.)
+function canOpenStudentPanel(name) {
+  const email = window.loggedInEmail || '';
+  if (email && !email.endsWith('@edu.orebro.se')) return true;
+  const own = nameToKey(window.loggedInStudentName || sessionStorage.getItem('auth_name') || '');
+  return !!own && nameToKey(name || '') === own;
+}
+
+// Click on an avatar: your own (or any, for a teacher) opens the student panel;
+// somebody else's avatar opens the panel of the node they are standing on, as before.
 function attachStudentHandlers(svg, g, name, nodeId) {
   g.addEventListener('click', e => {
     e.stopPropagation();
-    const isTeacherUser = window.loggedInEmail && !window.loggedInEmail.endsWith('@edu.orebro.se');
-    if (isTeacherUser) openStudentPanel(name);
+    if (canOpenStudentPanel(name)) openStudentPanel(name);
     else openPanel(nodeId, svg.getElementById(nodeId));
   });
 }
@@ -1338,6 +1348,7 @@ window.openRequestsPanel = openRequestsPanel;
 if (typeof openStudentPanel === 'function' && !openStudentPanel.__withAwards) {
   const _openStudentPanelOriginal = openStudentPanel;
   openStudentPanel = async function (studentName) {
+    if (!canOpenStudentPanel(studentName)) return;     // a student never gets another student's panel
     removeRequestBtn();
     await _openStudentPanelOriginal(studentName);
     try { await addTeacherUi(studentName); } catch (e) { console.warn('Teacher toolbar failed:', e); }
