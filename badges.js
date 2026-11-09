@@ -926,7 +926,8 @@ function toolbarDropdown(key, label, colors, cfg) {
 }
 
 // The read-only "Priser" list in the panel body, with a × to take one away.
-function addAwardList(studentName, st, refresh) {
+// readOnly: the student's own view — no remove buttons, with each award's description under its name.
+function addAwardList(studentName, st, refresh, readOnly = false) {
   const body = document.getElementById('panelBody');
   const key = nameToKey(studentName);
   const mine = Object.entries(st.badges || {})
@@ -936,22 +937,26 @@ function addAwardList(studentName, st, refresh) {
 
   const sec = document.createElement('div');
   sec.id = 'awardSection';
-  sec.style.cssText = 'margin:4px 0 20px;';
+  sec.style.cssText = readOnly ? 'margin:18px 0 20px;' : 'margin:4px 0 20px;';
   sec.innerHTML = `
     <div class="section-label">Priser</div>
     ${mine.length ? mine.map(a => `
-      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #eee;">
+      <div class="award-row" data-id="${escHtml(a.id)}" style="display:flex;align-items:center;gap:8px;padding:${readOnly ? 7 : 5}px 0;border-bottom:1px solid #eee;">
         ${awardThumb(a.id)}
-        <span style="font-size:12px;color:#333;flex:1;">${escHtml(a.id)}${a.count > 1 ? ` <b>x${a.count}</b>` : ''}</span>
-        <button class="award-remove" data-id="${escHtml(a.id)}" title="Ta bort en"
+        <span style="flex:1;min-width:0;">
+          <span style="display:block;font-size:${readOnly ? 13 : 12}px;${readOnly ? 'font-weight:700;color:#111;' : 'color:#333;'}">${escHtml(a.id)}${a.count > 1 ? ` <b>x${a.count}</b>` : ''}</span>
+          ${readOnly && awardCatalogue.byId.get(a.id)?.label ? `<span class="award-desc" style="display:block;font-size:11px;color:#999;margin-top:1px;">${escHtml(awardCatalogue.byId.get(a.id).label)}</span>` : ''}
+        </span>
+        ${readOnly ? '' : `<button class="award-remove" data-id="${escHtml(a.id)}" title="Ta bort en"
           style="background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:0 0 0 8px;line-height:1;"
-          onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#ccc'">×</button>
+          onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#ccc'">×</button>`}
       </div>`).join('')
       : '<div style="font-size:12px;color:#bbb;">Inga priser ännu</div>'}`;
 
   const grid = body.querySelector('div[style*="grid-template-columns"]');
   if (grid) grid.parentNode.insertBefore(sec, grid); else body.appendChild(sec);
 
+  if (readOnly) return;
   sec.addEventListener('click', async e => {
     const remove = e.target.closest('.award-remove');
     if (!remove) return;
@@ -965,6 +970,22 @@ function addAwardList(studentName, st, refresh) {
       remove.disabled = false;
     }
   });
+}
+
+// A student looking at their own panel: the awards they have, read-only.
+async function addStudentUi(studentName) {
+  const email = window.loggedInEmail || '';
+  const body = document.getElementById('panelBody');
+  if (!body || !email.endsWith('@edu.orebro.se') || !canOpenStudentPanel(studentName)) return;
+
+  let st = {};
+  try {
+    const r = await fetch(FB_STUDENTS_URL.replace('students.json', `students/${encodeURIComponent(nameToKey(studentName))}.json`));
+    st = await r.json() || {};
+  } catch (e) {}
+
+  if (document.getElementById('panelTitle')?.textContent !== studentName || document.getElementById('awardSection')) return;
+  addAwardList(studentName, st, null, true);
 }
 
 function addTeacherToolbar(studentName, st, refresh) {
@@ -1352,6 +1373,7 @@ if (typeof openStudentPanel === 'function' && !openStudentPanel.__withAwards) {
     removeRequestBtn();
     await _openStudentPanelOriginal(studentName);
     try { await addTeacherUi(studentName); } catch (e) { console.warn('Teacher toolbar failed:', e); }
+    try { await addStudentUi(studentName); } catch (e) { console.warn('Student awards failed:', e); }
   };
   openStudentPanel.__withAwards = true;
 }
