@@ -462,6 +462,30 @@
     margin: 0 auto;
   }
   .hof-card img.broken { opacity: 0.15; }
+
+  /* ── YouTube lightbox ── */
+  #ytLightbox {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #ytLightbox.open { display: flex; }
+  .yt-lightbox-inner {
+    position: relative;
+    width: min(960px, 100%);
+    aspect-ratio: 16 / 9;
+  }
+  .yt-lightbox-inner iframe {
+    width: 100%; height: 100%;
+    border: none; border-radius: 10px;
+    background: #000;
+  }
+  .yt-lightbox-close {
+    position: absolute; top: -36px; right: 0;
+    background: none; border: none; color: #fff;
+    font-size: 28px; cursor: pointer; line-height: 1;
+  }
 </style>
 </head>
 <body>
@@ -2039,6 +2063,16 @@ async function renderPdf(url) {
         const pt2 = scaledViewport.convertToViewportPoint(x2,y2);
         const link = document.createElement('a');
         link.href = ann.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+
+        // YouTube links open in a lightbox instead of a new tab
+        const ytEmbed = youtubeEmbed(ann.url);
+        if (ytEmbed) {
+          link.addEventListener('click', e => {
+            e.preventDefault();
+            openYoutubeLightbox(ytEmbed);
+          });
+        }
+
         link.style.cssText = `position:absolute;left:${Math.min(pt1[0],pt2[0])}px;top:${Math.min(pt1[1],pt2[1])}px;width:${Math.abs(pt2[0]-pt1[0])}px;height:${Math.abs(pt2[1]-pt1[1])}px;cursor:pointer;pointer-events:all;z-index:1;`;
         wrapper.appendChild(link);
       });
@@ -2053,6 +2087,26 @@ function youtubeEmbed(url) {
   const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   return match ? `https://www.youtube.com/embed/${match[1]}` : null;
 }
+
+function openYoutubeLightbox(embedUrl) {
+  const box = document.getElementById('ytLightbox');
+  document.getElementById('ytLightboxPlayer').innerHTML =
+    `<iframe src="${embedUrl}?autoplay=1&rel=0"
+       allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+       allowfullscreen></iframe>`;
+  box.classList.add('open');
+}
+
+function closeYoutubeLightbox() {
+  const box = document.getElementById('ytLightbox');
+  box.classList.remove('open');
+  // Removing the iframe stops the video
+  document.getElementById('ytLightboxPlayer').innerHTML = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeYoutubeLightbox();
+});
 
 function renderRole(d) {
   currentPdfUrl = null;
@@ -3177,6 +3231,14 @@ function logout() {
  
  
 <script src="badges.js"></script>
+
+<!-- YouTube lightbox -->
+<div id="ytLightbox" onclick="closeYoutubeLightbox()">
+  <div class="yt-lightbox-inner" onclick="event.stopPropagation()">
+    <button class="yt-lightbox-close" onclick="closeYoutubeLightbox()">×</button>
+    <div id="ytLightboxPlayer" style="width:100%;height:100%;"></div>
+  </div>
+</div>
 
 </body>
 </html>
