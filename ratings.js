@@ -107,11 +107,11 @@
 
       const count   = Math.ceil(value);                 // 3.5 → three whole stars and one half
       const half    = value % 1 !== 0;
-      const size    = Math.max(10, box.width / 5.4);    // five stars always fit across the node
+      const size    = box.width * 0.6 / 5.48;           // five stars (with gaps) cover 60% of the node's width
       const gap     = size * 0.12;
       const rowW    = count * size + (count - 1) * gap;
-      const left    = box.x + box.width / 2 - rowW / 2;
-      const centreY = box.y - size * 0.8;               // sits just above the node's top edge (clear of its border)
+      const left    = box.x + box.width - rowW;         // right-aligned: the row ends at the node's right edge
+      const centreY = box.y;                            // centred on the top edge: half of each star sticks up above it
 
       const g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('class', 'rating-stars');
