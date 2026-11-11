@@ -731,6 +731,7 @@ function listenToFirebase(svg, sheetRows) {
     try {
       const fbRes  = await fetch(FB_STUDENTS_URL);
       const fbData = await fbRes.json() || {};
+      window.updateProjectRatings?.(fbData);            // star averages on the project nodes (ratings.js)
 
       const newTargets = computeTargetPositions(svg, buildAssignments(sheetRows, fbData));
 
@@ -781,6 +782,7 @@ async function loadStudentPositions(svg) {
 
     const fbRes  = await fetch(FB_STUDENTS_URL);
     const fbData = await fbRes.json() || {};
+    window.updateProjectRatings?.(fbData);              // star averages on the project nodes (ratings.js)
 
     const assignments = buildAssignments(sheetRows, fbData);
     placeStudentIcons(svg, assignments);
