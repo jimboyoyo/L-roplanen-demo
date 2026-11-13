@@ -3277,8 +3277,7 @@ function logout() {
   const MAX_FLAKES    = 160;    // flakes on screen at once
   const BINS          = 24;     // snow-pile resolution along a node's top edge
   const MAX_DEPTH     = 0.07;   // max pile height as a fraction of the node's width
-  const FLAKE_GAIN    = 0.004;  // pile height added per virtual flake, fraction of node width
-  const SNOW_RATE     = 8;      // virtual flakes per second landing on EACH node (visible or not)
+  const FLAKE_GAIN    = 0.0016; // pile height added per landed flake (× flake size), fraction of width
   const MELT_PER_SEC  = 0.25;   // fraction of max depth melting per second after switching off
   const NODE_SELECTOR = '[id^="project-"], [id^="role-"]';
 
@@ -3326,9 +3325,19 @@ function logout() {
         try { const b = c.getBBox(); const a = b.width * b.height; if (a > bestArea) { bestArea = a; best = c; } } catch (e) {}
       });
       if (!best) return;
+      const isRound = best.tagName === 'circle' || best.tagName === 'ellipse';
+      // Rounded-rectangle nodes (projects): remember the corner radius so snow can follow the corners
+      let cornerR = 0, shapeW = 1;
+      if (!isRound) {
+        try { shapeW = best.getBBox().width || 1; } catch (e) {}
+        if (best.tagName === 'rect') {
+          cornerR = parseFloat(best.getAttribute('rx') || best.getAttribute('ry') || 0) || 0;
+        }
+      }
       nodes.push({
         el, shape: best,
-        round: best.tagName === 'circle' || best.tagName === 'ellipse',
+        round: isRound,
+        cornerR, shapeW,
         bins: new Float32Array(BINS),
         rect: null,
       });
@@ -3346,6 +3355,8 @@ function logout() {
     nodes.forEach(n => {
       const r = n.shape.getBoundingClientRect();
       n.rect = { l: r.left - a.left, t: r.top - a.top, w: r.width, h: r.height };
+      // corner radius in screen px (capped so it never exceeds half the node)
+      n.rect.rr = Math.min(n.cornerR * r.width / n.shapeW, r.width / 2, r.height / 2);
     });
   }
 
@@ -3353,7 +3364,16 @@ function logout() {
   function edgeY(n, x) {
     const r = n.rect;
     if (x < r.l || x > r.l + r.w) return null;
-    if (!n.round) return r.t;
+    if (!n.round) {
+      // flat top, with rounded corners following the node's border radius
+      const rr = r.rr;
+      if (rr > 0.5) {
+        const dl = x - r.l, dr = r.l + r.w - x;
+        const d = Math.min(dl, dr);
+        if (d < rr) return r.t + rr - Math.sqrt(Math.max(0, rr * rr - (rr - d) * (rr - d)));
+      }
+      return r.t;
+    }
     const rx = r.w / 2, ry = r.h / 2;
     const dx = (x - (r.l + rx)) / rx;
     return r.t + ry - ry * Math.sqrt(Math.max(0, 1 - dx * dx));
@@ -3370,6 +3390,19 @@ function logout() {
     const a = n.bins[Math.max(0, Math.min(BINS - 1, i))];
     const b = n.bins[Math.max(0, Math.min(BINS - 1, i + 1))];
     return (a + (b - a) * t) * n.rect.w;
+  }
+
+  // Actual pile height in px. On rectangular (project) nodes the snow thins out towards the
+  // ends so it looks like a soft drift sitting on the edge instead of a flat slab.
+  function pileHeight(n, x) {
+    let h = pileAt(n, x);
+    if (!n.round) {
+      const r = n.rect;
+      const ramp = Math.max(r.rr || 0, r.w * 0.12);
+      const d = Math.min(x - r.l, r.l + r.w - x);
+      if (d < ramp) { const u = Math.max(0, d / ramp); h *= u * u * (3 - 2 * u); }
+    }
+    return h;
   }
 
   // Add snow to a bin and let it slide sideways if the pile gets too steep
@@ -3432,10 +3465,10 @@ function logout() {
           if (!r || r.w < 6 || r.l > W || r.l + r.w < 0 || r.t > H || r.t + r.h < 0) continue;
           const ey = edgeY(n, f.x);
           if (ey === null) continue;
-          const surface = ey - pileAt(n, f.x);
+          const surface = ey - pileHeight(n, f.x);
           if (prevY <= surface && f.y >= surface) {
-            // Visual only: the flake disappears on contact. The piles themselves are
-            // built for every node (on screen or not) in the accumulation loop below.
+            // The flake lands: snow is added only where a flake actually hits
+            addSnow(n, binAt(n, f.x), FLAKE_GAIN * f.r);
             landed = true;
             break;
           }
@@ -3459,15 +3492,6 @@ function logout() {
       for (const n of nodes) {
         const r = n.rect;
         if (!r) continue;
-        // Snowfall on every node, including ones outside the camera: virtual flakes
-        // land on random spots along the top edge at a steady, zoom-independent rate.
-        if (enabled) {
-          n.carry = (n.carry || 0) + SNOW_RATE * dt;
-          while (n.carry >= 1) {
-            n.carry -= 1;
-            addSnow(n, Math.floor(Math.random() * BINS), FLAKE_GAIN);
-          }
-        }
         let has = false;
         for (let i = 0; i < BINS; i++) {
           if (!enabled) n.bins[i] = Math.max(0, n.bins[i] - MAX_DEPTH * MELT_PER_SEC * dt);
@@ -3490,13 +3514,12 @@ function logout() {
   function drawPile(n) {
     const r = n.rect;
     const pts = [];
-    for (let i = 0; i <= BINS; i++) {
-      const x  = r.l + (i / BINS) * r.w;
-      const ex = edgeY(n, Math.min(r.l + r.w - 0.01, Math.max(r.l + 0.01, x)));
-      const hLeft  = n.bins[Math.max(0, i - 1)];
-      const hRight = n.bins[Math.min(BINS - 1, i)];
-      const h = ((hLeft + hRight) / 2) * r.w;
-      pts.push({ x, ey: ex, top: ex - h });
+    const S = 64;                         // finer sampling so rounded corners stay smooth
+    for (let i = 0; i <= S; i++) {
+      const x  = r.l + (i / S) * r.w;
+      const sx = Math.min(r.l + r.w - 0.01, Math.max(r.l + 0.01, x));
+      const ex = edgeY(n, sx);
+      pts.push({ x, ey: ex, top: ex - pileHeight(n, sx) });
     }
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].ey);
