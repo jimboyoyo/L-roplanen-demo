@@ -520,7 +520,7 @@
 
   <button class="help-btn" onclick="openClassOverview()" title="Klassöversikt">📋</button>
 
-  <button class="help-btn snow-toggle" id="snowToggle" role="switch" aria-checked="false"
+  <button class="help-btn snow-toggle" id="snowToggle" role="switch" aria-checked="false" style="display:none"
           onclick="toggleSnow()" title="Snöeffekt av/på">❄️ <span class="snow-track"><span class="snow-knob"></span></span></button>
 
   <span class="hint">Klicka på en nod för att öppna innehållet &nbsp;·&nbsp; Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
@@ -3277,7 +3277,8 @@ function logout() {
   const MAX_FLAKES    = 160;    // flakes on screen at once
   const BINS          = 24;     // snow-pile resolution along a node's top edge
   const MAX_DEPTH     = 0.07;   // max pile height as a fraction of the node's width
-  const FLAKE_GAIN    = 0.0016; // pile height added per landed flake (× flake size), fraction of width
+  const FLAKE_GAIN    = 0.004;  // pile height added per virtual flake, fraction of node width
+  const SNOW_RATE     = 8;      // virtual flakes per second landing on EACH node (visible or not)
   const MELT_PER_SEC  = 0.25;   // fraction of max depth melting per second after switching off
   const NODE_SELECTOR = '[id^="project-"], [id^="role-"]';
 
@@ -3372,8 +3373,7 @@ function logout() {
   }
 
   // Add snow to a bin and let it slide sideways if the pile gets too steep
-  function addSnow(n, x, amount) {
-    const i = binAt(n, x);
+  function addSnow(n, i, amount) {
     n.bins[i] = Math.min(MAX_DEPTH, n.bins[i] + amount);
     for (let k = 0; k < 2; k++) {
       for (const j of [i - 1, i + 1]) {
@@ -3434,7 +3434,8 @@ function logout() {
           if (ey === null) continue;
           const surface = ey - pileAt(n, f.x);
           if (prevY <= surface && f.y >= surface) {
-            addSnow(n, f.x, FLAKE_GAIN * f.r);
+            // Visual only: the flake disappears on contact. The piles themselves are
+            // built for every node (on screen or not) in the accumulation loop below.
             landed = true;
             break;
           }
@@ -3458,6 +3459,15 @@ function logout() {
       for (const n of nodes) {
         const r = n.rect;
         if (!r) continue;
+        // Snowfall on every node, including ones outside the camera: virtual flakes
+        // land on random spots along the top edge at a steady, zoom-independent rate.
+        if (enabled) {
+          n.carry = (n.carry || 0) + SNOW_RATE * dt;
+          while (n.carry >= 1) {
+            n.carry -= 1;
+            addSnow(n, Math.floor(Math.random() * BINS), FLAKE_GAIN);
+          }
+        }
         let has = false;
         for (let i = 0; i < BINS; i++) {
           if (!enabled) n.bins[i] = Math.max(0, n.bins[i] - MAX_DEPTH * MELT_PER_SEC * dt);
@@ -3505,7 +3515,6 @@ function logout() {
     enabled = on;
     const btn = document.getElementById('snowToggle');
     if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-checked', on ? 'true' : 'false'); }
-    try { localStorage.setItem('snow-on', on ? '1' : '0'); } catch (e) {}
     if (on && !running) {
       running = true;
       lastT = performance.now();
@@ -3513,10 +3522,40 @@ function logout() {
     }
   }
 
-  window.toggleSnow = function () { setEnabled(!enabled); };
+  // The on/off state is shared through Firebase (settings/snow) so everyone in the
+  // class sees the same weather; only teachers get the switch that changes it.
+  let remoteOk = true;   // false if Firebase refuses the teacher's write → keep local state
 
-  // Restore the last choice
-  try { if (localStorage.getItem('snow-on') === '1') setEnabled(true); } catch (e) {}
+  window.toggleSnow = function () {
+    const on = !enabled;
+    setEnabled(on);
+    if (typeof helpDb !== 'undefined' && helpDb) {
+      helpDb.ref('settings/snow').set(on).catch(err => {
+        console.warn('[snow] Could not save shared snow setting:', err.message);
+        remoteOk = false;
+        setEnabled(on);          // undo any rollback echo; the effect stays local
+      });
+    }
+  };
+
+  // Everyone follows the shared setting (helpDb is created asynchronously by the help-queue code)
+  const waitForDb = setInterval(() => {
+    if (typeof helpDb === 'undefined' || !helpDb) return;
+    clearInterval(waitForDb);
+    helpDb.ref('settings/snow').on('value', snap => {
+      const v = snap.val();
+      if (v === null || !remoteOk) return;
+      setEnabled(!!v);
+    }, err => console.warn('[snow] Could not read shared snow setting:', err.message));
+  }, 500);
+
+  // Only teachers (logged in, not an @edu.orebro.se student address) see the switch
+  window.loginReadyPromise?.then(info => {
+    const email = info?.email || '';
+    const isTeacher = email && !email.endsWith('@edu.orebro.se');
+    const btn = document.getElementById('snowToggle');
+    if (btn && isTeacher) btn.style.display = 'inline-flex';
+  });
 })();
 </script>
 
