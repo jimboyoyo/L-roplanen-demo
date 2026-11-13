@@ -520,6 +520,9 @@
 
   <button class="help-btn" onclick="openClassOverview()" title="Klassöversikt">📋</button>
 
+  <button class="help-btn snow-toggle" id="snowToggle" role="switch" aria-checked="false"
+          onclick="toggleSnow()" title="Snöeffekt av/på">❄️ <span class="snow-track"><span class="snow-knob"></span></span></button>
+
   <span class="hint">Klicka på en nod för att öppna innehållet &nbsp;·&nbsp; Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
 </header>
 
@@ -3240,6 +3243,282 @@ function logout() {
     <div id="ytLightboxPlayer" style="width:100%;height:100%;"></div>
   </div>
 </div>
+
+<!-- ─── SNOW / FESTIVAL EFFECT ─────────────────────────────────────────────── -->
+<style>
+  #snowCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;               /* above the map (1), below zoom buttons (5) and panel (10) */
+  }
+  .snow-toggle { display: inline-flex; align-items: center; gap: 6px; }
+  .snow-track {
+    position: relative; display: inline-block;
+    width: 26px; height: 14px; border-radius: 7px;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.2s;
+  }
+  .snow-knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,0.8);
+    transition: transform 0.2s;
+  }
+  .snow-toggle.on .snow-track { background: #7fd0ff; }
+  .snow-toggle.on .snow-knob  { transform: translateX(12px); background: #fff; }
+</style>
+
+<script>
+(function () {
+  // ── Tuneable settings ───────────────────────────────────────────────────────
+  const MAX_FLAKES    = 160;    // flakes on screen at once
+  const BINS          = 24;     // snow-pile resolution along a node's top edge
+  const MAX_DEPTH     = 0.07;   // max pile height as a fraction of the node's width
+  const FLAKE_GAIN    = 0.0016; // pile height added per landed flake (× flake size), fraction of width
+  const MELT_PER_SEC  = 0.25;   // fraction of max depth melting per second after switching off
+  const NODE_SELECTOR = '[id^="project-"], [id^="role-"]';
+
+  const area   = document.getElementById('mapArea');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'snowCanvas';
+  area.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  let enabled = false;          // user switch
+  let running = false;          // animation loop alive
+  let W = 0, H = 0, dpr = 1;
+  let flakes = [];
+  let nodes  = [];              // { el, shape, round, bins[], rect }
+  let nodesSvg = null;
+  let lastT = 0;
+  let lastSig = '';
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  // ── Canvas sizing ───────────────────────────────────────────────────────────
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    W = area.clientWidth; H = area.clientHeight;
+    canvas.width  = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  new ResizeObserver(resize).observe(area);
+  resize();
+
+  // ── Node discovery (once per loaded SVG) ────────────────────────────────────
+  function buildNodes() {
+    const svg = getSvg();
+    if (!svg) return false;
+    if (svg === nodesSvg && nodes.length) return true;
+    nodesSvg = svg;
+    nodes = [];
+    svg.querySelectorAll(NODE_SELECTOR).forEach(el => {
+      // Pick the biggest shape inside the node: that's what snow sits on
+      const cands = el.matches('circle, ellipse, rect, path, polygon')
+        ? [el] : Array.from(el.querySelectorAll('circle, ellipse, rect, path, polygon'));
+      let best = null, bestArea = 0;
+      cands.forEach(c => {
+        try { const b = c.getBBox(); const a = b.width * b.height; if (a > bestArea) { bestArea = a; best = c; } } catch (e) {}
+      });
+      if (!best) return;
+      nodes.push({
+        el, shape: best,
+        round: best.tagName === 'circle' || best.tagName === 'ellipse',
+        bins: new Float32Array(BINS),
+        rect: null,
+      });
+    });
+    lastSig = '';
+    return nodes.length > 0;
+  }
+
+  // Screen rects, recomputed only when the view changed
+  function updateRects() {
+    const sig = [vx, vy, vw, vh, W, H].join('|');
+    if (sig === lastSig) return;
+    lastSig = sig;
+    const a = area.getBoundingClientRect();
+    nodes.forEach(n => {
+      const r = n.shape.getBoundingClientRect();
+      n.rect = { l: r.left - a.left, t: r.top - a.top, w: r.width, h: r.height };
+    });
+  }
+
+  // Y of the node's top edge at screen x (null if x is outside the node)
+  function edgeY(n, x) {
+    const r = n.rect;
+    if (x < r.l || x > r.l + r.w) return null;
+    if (!n.round) return r.t;
+    const rx = r.w / 2, ry = r.h / 2;
+    const dx = (x - (r.l + rx)) / rx;
+    return r.t + ry - ry * Math.sqrt(Math.max(0, 1 - dx * dx));
+  }
+
+  function binAt(n, x) {
+    return Math.min(BINS - 1, Math.max(0, Math.floor((x - n.rect.l) / n.rect.w * BINS)));
+  }
+
+  // Pile height in px at screen x (linear interpolation between bin centres)
+  function pileAt(n, x) {
+    const f = (x - n.rect.l) / n.rect.w * BINS - 0.5;
+    const i = Math.floor(f), t = f - i;
+    const a = n.bins[Math.max(0, Math.min(BINS - 1, i))];
+    const b = n.bins[Math.max(0, Math.min(BINS - 1, i + 1))];
+    return (a + (b - a) * t) * n.rect.w;
+  }
+
+  // Add snow to a bin and let it slide sideways if the pile gets too steep
+  function addSnow(n, x, amount) {
+    const i = binAt(n, x);
+    n.bins[i] = Math.min(MAX_DEPTH, n.bins[i] + amount);
+    for (let k = 0; k < 2; k++) {
+      for (const j of [i - 1, i + 1]) {
+        if (j < 0 || j >= BINS) continue;
+        if (n.bins[i] - n.bins[j] > 0.012) {
+          const move = (n.bins[i] - n.bins[j]) * 0.3;
+          n.bins[i] -= move; n.bins[j] += move;
+        }
+      }
+    }
+  }
+
+  // ── Flakes ──────────────────────────────────────────────────────────────────
+  function newFlake(anywhere) {
+    const x = rand(0, W);
+    return {
+      x, baseX: x,
+      y: anywhere ? rand(-20, H) : rand(-30, -4),
+      r: rand(1.2, 3.6),
+      vy: rand(18, 48),          // px / second
+      sway: rand(6, 22),         // px amplitude
+      swaySpeed: rand(0.4, 1.2),
+      phase: rand(0, Math.PI * 2),
+    };
+  }
+
+  function step(t) {
+    if (!running) return;
+    requestAnimationFrame(step);
+    const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016);
+    lastT = t;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const haveNodes = buildNodes();
+    if (haveNodes) updateRects();
+
+    // Top up the flake population gradually (only while the switch is on)
+    if (enabled) {
+      const want = Math.round(MAX_FLAKES * Math.min(1, W / 900 + 0.3));
+      if (flakes.length < want && Math.random() < 0.6) flakes.push(newFlake(false));
+    }
+
+    // Move + land flakes
+    for (let i = flakes.length - 1; i >= 0; i--) {
+      const f = flakes[i];
+      const prevY = f.y;
+      f.phase += f.swaySpeed * dt;
+      f.y += f.vy * dt;
+      f.x  = f.baseX + Math.sin(f.phase) * f.sway;
+
+      let landed = false;
+      if (haveNodes && f.y > 0) {
+        for (const n of nodes) {
+          const r = n.rect;
+          if (!r || r.w < 6 || r.l > W || r.l + r.w < 0 || r.t > H || r.t + r.h < 0) continue;
+          const ey = edgeY(n, f.x);
+          if (ey === null) continue;
+          const surface = ey - pileAt(n, f.x);
+          if (prevY <= surface && f.y >= surface) {
+            addSnow(n, f.x, FLAKE_GAIN * f.r);
+            landed = true;
+            break;
+          }
+        }
+      }
+
+      if (landed || f.y > H + 10) {
+        flakes.splice(i, 1);          // new flakes spawn at the top in the top-up above
+        continue;
+      }
+
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${(0.45 + f.r / 7).toFixed(2)})`;
+      ctx.fill();
+    }
+
+    // Draw piles, and melt them once the switch is off
+    let anySnow = false;
+    if (haveNodes) {
+      for (const n of nodes) {
+        const r = n.rect;
+        if (!r) continue;
+        let has = false;
+        for (let i = 0; i < BINS; i++) {
+          if (!enabled) n.bins[i] = Math.max(0, n.bins[i] - MAX_DEPTH * MELT_PER_SEC * dt);
+          if (n.bins[i] > 0.0004) has = true;
+        }
+        if (!has) continue;
+        anySnow = true;
+        if (r.l > W || r.l + r.w < 0 || r.t > H || r.t + r.h < 0) continue;
+        drawPile(n);
+      }
+    }
+
+    // Nothing left to animate once switched off → stop the loop
+    if (!enabled && !flakes.length && !anySnow) {
+      running = false;
+      ctx.clearRect(0, 0, W, H);
+    }
+  }
+
+  function drawPile(n) {
+    const r = n.rect;
+    const pts = [];
+    for (let i = 0; i <= BINS; i++) {
+      const x  = r.l + (i / BINS) * r.w;
+      const ex = edgeY(n, Math.min(r.l + r.w - 0.01, Math.max(r.l + 0.01, x)));
+      const hLeft  = n.bins[Math.max(0, i - 1)];
+      const hRight = n.bins[Math.min(BINS - 1, i)];
+      const h = ((hLeft + hRight) / 2) * r.w;
+      pts.push({ x, ey: ex, top: ex - h });
+    }
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].ey);
+    pts.forEach(p => ctx.lineTo(p.x, p.top));
+    for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i].x, pts[i].ey);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.shadowColor = 'rgba(160,210,255,0.6)';
+    ctx.shadowBlur = 4;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── Switch ──────────────────────────────────────────────────────────────────
+  function setEnabled(on) {
+    enabled = on;
+    const btn = document.getElementById('snowToggle');
+    if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-checked', on ? 'true' : 'false'); }
+    try { localStorage.setItem('snow-on', on ? '1' : '0'); } catch (e) {}
+    if (on && !running) {
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(step);
+    }
+  }
+
+  window.toggleSnow = function () { setEnabled(!enabled); };
+
+  // Restore the last choice
+  try { if (localStorage.getItem('snow-on') === '1') setEnabled(true); } catch (e) {}
+})();
+</script>
 
 </body>
 </html>
