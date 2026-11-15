@@ -525,6 +525,8 @@
             onclick="setWeather('snow')" title="Snö av/på">❄️ <span class="snow-track"><span class="snow-knob"></span></span></button>
     <button class="help-btn snow-toggle leaf-toggle" id="leafToggle" role="switch" aria-checked="false"
             onclick="setWeather('leaves')" title="Höstlöv av/på">🍂 <span class="snow-track"><span class="snow-knob"></span></span></button>
+    <button class="help-btn snow-toggle summer-toggle" id="summerToggle" role="switch" aria-checked="false"
+            onclick="setWeather('summer')" title="Sommar (gräs och blommor) av/på">🌼 <span class="snow-track"><span class="snow-knob"></span></span></button>
   </span>
 
   <span class="hint">Klicka på en nod för att öppna innehållet &nbsp;·&nbsp; Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
@@ -3274,6 +3276,7 @@ function logout() {
   }
   .snow-toggle.on .snow-track { background: #7fd0ff; }
   .snow-toggle.leaf-toggle.on .snow-track { background: #e8892b; }
+  .snow-toggle.summer-toggle.on .snow-track { background: #4caf50; }
   .snow-toggle.on .snow-knob  { transform: translateX(12px); background: #fff; }
 </style>
 
@@ -3292,7 +3295,12 @@ function logout() {
   const KINDS = {
     snow:   { maxFlakes: 160, maxDepth: 0.07, gain: 0.0016, slide: 0.012 },
     leaves: { maxFlakes: 70,  maxDepth: 0.09, gain: 0.0042, slide: 0.016 },
+    summer: { maxFlakes: 0,   maxDepth: 0,    gain: 0,      slide: 0 },      // no falling particles: things grow instead
   };
+  const GRASS_GROW_SECONDS   = 90;   // time for grass + flowers to fully cover a node
+  const GRASS_WITHER_SECONDS = 6;    // time for it to shrink away again when switched off
+  const GRASS_GREENS  = ['#2e8b3d', '#3fa34d', '#58b95a', '#7ccf63'];
+  const FLOWER_COLORS = ['#ffffff', '#ffe14d', '#ff8fb8', '#b794f6', '#ff7a59'];
   const LEAF_COLORS = ['#c0392b', '#d2691e', '#e67e22', '#f1a928', '#b7410e', '#a0522d', '#d4a017', '#8f3a14'];
 
   const area   = document.getElementById('mapArea');
@@ -3358,6 +3366,8 @@ function logout() {
         seed: Math.random() * 100,
         rect: null,
         has: false,
+        grass: null,                        // blades, generated on first use
+        grow: 0,                            // summer growth 0..1
       });
     });
     lastSig = '';
@@ -3568,17 +3578,27 @@ function logout() {
       for (const n of nodes) {
         const r = n.rect;
         if (!r) continue;
+        // Summer: grass + flowers grow on their own, on every node (on screen or not)
+        if (mode === 'summer') {
+          if (n.kind !== 'summer' && !hasPile(n)) { n.kind = 'summer'; n.bins.fill(0); }
+          if (n.kind === 'summer') n.grow = Math.min(1, n.grow + dt / GRASS_GROW_SECONDS);
+        } else if (n.grow > 0) {
+          n.grow = Math.max(0, n.grow - dt / GRASS_WITHER_SECONDS);
+        }
         const melting = (mode === 'off' || n.kind !== mode);
-        let has = false;
+        let hasSnow = false;
         for (let i = 0; i < BINS; i++) {
           if (melting) n.bins[i] = Math.max(0, n.bins[i] - MELT_RATE * dt);
-          if (n.bins[i] > 0.0004) has = true;
+          if (n.bins[i] > 0.0004) hasSnow = true;
         }
-        n.has = has;
-        if (!has) continue;
+        const hasGrass = n.grow > 0.001;
+        n.has = hasSnow || hasGrass;
+        if (!n.has) continue;
         anyPile = true;
         if (r.l > W || r.l + r.w < 0 || r.t > H || r.t + r.h < 0) continue;
-        if (n.kind === 'leaves') drawLeafPile(n); else drawSnowPile(n);
+        if (hasGrass) drawGrass(n, t / 1000);
+        else if (n.kind === 'leaves') drawLeafPile(n);
+        else drawSnowPile(n);
       }
     }
 
@@ -3651,6 +3671,123 @@ function logout() {
     ctx.stroke();
   }
 
+  // ── Summer: grass and tiny flowers ──────────────────────────────────────────
+  function hasPile(n) {
+    for (let i = 0; i < BINS; i++) if (n.bins[i] > 0.0004) return true;
+    return false;
+  }
+
+  // 0..1 factor that lets rectangular (project) nodes taper off towards the corners
+  function endRamp(n, x) {
+    if (n.round) return 1;
+    const r = n.rect;
+    const ramp = Math.max(r.rr || 0, r.w * 0.12);
+    const d = Math.min(x - r.l, r.l + r.w - x);
+    if (d >= ramp) return 1;
+    const u = Math.max(0, d / ramp);
+    return u * u * (3 - 2 * u);
+  }
+
+  // Blades are generated once per node and stored as fractions, so they scale with zoom
+  function ensureGrass(n) {
+    if (n.grass) return n.grass;
+    const lo = n.round ? 0.14 : 0.03, hi = n.round ? 0.86 : 0.97;
+    const count = n.round ? 48 : 84;
+    const blades = [];
+    for (let i = 0; i < count; i++) {
+      const flower = Math.random() < 0.17;
+      blades.push({
+        t: lo + (hi - lo) * ((i + rand(0.1, 0.9)) / count),   // evenly spread, with jitter
+        h: rand(0.045, 0.09) * (flower ? 1.2 : 1),            // height, fraction of node width
+        lean: rand(-0.35, 0.35),
+        delay: rand(0, 0.6),                                  // when it starts sprouting (fraction of growth)
+        green: Math.floor(rand(0, GRASS_GREENS.length)),
+        phase: rand(0, Math.PI * 2),
+        flower,
+        fcol: Math.floor(rand(0, FLOWER_COLORS.length)),
+        fr: rand(0.9, 1.3),
+      });
+    }
+    n.grass = blades;
+    return blades;
+  }
+
+  function drawGrass(n, sec) {
+    const r = n.rect, g = ensureGrass(n), grow = n.grow;
+    const ease = u => u * u * (3 - 2 * u);
+
+    // low turf along the top edge, so the node looks covered rather than just spiky
+    const bandH = r.w * 0.02 * ease(Math.min(1, grow * 2));
+    if (bandH > 0.2) {
+      const S = 48, pts = [];
+      for (let i = 0; i <= S; i++) {
+        const x  = r.l + (i / S) * r.w;
+        const sx = Math.min(r.l + r.w - 0.01, Math.max(r.l + 0.01, x));
+        const ey = edgeY(n, sx);
+        pts.push({ x, ey, top: ey - bandH * endRamp(n, sx) });
+      }
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].ey);
+      pts.forEach(p => ctx.lineTo(p.x, p.top));
+      for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i].x, pts[i].ey);
+      ctx.closePath();
+      ctx.fillStyle = '#2b7a38';
+      ctx.fill();
+    }
+
+    // blades, batched into one path per shade of green
+    const paths = GRASS_GREENS.map(() => new Path2D());
+    const flowers = [];
+    const e = Math.max(1, r.w * 0.01);
+    for (const b of g) {
+      const u = Math.max(0, Math.min(1, (grow - b.delay) / (1 - b.delay)));
+      if (u <= 0) continue;
+      const x0 = r.l + b.t * r.w;
+      const y0 = edgeY(n, x0);
+      if (y0 === null) continue;
+
+      // outward direction: follows the curve on round nodes, straight up on flat tops
+      const slope = (edgeY(n, Math.min(r.l + r.w - 0.01, x0 + e)) - edgeY(n, Math.max(r.l + 0.01, x0 - e))) / (2 * e);
+      let nx = slope, ny = -1;
+      const nl = Math.hypot(nx, ny); nx /= nl; ny /= nl;
+      let dx = 0.6 * nx + b.lean, dy = 0.6 * ny - 0.4;
+      const dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
+
+      const len  = b.h * r.w * ease(u);
+      const sway = Math.sin(sec * 1.3 + b.phase + x0 * 0.02) * len * 0.18;
+      const tx = x0 + dx * len + sway, ty = y0 + dy * len;
+      const p = paths[b.green];
+      p.moveTo(x0, y0);
+      p.quadraticCurveTo(x0 + dx * len * 0.45 + sway * 0.25, y0 + dy * len * 0.65, tx, ty);
+
+      if (b.flower && u > 0.85) flowers.push({ x: tx, y: ty, col: b.fcol, k: ease((u - 0.85) / 0.15), fr: b.fr });
+    }
+    ctx.lineWidth = Math.max(0.9, Math.min(2.6, r.w * 0.0125));
+    ctx.lineCap = 'round';
+    paths.forEach((p, i) => { ctx.strokeStyle = GRASS_GREENS[i]; ctx.stroke(p); });
+
+    // tiny flowers on the tallest stems
+    const base = Math.max(1.3, r.w * 0.016);
+    for (const f of flowers) {
+      const rad = base * f.fr * f.k;
+      if (rad < 0.3) continue;
+      const petal = FLOWER_COLORS[f.col];
+      if (rad < 2.2) {                               // too small for petals: a coloured dot is enough
+        ctx.beginPath(); ctx.arc(f.x, f.y, rad * 1.1, 0, Math.PI * 2);
+        ctx.fillStyle = petal; ctx.fill();
+        continue;
+      }
+      ctx.fillStyle = petal;
+      for (let k = 0; k < 5; k++) {
+        const a = k * Math.PI * 2 / 5 - Math.PI / 2;
+        ctx.beginPath(); ctx.arc(f.x + Math.cos(a) * rad * 0.7, f.y + Math.sin(a) * rad * 0.7, rad * 0.55, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(f.x, f.y, rad * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = (f.col === 1) ? '#e08a00' : '#ffd23f';
+      ctx.fill();
+    }
+  }
+
   // ── Switch ──────────────────────────────────────────────────────────────────
   function setMode(m) {
     if (!KINDS[m] && m !== 'off') m = 'off';
@@ -3658,6 +3795,8 @@ function logout() {
     const snowBtn = document.getElementById('snowToggle');
     const leafBtn = document.getElementById('leafToggle');
     if (snowBtn) { snowBtn.classList.toggle('on', m === 'snow');   snowBtn.setAttribute('aria-checked', m === 'snow'   ? 'true' : 'false'); }
+    const sumBtn  = document.getElementById('summerToggle');
+    if (sumBtn)  { sumBtn.classList.toggle('on', m === 'summer');  sumBtn.setAttribute('aria-checked', m === 'summer'  ? 'true' : 'false'); }
     if (leafBtn) { leafBtn.classList.toggle('on', m === 'leaves'); leafBtn.setAttribute('aria-checked', m === 'leaves' ? 'true' : 'false'); }
     if (m !== 'off' && !running) {
       running = true;
