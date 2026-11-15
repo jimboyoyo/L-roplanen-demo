@@ -520,8 +520,12 @@
 
   <button class="help-btn" onclick="openClassOverview()" title="Klassöversikt">📋</button>
 
-  <button class="help-btn snow-toggle" id="snowToggle" role="switch" aria-checked="false" style="display:none"
-          onclick="toggleSnow()" title="Snöeffekt av/på">❄️ <span class="snow-track"><span class="snow-knob"></span></span></button>
+  <span id="weatherSwitch">
+    <button class="help-btn snow-toggle" id="snowToggle" role="switch" aria-checked="false"
+            onclick="setWeather('snow')" title="Snö av/på">❄️ <span class="snow-track"><span class="snow-knob"></span></span></button>
+    <button class="help-btn snow-toggle leaf-toggle" id="leafToggle" role="switch" aria-checked="false"
+            onclick="setWeather('leaves')" title="Höstlöv av/på">🍂 <span class="snow-track"><span class="snow-knob"></span></span></button>
+  </span>
 
   <span class="hint">Klicka på en nod för att öppna innehållet &nbsp;·&nbsp; Dra för att panorera &nbsp;·&nbsp; Scrolla för att zooma</span>
 </header>
@@ -3244,7 +3248,7 @@ function logout() {
   </div>
 </div>
 
-<!-- ─── SNOW / FESTIVAL EFFECT ─────────────────────────────────────────────── -->
+<!-- ─── SEASONAL EFFECT: SNOW / AUTUMN LEAVES ──────────────────────────────── -->
 <style>
   #snowCanvas {
     position: absolute;
@@ -3254,6 +3258,7 @@ function logout() {
     pointer-events: none;
     z-index: 2;               /* above the map (1), below zoom buttons (5) and panel (10) */
   }
+  #weatherSwitch { display: none; align-items: center; gap: 6px; }
   .snow-toggle { display: inline-flex; align-items: center; gap: 6px; }
   .snow-track {
     position: relative; display: inline-block;
@@ -3268,18 +3273,27 @@ function logout() {
     transition: transform 0.2s;
   }
   .snow-toggle.on .snow-track { background: #7fd0ff; }
+  .snow-toggle.leaf-toggle.on .snow-track { background: #e8892b; }
   .snow-toggle.on .snow-knob  { transform: translateX(12px); background: #fff; }
 </style>
 
 <script>
 (function () {
   // ── Tuneable settings ───────────────────────────────────────────────────────
-  const MAX_FLAKES    = 160;    // flakes on screen at once
-  const BINS          = 24;     // snow-pile resolution along a node's top edge
-  const MAX_DEPTH     = 0.07;   // max pile height as a fraction of the node's width
-  const FLAKE_GAIN    = 0.0016; // pile height added per landed flake (× flake size), fraction of width
-  const MELT_PER_SEC  = 0.25;   // fraction of max depth melting per second after switching off
+  const BINS          = 24;     // pile resolution along a node's top edge
+  const MELT_RATE     = 0.018;  // pile height (fraction of node width) lost per second when it melts away
   const NODE_SELECTOR = '[id^="project-"], [id^="role-"]';
+
+  // Per-effect settings
+  //   maxFlakes : particles on screen at once
+  //   maxDepth  : max pile height as a fraction of the node's width
+  //   gain      : pile height added per landed particle (× particle size)
+  //   slide     : how steep a pile may get between neighbouring bins before it spreads out
+  const KINDS = {
+    snow:   { maxFlakes: 160, maxDepth: 0.07, gain: 0.0016, slide: 0.012 },
+    leaves: { maxFlakes: 70,  maxDepth: 0.09, gain: 0.0042, slide: 0.016 },
+  };
+  const LEAF_COLORS = ['#c0392b', '#d2691e', '#e67e22', '#f1a928', '#b7410e', '#a0522d', '#d4a017', '#8f3a14'];
 
   const area   = document.getElementById('mapArea');
   const canvas = document.createElement('canvas');
@@ -3287,11 +3301,11 @@ function logout() {
   area.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
-  let enabled = false;          // user switch
+  let mode = 'off';             // 'off' | 'snow' | 'leaves'
   let running = false;          // animation loop alive
   let W = 0, H = 0, dpr = 1;
   let flakes = [];
-  let nodes  = [];              // { el, shape, round, bins[], rect }
+  let nodes  = [];              // { el, shape, round, kind, bins[], colors[], rect, has }
   let nodesSvg = null;
   let lastT = 0;
   let lastSig = '';
@@ -3317,7 +3331,7 @@ function logout() {
     nodesSvg = svg;
     nodes = [];
     svg.querySelectorAll(NODE_SELECTOR).forEach(el => {
-      // Pick the biggest shape inside the node: that's what snow sits on
+      // Pick the biggest shape inside the node: that's what the pile sits on
       const cands = el.matches('circle, ellipse, rect, path, polygon')
         ? [el] : Array.from(el.querySelectorAll('circle, ellipse, rect, path, polygon'));
       let best = null, bestArea = 0;
@@ -3326,7 +3340,7 @@ function logout() {
       });
       if (!best) return;
       const isRound = best.tagName === 'circle' || best.tagName === 'ellipse';
-      // Rounded-rectangle nodes (projects): remember the corner radius so snow can follow the corners
+      // Rounded-rectangle nodes (projects): remember the corner radius so piles can follow the corners
       let cornerR = 0, shapeW = 1;
       if (!isRound) {
         try { shapeW = best.getBBox().width || 1; } catch (e) {}
@@ -3338,8 +3352,12 @@ function logout() {
         el, shape: best,
         round: isRound,
         cornerR, shapeW,
+        kind: 'snow',                       // which effect the current pile belongs to
         bins: new Float32Array(BINS),
+        colors: new Uint8Array(BINS),       // leaf colour per bin
+        seed: Math.random() * 100,
         rect: null,
+        has: false,
       });
     });
     lastSig = '';
@@ -3392,7 +3410,7 @@ function logout() {
     return (a + (b - a) * t) * n.rect.w;
   }
 
-  // Actual pile height in px. On rectangular (project) nodes the snow thins out towards the
+  // Actual pile height in px. On rectangular (project) nodes the pile thins out towards the
   // ends so it looks like a soft drift sitting on the edge instead of a flat slab.
   function pileHeight(n, x) {
     let h = pileAt(n, x);
@@ -3405,13 +3423,14 @@ function logout() {
     return h;
   }
 
-  // Add snow to a bin and let it slide sideways if the pile gets too steep
-  function addSnow(n, i, amount) {
-    n.bins[i] = Math.min(MAX_DEPTH, n.bins[i] + amount);
+  // Add to a bin and let the pile slide sideways if it gets too steep
+  function addToPile(n, i, amount) {
+    const K = KINDS[n.kind];
+    n.bins[i] = Math.min(K.maxDepth, n.bins[i] + amount);
     for (let k = 0; k < 2; k++) {
       for (const j of [i - 1, i + 1]) {
         if (j < 0 || j >= BINS) continue;
-        if (n.bins[i] - n.bins[j] > 0.012) {
+        if (n.bins[i] - n.bins[j] > K.slide) {
           const move = (n.bins[i] - n.bins[j]) * 0.3;
           n.bins[i] -= move; n.bins[j] += move;
         }
@@ -3419,18 +3438,66 @@ function logout() {
     }
   }
 
-  // ── Flakes ──────────────────────────────────────────────────────────────────
-  function newFlake(anywhere) {
+  // ── Particles ───────────────────────────────────────────────────────────────
+  function newFlake(kind) {
     const x = rand(0, W);
+    if (kind === 'leaves') {
+      return {
+        kind, x, baseX: x,
+        y: rand(-40, -6),
+        r: rand(1.5, 3),                // size factor (leaf is r × 3.2 px long)
+        vy: rand(24, 55),
+        sway: rand(14, 40),
+        swaySpeed: rand(0.35, 0.9),
+        phase: rand(0, Math.PI * 2),
+        rot: rand(0, Math.PI * 2),
+        spin: rand(-1.2, 1.2),
+        tilt: rand(0, Math.PI * 2),
+        tiltSpeed: rand(1.5, 3.5),
+        color: Math.floor(rand(0, LEAF_COLORS.length)),
+        dying: false, alpha: 1,
+      };
+    }
     return {
-      x, baseX: x,
-      y: anywhere ? rand(-20, H) : rand(-30, -4),
+      kind: 'snow', x, baseX: x,
+      y: rand(-30, -4),
       r: rand(1.2, 3.6),
-      vy: rand(18, 48),          // px / second
-      sway: rand(6, 22),         // px amplitude
+      vy: rand(18, 48),                 // px / second
+      sway: rand(6, 22),                // px amplitude
       swaySpeed: rand(0.4, 1.2),
       phase: rand(0, Math.PI * 2),
+      dying: false, alpha: 1,
     };
+  }
+
+  function drawFlake(f) {
+    ctx.globalAlpha = f.alpha;
+    if (f.kind === 'leaves') {
+      const s = f.r * 3.2;
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.rot);
+      ctx.scale(Math.max(0.25, Math.abs(Math.cos(f.tilt))), 1);   // flutter: leaf turns edge-on and back
+      ctx.fillStyle = LEAF_COLORS[f.color];
+      ctx.beginPath();
+      ctx.moveTo(0, -s);
+      ctx.quadraticCurveTo(s * 1.25, -s * 0.2, 0, s);
+      ctx.quadraticCurveTo(-s * 1.25, -s * 0.2, 0, -s);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(60,25,5,0.45)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.9);
+      ctx.lineTo(0, s * 1.15);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${(0.45 + f.r / 7).toFixed(2)})`;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   function step(t) {
@@ -3444,83 +3511,104 @@ function logout() {
     const haveNodes = buildNodes();
     if (haveNodes) updateRects();
 
-    // Top up the flake population gradually (only while the switch is on)
-    if (enabled) {
-      const want = Math.round(MAX_FLAKES * Math.min(1, W / 900 + 0.3));
-      if (flakes.length < want && Math.random() < 0.6) flakes.push(newFlake(false));
+    // Top up the particle population gradually (only for the active effect)
+    if (mode !== 'off') {
+      const K = KINDS[mode];
+      const want = Math.round(K.maxFlakes * Math.min(1, W / 900 + 0.3));
+      let alive = 0;
+      for (const f of flakes) if (!f.dying && f.kind === mode) alive++;
+      if (alive < want && Math.random() < 0.6) flakes.push(newFlake(mode));
     }
 
-    // Move + land flakes
+    // Move + land particles
     for (let i = flakes.length - 1; i >= 0; i--) {
       const f = flakes[i];
+
+      // Particles from a previous effect (or after switching off) fade away
+      if (!f.dying && f.kind !== mode) f.dying = true;
+      if (f.dying) {
+        f.alpha -= dt * 1.2;
+        if (f.alpha <= 0) { flakes.splice(i, 1); continue; }
+      }
+
       const prevY = f.y;
       f.phase += f.swaySpeed * dt;
       f.y += f.vy * dt;
       f.x  = f.baseX + Math.sin(f.phase) * f.sway;
+      if (f.kind === 'leaves') { f.rot += f.spin * dt; f.tilt += f.tiltSpeed * dt; }
 
       let landed = false;
-      if (haveNodes && f.y > 0) {
+      if (!f.dying && haveNodes && f.y > 0) {
         for (const n of nodes) {
           const r = n.rect;
           if (!r || r.w < 6 || r.l > W || r.l + r.w < 0 || r.t > H || r.t + r.h < 0) continue;
+          // a node holding the other effect's pile (still melting) doesn't catch new particles yet
+          if (n.kind !== f.kind && n.has) continue;
           const ey = edgeY(n, f.x);
           if (ey === null) continue;
-          const surface = ey - pileHeight(n, f.x);
+          const surface = ey - (n.kind === f.kind ? pileHeight(n, f.x) : 0);
           if (prevY <= surface && f.y >= surface) {
-            // The flake lands: snow is added only where a flake actually hits
-            addSnow(n, binAt(n, f.x), FLAKE_GAIN * f.r);
+            if (n.kind !== f.kind) { n.kind = f.kind; n.bins.fill(0); }
+            const bi = binAt(n, f.x);
+            if (f.kind === 'leaves') n.colors[bi] = f.color;
+            addToPile(n, bi, KINDS[f.kind].gain * f.r);   // piles grow only where a particle actually hits
             landed = true;
             break;
           }
         }
       }
 
-      if (landed || f.y > H + 10) {
-        flakes.splice(i, 1);          // new flakes spawn at the top in the top-up above
-        continue;
-      }
-
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${(0.45 + f.r / 7).toFixed(2)})`;
-      ctx.fill();
+      if (landed || f.y > H + 20) { flakes.splice(i, 1); continue; }
+      drawFlake(f);
     }
 
-    // Draw piles, and melt them once the switch is off
-    let anySnow = false;
+    // Draw piles; melt the ones that no longer belong to the active effect
+    let anyPile = false;
     if (haveNodes) {
       for (const n of nodes) {
         const r = n.rect;
         if (!r) continue;
+        const melting = (mode === 'off' || n.kind !== mode);
         let has = false;
         for (let i = 0; i < BINS; i++) {
-          if (!enabled) n.bins[i] = Math.max(0, n.bins[i] - MAX_DEPTH * MELT_PER_SEC * dt);
+          if (melting) n.bins[i] = Math.max(0, n.bins[i] - MELT_RATE * dt);
           if (n.bins[i] > 0.0004) has = true;
         }
+        n.has = has;
         if (!has) continue;
-        anySnow = true;
+        anyPile = true;
         if (r.l > W || r.l + r.w < 0 || r.t > H || r.t + r.h < 0) continue;
-        drawPile(n);
+        if (n.kind === 'leaves') drawLeafPile(n); else drawSnowPile(n);
       }
     }
 
     // Nothing left to animate once switched off → stop the loop
-    if (!enabled && !flakes.length && !anySnow) {
+    if (mode === 'off' && !flakes.length && !anyPile) {
       running = false;
       ctx.clearRect(0, 0, W, H);
     }
   }
 
-  function drawPile(n) {
+  // Samples along the top edge: { x, ey (node edge), top (pile surface) }
+  function samplePile(n, S, jag) {
     const r = n.rect;
     const pts = [];
-    const S = 64;                         // finer sampling so rounded corners stay smooth
     for (let i = 0; i <= S; i++) {
       const x  = r.l + (i / S) * r.w;
       const sx = Math.min(r.l + r.w - 0.01, Math.max(r.l + 0.01, x));
       const ex = edgeY(n, sx);
-      pts.push({ x, ey: ex, top: ex - pileHeight(n, sx) });
+      let h = pileHeight(n, sx);
+      if (jag) {   // ragged, leafy surface (stable per node)
+        const hash = ((Math.sin(i * 12.9898 + n.seed * 78.233) * 43758.5453) % 1 + 1) % 1;
+        h *= 0.8 + 0.4 * hash;
+      }
+      pts.push({ x, ey: ex, top: ex - h });
     }
+    return pts;
+  }
+
+  function drawSnowPile(n) {
+    const pts = samplePile(n, 64, false);     // 64 samples keep rounded corners smooth
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].ey);
     pts.forEach(p => ctx.lineTo(p.x, p.top));
@@ -3533,30 +3621,64 @@ function logout() {
     ctx.shadowBlur = 0;
   }
 
+  function drawLeafPile(n) {
+    const S = 64;
+    const pts = samplePile(n, S, true);
+    // Colour-banded mound: each slice takes the colour of the leaf that landed in that bin
+    for (let i = 0; i < S; i++) {
+      const a = pts[i], b = pts[i + 1];
+      if (a.ey - a.top < 0.15 && b.ey - b.top < 0.15) continue;
+      const bin = Math.min(BINS - 1, Math.floor((i + 0.5) / S * BINS));
+      const col = LEAF_COLORS[n.colors[bin]];
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.ey);
+      ctx.lineTo(a.x, a.top);
+      ctx.lineTo(b.x, b.top);
+      ctx.lineTo(b.x, b.ey);
+      ctx.closePath();
+      ctx.fillStyle = col;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 0.6;                    // hides hairline seams between slices
+      ctx.fill();
+      ctx.stroke();
+    }
+    // soft dark outline along the top of the heap
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].top);
+    pts.forEach(p => ctx.lineTo(p.x, p.top));
+    ctx.strokeStyle = 'rgba(70,30,5,0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
   // ── Switch ──────────────────────────────────────────────────────────────────
-  function setEnabled(on) {
-    enabled = on;
-    const btn = document.getElementById('snowToggle');
-    if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-checked', on ? 'true' : 'false'); }
-    if (on && !running) {
+  function setMode(m) {
+    if (!KINDS[m] && m !== 'off') m = 'off';
+    mode = m;
+    const snowBtn = document.getElementById('snowToggle');
+    const leafBtn = document.getElementById('leafToggle');
+    if (snowBtn) { snowBtn.classList.toggle('on', m === 'snow');   snowBtn.setAttribute('aria-checked', m === 'snow'   ? 'true' : 'false'); }
+    if (leafBtn) { leafBtn.classList.toggle('on', m === 'leaves'); leafBtn.setAttribute('aria-checked', m === 'leaves' ? 'true' : 'false'); }
+    if (m !== 'off' && !running) {
       running = true;
       lastT = performance.now();
       requestAnimationFrame(step);
     }
   }
 
-  // The on/off state is shared through Firebase (settings/snow) so everyone in the
-  // class sees the same weather; only teachers get the switch that changes it.
+  // The chosen effect is shared through Firebase (settings/weather) so everyone in the
+  // class sees the same weather; only teachers get the switches that change it.
   let remoteOk = true;   // false if Firebase refuses the teacher's write → keep local state
 
-  window.toggleSnow = function () {
-    const on = !enabled;
-    setEnabled(on);
+  // Clicking the active effect switches it off; clicking the other one swaps to it.
+  window.setWeather = function (m) {
+    const next = (m === mode) ? 'off' : m;
+    setMode(next);
     if (typeof helpDb !== 'undefined' && helpDb) {
-      helpDb.ref('settings/snow').set(on).catch(err => {
-        console.warn('[snow] Could not save shared snow setting:', err.message);
+      helpDb.ref('settings/weather').set(next).catch(err => {
+        console.warn('[weather] Could not save shared setting:', err.message);
         remoteOk = false;
-        setEnabled(on);          // undo any rollback echo; the effect stays local
+        setMode(next);           // undo any rollback echo; the effect stays local
       });
     }
   };
@@ -3565,19 +3687,19 @@ function logout() {
   const waitForDb = setInterval(() => {
     if (typeof helpDb === 'undefined' || !helpDb) return;
     clearInterval(waitForDb);
-    helpDb.ref('settings/snow').on('value', snap => {
+    helpDb.ref('settings/weather').on('value', snap => {
       const v = snap.val();
-      if (v === null || !remoteOk) return;
-      setEnabled(!!v);
-    }, err => console.warn('[snow] Could not read shared snow setting:', err.message));
+      if (typeof v !== 'string' || !remoteOk) return;
+      setMode(v);
+    }, err => console.warn('[weather] Could not read shared setting:', err.message));
   }, 500);
 
-  // Only teachers (logged in, not an @edu.orebro.se student address) see the switch
+  // Only teachers (logged in, not an @edu.orebro.se student address) see the switches
   window.loginReadyPromise?.then(info => {
     const email = info?.email || '';
     const isTeacher = email && !email.endsWith('@edu.orebro.se');
-    const btn = document.getElementById('snowToggle');
-    if (btn && isTeacher) btn.style.display = 'inline-flex';
+    const box = document.getElementById('weatherSwitch');
+    if (box && isTeacher) box.style.display = 'inline-flex';
   });
 })();
 </script>
